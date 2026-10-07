@@ -16,320 +16,168 @@ class BotPublicationController extends Controller
         $currentDate = $now->toDateString();
 
         $publications = Publication::query()
-            /*
-             * Cargamos los grupos de Facebook seleccionados
-             * para evitar consultas adicionales dentro del foreach.
-             */
             ->with([
-                'facebookGroups' => function ($query) {
+                'facebookGroups' => function ($query): void {
                     $query
                         ->where('active', true)
                         ->orderBy('name');
                 },
             ])
             ->where('active', true)
-            ->whereDate('fecha', '<=', $currentDate)
-            ->where(function ($query) use ($currentDate) {
+            ->whereDate('date', '<=', $currentDate)
+            ->where(function ($query) use ($currentDate): void {
                 $query
-                    ->whereNull('fecha_fin')
-                    ->orWhereDate('fecha_fin', '>=', $currentDate);
+                    ->whereNull('end_date')
+                    ->orWhereDate('end_date', '>=', $currentDate);
             })
-            ->orderBy('fecha')
-            ->orderBy('hora')
+            ->orderBy('date')
+            ->orderBy('time')
             ->get();
 
         $result = [];
 
         foreach ($publications as $publication) {
-            $occurrences = $this->generateDailyOccurrences(
-                $publication,
-                $now
-            );
+            foreach ($this->generateDailyOccurrences($publication, $now) as $occurrence) {
+                $facebookGroups = in_array(
+                    $publication->destination,
+                    ['facebook', 'both'],
+                    true
+                )
+                    ? $publication->facebookGroups
+                        ->map(static fn ($group): array => [
+                            'id' => $group->id,
+                            'facebook_id' => $group->facebook_id,
+                            'name' => $group->name,
+                            'url' => $group->url,
+                        ])
+                        ->values()
+                        ->all()
+                    : [];
 
-            foreach ($occurrences as $occurrence) {
+                $occurrenceId = $publication->id . '_' . $occurrence->format('Y-m-d_H-i');
+
                 $result[] = [
                     'id' => $publication->id,
-
-                    /*
-                     * Cada ocurrencia tiene una identidad única.
-                     *
-                     * Ejemplo:
-                     * 6_2026-10-06_12-30
-                     * 6_2026-10-06_13-30
-                     * 6_2026-10-06_14-30
-                     */
-                    'ocurrencia_id' =>
-                        $publication->id .
-                        '_' .
-                        $occurrence->format('Y-m-d_H-i'),
-
+                    'occurrence_id' => $occurrenceId,
                     'date' => $occurrence->format('Y-m-d'),
-                    'fecha' => $occurrence->format('Y-m-d'),
-
                     'time' => $occurrence->format('H:i'),
+                    'image' => $publication->image
+                        ? url(Storage::url($publication->image))
+                        : null,
+                    'text' => $publication->text,
+                    'destination' => $publication->destination,
+                    'recurrence_type' => $publication->recurrence_type,
+                    'interval_hours' => $publication->interval_hours,
+                    'recurrence_start_time' => $publication->recurrence_start_time,
+                    'recurrence_end_time' => $publication->recurrence_end_time,
+                    'end_date' => $publication->end_date?->format('Y-m-d'),
+                    'facebook_groups' => $facebookGroups,
+
+                    // Legacy fields kept temporarily for the stable WBot baseline.
+                    'ocurrencia_id' => $occurrenceId,
+                    'fecha' => $occurrence->format('Y-m-d'),
                     'hora' => $occurrence->format('H:i'),
-
-                    'imagen' => $publication->imagen
-                        ? url(Storage::url($publication->imagen))
+                    'imagen' => $publication->image
+                        ? url(Storage::url($publication->image))
                         : null,
-
-                    'texto' => $publication->texto,
-
-                    'destino' => $publication->destino,
-
-                    /*
-                     |--------------------------------------------------------------------------
-                     | GRUPOS DE FACEBOOK
-                     |--------------------------------------------------------------------------
-                     |
-                     | Solamente se envían cuando existen grupos
-                     | seleccionados en Filament.
-                     |
-                     | Si la publicación es de WhatsApp, será [].
-                     |
-                     */
-                    'facebook_groups' =>
-                        in_array(
-                            $publication->destino,
-                            ['facebook', 'ambos'],
-                            true
-                        )
-                            ? $publication->facebookGroups
-                                ->map(function ($group) {
-                                    return [
-                                        'id' => $group->id,
-                                        'facebook_id' => $group->facebook_id,
-                                        'name' => $group->name,
-                                        'nombre' => $group->name,
-                                        'url' => $group->url,
-                                    ];
-                                })
-                                ->values()
-                                ->all()
-                            : [],
-
-                    'tipo_recurrencia' =>
-                        $publication->tipo_recurrencia,
-
-                    'intervalo_horas' =>
-                        $publication->intervalo_horas,
-
-                    'hora_inicio_recurrencia' =>
-                        $publication->hora_inicio_recurrencia,
-
-                    'hora_fin_recurrencia' =>
-                        $publication->hora_fin_recurrencia,
-
-                    'fecha_fin' => $publication->fecha_fin
-                        ? $publication->fecha_fin->format('Y-m-d')
-                        : null,
+                    'texto' => $publication->text,
+                    'destino' => $publication->destination === 'both'
+                        ? 'ambos'
+                        : $publication->destination,
+                    'tipo_recurrencia' => $publication->recurrence_type === 'hourly'
+                        ? 'cada_horas'
+                        : 'ninguna',
+                    'intervalo_horas' => $publication->interval_hours,
+                    'hora_inicio_recurrencia' => $publication->recurrence_start_time,
+                    'hora_fin_recurrencia' => $publication->recurrence_end_time,
+                    'fecha_fin' => $publication->end_date?->format('Y-m-d'),
+                    'facebookGrupos' => collect($facebookGroups)
+                        ->map(static fn (array $group): array => [
+                            'id' => $group['id'],
+                            'facebook_id' => $group['facebook_id'],
+                            'nombre' => $group['name'],
+                            'url' => $group['url'],
+                        ])
+                        ->values()
+                        ->all(),
                 ];
             }
         }
 
         usort(
             $result,
-            function (array $a, array $b): int {
-                return strcmp(
-                    $a['fecha'] . ' ' . $a['hora'],
-                    $b['fecha'] . ' ' . $b['hora']
-                );
-            }
+            static fn (array $a, array $b): int => strcmp(
+                $a['date'] . ' ' . $a['time'],
+                $b['date'] . ' ' . $b['time']
+            )
         );
 
-        return response()->json([
-            'data' => $result,
-        ]);
+        return response()->json(['data' => $result]);
     }
 
-    /**
-     * Genera las ocurrencias correspondientes al día actual.
-     */
     private function generateDailyOccurrences(
         Publication $publication,
         Carbon $now
     ): array {
         $dayStart = $now->copy()->startOfDay();
         $dayEnd = $now->copy()->endOfDay();
+        $startDate = Carbon::parse($publication->date)->startOfDay();
 
-        $startDate = Carbon::parse(
-            $publication->fecha
-        )->startOfDay();
-
-        /*
-        |--------------------------------------------------------------------------
-        | PUBLICACIÓN SIN RECURRENCIA
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            empty($publication->tipo_recurrencia) ||
-            $publication->tipo_recurrencia === 'ninguna'
-        ) {
-            /*
-             * La publicación normal solamente corresponde
-             * al día configurado.
-             */
-            if (
-                !$startDate->isSameDay($now)
-            ) {
+        if ($publication->recurrence_type === 'none') {
+            if (!$startDate->isSameDay($now)) {
                 return [];
             }
 
-            $fechaHora = Carbon::parse(
-                $publication->fecha->format('Y-m-d') .
-                ' ' .
-                substr(
-                    (string) $publication->hora,
-                    0,
-                    5
-                )
+            $dateTime = Carbon::parse(
+                $publication->date->format('Y-m-d') . ' ' . substr((string) $publication->time, 0, 5)
             );
 
-            if (
-                $fechaHora->betweenIncluded(
-                    $dayStart,
-                    $dayEnd
-                )
-            ) {
-                return [$fechaHora];
-            }
-
-            return [];
+            return $dateTime->betweenIncluded($dayStart, $dayEnd)
+                ? [$dateTime]
+                : [];
         }
-
-        /*
-        |--------------------------------------------------------------------------
-        | VALIDACIÓN DE FECHA DE INICIO
-        |--------------------------------------------------------------------------
-        */
 
         if ($dayStart->lt($startDate)) {
             return [];
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | VALIDACIÓN DE FECHA FINAL
-        |--------------------------------------------------------------------------
-        */
-
         if (
-            $publication->fecha_fin &&
-            $dayStart->gt(
-                Carbon::parse(
-                    $publication->fecha_fin
-                )->endOfDay()
-            )
+            $publication->end_date &&
+            $dayStart->gt(Carbon::parse($publication->end_date)->endOfDay())
         ) {
             return [];
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | RECURRENCIA CADA X HORAS
-        |--------------------------------------------------------------------------
-        */
-
-        if (
-            $publication->tipo_recurrencia === 'cada_horas'
-        ) {
-            $intervalHours = (int) $publication->intervalo_horas;
-
-            /*
-             * El intervalo debe ser como mínimo 1 hora.
-             */
-            if ($intervalHours < 1) {
-                return [];
-            }
-
-            /*
-             * Para publicaciones recurrentes utilizamos
-             * siempre hora_inicio_recurrencia.
-             */
-            if (
-                empty(
-                    $publication->hora_inicio_recurrencia
-                )
-            ) {
-                return [];
-            }
-
-            $startTime =
-                substr(
-                    (string) $publication->hora_inicio_recurrencia,
-                    0,
-                    5
-                );
-
-            /*
-             * Si no se define hora final, utilizamos 23:59.
-             */
-            $endTime = !empty(
-                $publication->hora_fin_recurrencia
-            )
-                ? substr(
-                    (string) $publication->hora_fin_recurrencia,
-                    0,
-                    5
-                )
-                : '23:59';
-
-            /*
-             * Construimos las horas correspondientes
-             * al día actual.
-             */
-            $start = Carbon::parse(
-                $now->format('Y-m-d') .
-                ' ' .
-                $startTime
-            );
-
-            $end = Carbon::parse(
-                $now->format('Y-m-d') .
-                ' ' .
-                $endTime
-            );
-
-            /*
-             * La hora de inicio no puede ser posterior
-             * a la hora final.
-             */
-            if ($start->gt($end)) {
-                return [];
-            }
-
-            $result = [];
-
-            $current = $start->copy();
-
-            /*
-             * Generamos:
-             *
-             * hora_inicio
-             * + intervalo
-             * + intervalo
-             * ...
-             * hasta hora_fin.
-             */
-            while ($current->lte($end)) {
-                if ($current->isSameDay($now)) {
-                    $result[] = $current->copy();
-                }
-
-                $current->addHours($intervalHours);
-            }
-
-            return $result;
+        if ($publication->recurrence_type !== 'hourly') {
+            return [];
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | TIPO DE RECURRENCIA DESCONOCIDO
-        |--------------------------------------------------------------------------
-        */
+        $intervalHours = (int) $publication->interval_hours;
 
-        return [];
+        if ($intervalHours < 1 || empty($publication->recurrence_start_time)) {
+            return [];
+        }
+
+        $startTime = substr((string) $publication->recurrence_start_time, 0, 5);
+        $endTime = !empty($publication->recurrence_end_time)
+            ? substr((string) $publication->recurrence_end_time, 0, 5)
+            : '23:59';
+
+        $start = Carbon::parse($now->format('Y-m-d') . ' ' . $startTime);
+        $end = Carbon::parse($now->format('Y-m-d') . ' ' . $endTime);
+
+        if ($start->gt($end)) {
+            return [];
+        }
+
+        $occurrences = [];
+        $current = $start->copy();
+
+        while ($current->lte($end)) {
+            $occurrences[] = $current->copy();
+            $current->addHours($intervalHours);
+        }
+
+        return $occurrences;
     }
 }
-
