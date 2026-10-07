@@ -234,7 +234,7 @@ class PublicacionForm
                                     ->label('Grupos de Facebook')
                                     ->relationship(
                                         name: 'facebookGroups',
-                                        titleAttribute: 'nombre'
+                                        titleAttribute: 'name'
                                     )
                                     ->multiple()
                                     ->searchable()
