@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Publication extends Model
@@ -58,6 +59,11 @@ class Publication extends Model
             PublicationDestination::class,
             'publication_publication_destination'
         )->withTimestamps();
+    }
+
+    public function executions(): HasMany
+    {
+        return $this->hasMany(PublicationExecution::class);
     }
 
     public function schedule(): HasOne
