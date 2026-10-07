@@ -27,7 +27,7 @@ return new class extends Migration
             foreach ($renames as $old => $new) {
                 if (
                     Schema::hasColumn('publications', $old) &&
-                    !Schema::hasColumn('publications', $new)
+                    ! Schema::hasColumn('publications', $new)
                 ) {
                     $table->renameColumn($old, $new);
                 }

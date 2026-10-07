@@ -54,7 +54,7 @@ class BotPublicationController extends Controller
                         ->all()
                     : [];
 
-                $occurrenceId = $publication->id . '_' . $occurrence->format('Y-m-d_H-i');
+                $occurrenceId = $publication->id.'_'.$occurrence->format('Y-m-d_H-i');
 
                 $result[] = [
                     'id' => $publication->id,
@@ -107,8 +107,8 @@ class BotPublicationController extends Controller
         usort(
             $result,
             static fn (array $a, array $b): int => strcmp(
-                $a['date'] . ' ' . $a['time'],
-                $b['date'] . ' ' . $b['time']
+                $a['date'].' '.$a['time'],
+                $b['date'].' '.$b['time']
             )
         );
 
@@ -124,12 +124,12 @@ class BotPublicationController extends Controller
         $startDate = Carbon::parse($publication->date)->startOfDay();
 
         if ($publication->recurrence_type === 'none') {
-            if (!$startDate->isSameDay($now)) {
+            if (! $startDate->isSameDay($now)) {
                 return [];
             }
 
             $dateTime = Carbon::parse(
-                $publication->date->format('Y-m-d') . ' ' . substr((string) $publication->time, 0, 5)
+                $publication->date->format('Y-m-d').' '.substr((string) $publication->time, 0, 5)
             );
 
             return $dateTime->betweenIncluded($dayStart, $dayEnd)
@@ -159,12 +159,12 @@ class BotPublicationController extends Controller
         }
 
         $startTime = substr((string) $publication->recurrence_start_time, 0, 5);
-        $endTime = !empty($publication->recurrence_end_time)
+        $endTime = ! empty($publication->recurrence_end_time)
             ? substr((string) $publication->recurrence_end_time, 0, 5)
             : '23:59';
 
-        $start = Carbon::parse($now->format('Y-m-d') . ' ' . $startTime);
-        $end = Carbon::parse($now->format('Y-m-d') . ' ' . $endTime);
+        $start = Carbon::parse($now->format('Y-m-d').' '.$startTime);
+        $end = Carbon::parse($now->format('Y-m-d').' '.$endTime);
 
         if ($start->gt($end)) {
             return [];

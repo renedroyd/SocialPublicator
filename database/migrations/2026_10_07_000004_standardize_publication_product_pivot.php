@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('publication_product')) {
+        if (! Schema::hasTable('publication_product')) {
             return;
         }
 
@@ -24,7 +24,7 @@ return new class extends Migration
             foreach ($renames as $old => $new) {
                 if (
                     Schema::hasColumn('publication_product', $old) &&
-                    !Schema::hasColumn('publication_product', $new)
+                    ! Schema::hasColumn('publication_product', $new)
                 ) {
                     $table->renameColumn($old, $new);
                 }

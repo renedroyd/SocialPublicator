@@ -18,9 +18,13 @@ class PublicationResource extends Resource
     protected static ?string $model = Publication::class;
 
     protected static ?string $modelLabel = 'publicación';
+
     protected static ?string $pluralModelLabel = 'publicaciones';
+
     protected static ?string $navigationLabel = 'Publicaciones';
+
     protected static ?string $slug = 'publicaciones';
+
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';
 
     public static function form(Schema $schema): Schema

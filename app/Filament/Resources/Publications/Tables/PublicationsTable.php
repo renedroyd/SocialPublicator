@@ -50,19 +50,19 @@ class PublicationsTable
                     ->lineClamp(3)
                     ->weight('medium')
                     ->color('gray')
-                    ->tooltip(fn(TextColumn $column): ?string => filled($column->getState()) ? $column->getState() : null)
+                    ->tooltip(fn (TextColumn $column): ?string => filled($column->getState()) ? $column->getState() : null)
                     ->grow(),
 
                 TextColumn::make('destination')
                     ->label('Destino')
                     ->badge()
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
                         'whatsapp' => 'WhatsApp',
                         'facebook' => 'Facebook',
                         'both' => 'WhatsApp + Facebook',
                         default => ucfirst($state),
                     })
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'whatsapp' => 'success',
                         'facebook' => 'info',
                         'both' => 'warning',

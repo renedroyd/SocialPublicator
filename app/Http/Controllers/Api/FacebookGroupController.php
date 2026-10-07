@@ -17,7 +17,7 @@ class FacebookGroupController extends Controller
 
         // Keep compatibility with the current stable bot while the API contract
         // is migrated to English.
-        if (!is_array($rawGroups)) {
+        if (! is_array($rawGroups)) {
             $rawGroups = $request->input('grupos', []);
         }
 

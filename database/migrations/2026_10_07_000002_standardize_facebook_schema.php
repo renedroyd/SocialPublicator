@@ -21,28 +21,28 @@ return new class extends Migration
 
     private function standardizeFacebookGroups(): void
     {
-        if (!Schema::hasTable('facebook_groups')) {
+        if (! Schema::hasTable('facebook_groups')) {
             return;
         }
 
         Schema::table('facebook_groups', function (Blueprint $table): void {
             if (
                 Schema::hasColumn('facebook_groups', 'nombre') &&
-                !Schema::hasColumn('facebook_groups', 'name')
+                ! Schema::hasColumn('facebook_groups', 'name')
             ) {
                 $table->renameColumn('nombre', 'name');
             }
 
             if (
                 Schema::hasColumn('facebook_groups', 'activo') &&
-                !Schema::hasColumn('facebook_groups', 'active')
+                ! Schema::hasColumn('facebook_groups', 'active')
             ) {
                 $table->renameColumn('activo', 'active');
             }
 
             if (
                 Schema::hasColumn('facebook_groups', 'ultima_sincronizacion') &&
-                !Schema::hasColumn('facebook_groups', 'last_synchronized_at')
+                ! Schema::hasColumn('facebook_groups', 'last_synchronized_at')
             ) {
                 $table->renameColumn(
                     'ultima_sincronizacion',
@@ -59,12 +59,12 @@ return new class extends Migration
 
         if (
             Schema::hasTable($legacyTable) &&
-            !Schema::hasTable($targetTable)
+            ! Schema::hasTable($targetTable)
         ) {
             Schema::rename($legacyTable, $targetTable);
         }
 
-        if (!Schema::hasTable($targetTable)) {
+        if (! Schema::hasTable($targetTable)) {
             Schema::create($targetTable, function (Blueprint $table): void {
                 $table->id();
 
@@ -95,7 +95,7 @@ return new class extends Migration
             Schema::hasColumn($targetTable, 'publication_id') &&
             Schema::hasColumn($targetTable, 'facebook_group_id');
 
-        if (!$hasLegacyColumns || $hasEnglishColumns) {
+        if (! $hasLegacyColumns || $hasEnglishColumns) {
             return;
         }
 

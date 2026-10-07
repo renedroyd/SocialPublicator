@@ -6,9 +6,9 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -57,8 +57,8 @@ class PublicationForm
                             ->native(false)
                             ->displayFormat('H:i')
                             ->format('H:i')
-                            ->required(fn(Get $get): bool => $get('recurrence_type') === 'hourly')
-                            ->visible(fn(Get $get): bool => $get('recurrence_type') === 'hourly')
+                            ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
+                            ->visible(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                             ->live()
                             ->afterStateUpdated(function (?string $state, Set $set): void {
                                 if (filled($state)) {
@@ -75,8 +75,8 @@ class PublicationForm
                             ->minValue(1)
                             ->maxValue(24)
                             ->step(1)
-                            ->required(fn(Get $get): bool => $get('recurrence_type') === 'hourly')
-                            ->visible(fn(Get $get): bool => $get('recurrence_type') === 'hourly')
+                            ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
+                            ->visible(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                             ->suffix('horas')
                             ->prefixIcon('heroicon-o-clock'),
 
@@ -88,8 +88,8 @@ class PublicationForm
                             ->native(false)
                             ->displayFormat('H:i')
                             ->format('H:i')
-                            ->required(fn(Get $get): bool => $get('recurrence_type') === 'hourly')
-                            ->visible(fn(Get $get): bool => $get('recurrence_type') === 'hourly')
+                            ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
+                            ->visible(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                             ->prefixIcon('heroicon-o-stop'),
 
                         DatePicker::make('end_date')
@@ -99,8 +99,8 @@ class PublicationForm
                             ->native(false)
                             ->displayFormat('d/m/Y')
                             ->format('Y-m-d')
-                            ->minDate(fn(Get $get) => $get('date'))
-                            ->visible(fn(Get $get): bool => $get('recurrence_type') === 'hourly')
+                            ->minDate(fn (Get $get) => $get('date'))
+                            ->visible(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                             ->prefixIcon('heroicon-o-calendar'),
 
                         Select::make('destination')
@@ -125,8 +125,8 @@ class PublicationForm
                             ->preload()
                             ->optionsLimit(50)
                             ->native(false)
-                            ->required(fn(Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
-                            ->visible(fn(Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
+                            ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
+                            ->visible(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
                             ->helperText('Selecciona los grupos donde se compartirá esta publicación.')
                             ->prefixIcon('heroicon-o-user-group')
                             ->columnSpan(['default' => 1, 'sm' => 2, 'lg' => 3]),
