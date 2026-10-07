@@ -83,6 +83,29 @@ class BotPublicationApiTest extends TestCase
         $this->assertCount(1, $response->json('data.0.facebook_groups'));
     }
 
+    public function test_it_returns_a_publication_with_both_destinations(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-07',
+            'time' => '12:00',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación multicanal',
+            'destination' => 'both',
+            'active' => true,
+            'recurrence_type' => 'none',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $publication->id)
+            ->assertJsonPath('data.0.destination', 'both')
+            ->assertJsonPath('data.0.destino', 'ambos');
+    }
+
     public function test_it_generates_hourly_occurrences_with_the_configured_interval(): void
     {
         $publication = Publication::create([
