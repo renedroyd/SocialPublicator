@@ -42,7 +42,7 @@ return new class extends Migration
     {
         Schema::disableForeignKeyConstraints();
 
-        Schema::create('publication_executions_new', function (Blueprint $table): void {
+        Schema::create('publication_executions_new', function (Blueprint $table) use ($restoreGlobalTargetUniqueness): void {
             $table->id();
 
             $table->foreignId('publication_id')
