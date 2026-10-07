@@ -52,7 +52,17 @@ class BotPublicationApiTest extends TestCase
             'active' => true,
         ]);
 
-        $publication->facebookGroups()->attach($selectedGroup);
+        $inactiveGroup = FacebookGroup::create([
+            'facebook_id' => '333333333',
+            'name' => 'Grupo inactivo',
+            'url' => 'https://www.facebook.com/groups/333333333',
+            'active' => false,
+        ]);
+
+        $publication->facebookGroups()->attach([
+            $selectedGroup->id,
+            $inactiveGroup->id,
+        ]);
 
         $response = $this
             ->withToken('test-token')
@@ -69,6 +79,7 @@ class BotPublicationApiTest extends TestCase
             ->assertJsonPath('data.0.facebook_groups.0.name', 'Grupo seleccionado');
 
         $this->assertNotSame($selectedGroup->id, $otherGroup->id);
+        $this->assertNotSame($selectedGroup->id, $inactiveGroup->id);
         $this->assertCount(1, $response->json('data.0.facebook_groups'));
     }
 
