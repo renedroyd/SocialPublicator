@@ -12,43 +12,43 @@ class BotPublicationController extends Controller
 {
     public function index(): JsonResponse
     {
-        $ahora = now();
-        $fechaActual = $ahora->toDateString();
+        $now = now();
+        $currentDate = $now->toDateString();
 
-        $publicaciones = Publication::query()
+        $publications = Publication::query()
             /*
              * Cargamos los grupos de Facebook seleccionados
              * para evitar consultas adicionales dentro del foreach.
              */
             ->with([
-                'facebookGrupos' => function ($query) {
+                'facebookGroups' => function ($query) {
                     $query
-                        ->where('activo', true)
-                        ->orderBy('nombre');
+                        ->where('active', true)
+                        ->orderBy('name');
                 },
             ])
-            ->where('activo', true)
-            ->whereDate('fecha', '<=', $fechaActual)
-            ->where(function ($query) use ($fechaActual) {
+            ->where('active', true)
+            ->whereDate('fecha', '<=', $currentDate)
+            ->where(function ($query) use ($currentDate) {
                 $query
                     ->whereNull('fecha_fin')
-                    ->orWhereDate('fecha_fin', '>=', $fechaActual);
+                    ->orWhereDate('fecha_fin', '>=', $currentDate);
             })
             ->orderBy('fecha')
             ->orderBy('hora')
             ->get();
 
-        $resultado = [];
+        $result = [];
 
-        foreach ($publicaciones as $publicacion) {
-            $ocurrencias = $this->generateDailyOccurrences(
-                $publicacion,
-                $ahora
+        foreach ($publications as $publication) {
+            $occurrences = $this->generateDailyOccurrences(
+                $publication,
+                $now
             );
 
-            foreach ($ocurrencias as $ocurrencia) {
-                $resultado[] = [
-                    'id' => $publicacion->id,
+            foreach ($occurrences as $occurrence) {
+                $result[] = [
+                    'id' => $publication->id,
 
                     /*
                      * Cada ocurrencia tiene una identidad única.
@@ -59,21 +59,23 @@ class BotPublicationController extends Controller
                      * 6_2026-10-06_14-30
                      */
                     'ocurrencia_id' =>
-                        $publicacion->id .
+                        $publication->id .
                         '_' .
-                        $ocurrencia->format('Y-m-d_H-i'),
+                        $occurrence->format('Y-m-d_H-i'),
 
-                    'fecha' => $ocurrencia->format('Y-m-d'),
+                    'date' => $occurrence->format('Y-m-d'),
+                    'fecha' => $occurrence->format('Y-m-d'),
 
-                    'hora' => $ocurrencia->format('H:i'),
+                    'time' => $occurrence->format('H:i'),
+                    'hora' => $occurrence->format('H:i'),
 
-                    'imagen' => $publicacion->imagen
-                        ? url(Storage::url($publicacion->imagen))
+                    'imagen' => $publication->imagen
+                        ? url(Storage::url($publication->imagen))
                         : null,
 
-                    'texto' => $publicacion->texto,
+                    'texto' => $publication->texto,
 
-                    'destino' => $publicacion->destino,
+                    'destino' => $publication->destino,
 
                     /*
                      |--------------------------------------------------------------------------
@@ -88,11 +90,11 @@ class BotPublicationController extends Controller
                      */
                     'facebook_groups' =>
                         in_array(
-                            $publicacion->destino,
+                            $publication->destino,
                             ['facebook', 'ambos'],
                             true
                         )
-                            ? $publicacion->facebookGrupos
+                            ? $publication->facebookGroups
                                 ->map(function ($grupo) {
                                     return [
                                         'id' => $grupo->id,
@@ -106,26 +108,26 @@ class BotPublicationController extends Controller
                             : [],
 
                     'tipo_recurrencia' =>
-                        $publicacion->tipo_recurrencia,
+                        $publication->tipo_recurrencia,
 
                     'intervalo_horas' =>
-                        $publicacion->intervalo_horas,
+                        $publication->intervalo_horas,
 
                     'hora_inicio_recurrencia' =>
-                        $publicacion->hora_inicio_recurrencia,
+                        $publication->hora_inicio_recurrencia,
 
                     'hora_fin_recurrencia' =>
-                        $publicacion->hora_fin_recurrencia,
+                        $publication->hora_fin_recurrencia,
 
-                    'fecha_fin' => $publicacion->fecha_fin
-                        ? $publicacion->fecha_fin->format('Y-m-d')
+                    'fecha_fin' => $publication->fecha_fin
+                        ? $publication->fecha_fin->format('Y-m-d')
                         : null,
                 ];
             }
         }
 
         usort(
-            $resultado,
+            $result,
             function (array $a, array $b): int {
                 return strcmp(
                     $a['fecha'] . ' ' . $a['hora'],
@@ -135,7 +137,7 @@ class BotPublicationController extends Controller
         );
 
         return response()->json([
-            'data' => $resultado,
+            'data' => $result,
         ]);
     }
 
@@ -143,14 +145,14 @@ class BotPublicationController extends Controller
      * Genera las ocurrencias correspondientes al día actual.
      */
     private function generateDailyOccurrences(
-        Publication $publicacion,
-        Carbon $ahora
+        Publication $publication,
+        Carbon $now
     ): array {
-        $inicioDia = $ahora->copy()->startOfDay();
-        $finDia = $ahora->copy()->endOfDay();
+        $dayStart = $now->copy()->startOfDay();
+        $dayEnd = $now->copy()->endOfDay();
 
-        $fechaInicio = Carbon::parse(
-            $publicacion->fecha
+        $startDate = Carbon::parse(
+            $publication->fecha
         )->startOfDay();
 
         /*
@@ -160,24 +162,24 @@ class BotPublicationController extends Controller
         */
 
         if (
-            empty($publicacion->tipo_recurrencia) ||
-            $publicacion->tipo_recurrencia === 'ninguna'
+            empty($publication->tipo_recurrencia) ||
+            $publication->tipo_recurrencia === 'ninguna'
         ) {
             /*
              * La publicación normal solamente corresponde
              * al día configurado.
              */
             if (
-                !$fechaInicio->isSameDay($ahora)
+                !$startDate->isSameDay($now)
             ) {
                 return [];
             }
 
             $fechaHora = Carbon::parse(
-                $publicacion->fecha->format('Y-m-d') .
+                $publication->fecha->format('Y-m-d') .
                 ' ' .
                 substr(
-                    (string) $publicacion->hora,
+                    (string) $publication->hora,
                     0,
                     5
                 )
@@ -185,8 +187,8 @@ class BotPublicationController extends Controller
 
             if (
                 $fechaHora->betweenIncluded(
-                    $inicioDia,
-                    $finDia
+                    $dayStart,
+                    $dayEnd
                 )
             ) {
                 return [$fechaHora];
@@ -201,7 +203,7 @@ class BotPublicationController extends Controller
         |--------------------------------------------------------------------------
         */
 
-        if ($inicioDia->lt($fechaInicio)) {
+        if ($dayStart->lt($startDate)) {
             return [];
         }
 
@@ -212,10 +214,10 @@ class BotPublicationController extends Controller
         */
 
         if (
-            $publicacion->fecha_fin &&
-            $inicioDia->gt(
+            $publication->fecha_fin &&
+            $dayStart->gt(
                 Carbon::parse(
-                    $publicacion->fecha_fin
+                    $publication->fecha_fin
                 )->endOfDay()
             )
         ) {
@@ -229,14 +231,14 @@ class BotPublicationController extends Controller
         */
 
         if (
-            $publicacion->tipo_recurrencia === 'cada_horas'
+            $publication->tipo_recurrencia === 'cada_horas'
         ) {
-            $intervalo = (int) $publicacion->intervalo_horas;
+            $intervalHours = (int) $publication->intervalo_horas;
 
             /*
              * El intervalo debe ser como mínimo 1 hora.
              */
-            if ($intervalo < 1) {
+            if ($intervalHours < 1) {
                 return [];
             }
 
@@ -246,15 +248,15 @@ class BotPublicationController extends Controller
              */
             if (
                 empty(
-                    $publicacion->hora_inicio_recurrencia
+                    $publication->hora_inicio_recurrencia
                 )
             ) {
                 return [];
             }
 
-            $horaInicio =
+            $startTime =
                 substr(
-                    (string) $publicacion->hora_inicio_recurrencia,
+                    (string) $publication->hora_inicio_recurrencia,
                     0,
                     5
                 );
@@ -262,11 +264,11 @@ class BotPublicationController extends Controller
             /*
              * Si no se define hora final, utilizamos 23:59.
              */
-            $horaFin = !empty(
-                $publicacion->hora_fin_recurrencia
+            $endTime = !empty(
+                $publication->hora_fin_recurrencia
             )
                 ? substr(
-                    (string) $publicacion->hora_fin_recurrencia,
+                    (string) $publication->hora_fin_recurrencia,
                     0,
                     5
                 )
@@ -276,29 +278,29 @@ class BotPublicationController extends Controller
              * Construimos las horas correspondientes
              * al día actual.
              */
-            $inicio = Carbon::parse(
-                $ahora->format('Y-m-d') .
+            $start = Carbon::parse(
+                $now->format('Y-m-d') .
                 ' ' .
-                $horaInicio
+                $startTime
             );
 
-            $fin = Carbon::parse(
-                $ahora->format('Y-m-d') .
+            $end = Carbon::parse(
+                $now->format('Y-m-d') .
                 ' ' .
-                $horaFin
+                $endTime
             );
 
             /*
              * La hora de inicio no puede ser posterior
              * a la hora final.
              */
-            if ($inicio->gt($fin)) {
+            if ($start->gt($end)) {
                 return [];
             }
 
-            $resultado = [];
+            $result = [];
 
-            $actual = $inicio->copy();
+            $current = $start->copy();
 
             /*
              * Generamos:
@@ -309,15 +311,15 @@ class BotPublicationController extends Controller
              * ...
              * hasta hora_fin.
              */
-            while ($actual->lte($fin)) {
-                if ($actual->isSameDay($ahora)) {
-                    $resultado[] = $actual->copy();
+            while ($current->lte($end)) {
+                if ($current->isSameDay($now)) {
+                    $result[] = $current->copy();
                 }
 
-                $actual->addHours($intervalo);
+                $current->addHours($intervalHours);
             }
 
-            return $resultado;
+            return $result;
         }
 
         /*
