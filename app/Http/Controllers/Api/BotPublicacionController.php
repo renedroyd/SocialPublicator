@@ -21,13 +21,13 @@ class BotPublicacionController extends Controller
              * para evitar consultas adicionales dentro del foreach.
              */
             ->with([
-                'facebookGrupos' => function ($query) {
+                'facebookGroups' => function ($query) {
                     $query
-                        ->where('activo', true)
-                        ->orderBy('nombre');
+                        ->where('active', true)
+                        ->orderBy('name');
                 },
             ])
-            ->where('activo', true)
+            ->where('active', true)
             ->whereDate('fecha', '<=', $fechaActual)
             ->where(function ($query) use ($fechaActual) {
                 $query
@@ -92,12 +92,12 @@ class BotPublicacionController extends Controller
                             ['facebook', 'ambos'],
                             true
                         )
-                            ? $publicacion->facebookGrupos
+                            ? $publicacion->facebookGroups
                                 ->map(function ($grupo) {
                                     return [
                                         'id' => $grupo->id,
                                         'facebook_id' => $grupo->facebook_id,
-                                        'nombre' => $grupo->nombre,
+                                        'nombre' => $grupo->name,
                                         'url' => $grupo->url,
                                     ];
                                 })
