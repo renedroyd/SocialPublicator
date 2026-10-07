@@ -95,12 +95,13 @@ class BotPublicationController extends Controller
                             true
                         )
                             ? $publication->facebookGroups
-                                ->map(function ($grupo) {
+                                ->map(function ($group) {
                                     return [
-                                        'id' => $grupo->id,
-                                        'facebook_id' => $grupo->facebook_id,
-                                        'nombre' => $grupo->nombre,
-                                        'url' => $grupo->url,
+                                        'id' => $group->id,
+                                        'facebook_id' => $group->facebook_id,
+                                        'name' => $group->name,
+                                        'nombre' => $group->name,
+                                        'url' => $group->url,
                                     ];
                                 })
                                 ->values()
