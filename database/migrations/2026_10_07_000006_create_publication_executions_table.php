@@ -47,13 +47,9 @@ return new class extends Migration
                 ->index();
 
             $table->timestamp('started_at')->nullable();
-
             $table->timestamp('completed_at')->nullable();
-
             $table->string('external_id', 255)->nullable();
-
             $table->text('error_message')->nullable();
-
             $table->timestamps();
 
             $table->unique('target_key');

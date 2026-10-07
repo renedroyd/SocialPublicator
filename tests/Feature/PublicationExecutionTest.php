@@ -5,8 +5,8 @@ namespace Tests\Feature;
 use App\Models\FacebookGroup;
 use App\Models\Publication;
 use App\Models\PublicationExecution;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class PublicationExecutionTest extends TestCase

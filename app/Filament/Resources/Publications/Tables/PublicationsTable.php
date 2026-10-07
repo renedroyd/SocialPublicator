@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\Publicaciones\Tables;
+namespace App\Filament\Resources\Publications\Tables;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
@@ -11,27 +11,20 @@ use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
-class PublicacionesTable
+class PublicationsTable
 {
     public static function configure(Table $table): Table
     {
         return $table
-            ->defaultSort('hora', 'asc')
+            ->defaultSort('time', 'asc')
             ->striped()
             ->paginated([10, 25, 50])
             ->searchPlaceholder('Buscar publicaciones...')
             ->emptyStateHeading('No hay publicaciones')
-            ->emptyStateDescription(
-                'Crea una publicación para comenzar a configurar tu cronograma.'
-            )
+            ->emptyStateDescription('Crea una publicación para comenzar a configurar tu cronograma.')
             ->emptyStateIcon('heroicon-o-megaphone')
-
             ->columns([
-
-                /*
-                 * HORA
-                 */
-                TextColumn::make('hora')
+                TextColumn::make('time')
                     ->label('Hora')
                     ->time('H:i')
                     ->sortable()
@@ -40,30 +33,16 @@ class PublicacionesTable
                     ->icon('heroicon-o-clock')
                     ->weight('bold')
                     ->size('lg')
-                    ->alignCenter()
-                    ->width('120px')
-                    ->extraAttributes([
-                        'class' => 'whitespace-nowrap',
-                    ]),
+                    ->alignCenter(),
 
-                /*
-                 * IMAGEN
-                 */
-                ImageColumn::make('imagen')
+                ImageColumn::make('image')
                     ->label('Imagen')
                     ->disk('public')
                     ->square()
                     ->size(70)
-                    ->extraImgAttributes([
-                        'class' => 'rounded-xl object-cover ring-1 ring-gray-200 shadow-sm',
-                    ])
-                    ->alignCenter()
-                    ->width('110px'),
+                    ->alignCenter(),
 
-                /*
-                 * CONTENIDO
-                 */
-                TextColumn::make('texto')
+                TextColumn::make('text')
                     ->label('Contenido')
                     ->searchable()
                     ->wrap()
@@ -71,48 +50,33 @@ class PublicacionesTable
                     ->lineClamp(3)
                     ->weight('medium')
                     ->color('gray')
-                    ->tooltip(
-                        fn(TextColumn $column): ?string =>
-                        filled($column->getState())
-                            ? $column->getState()
-                            : null
-                    )
+                    ->tooltip(fn (TextColumn $column): ?string => filled($column->getState()) ? $column->getState() : null)
                     ->grow(),
 
-                /*
-                 * DESTINO
-                 */
-                TextColumn::make('destino')
+                TextColumn::make('destination')
                     ->label('Destino')
                     ->badge()
-                    ->formatStateUsing(fn(string $state): string => match ($state) {
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
                         'whatsapp' => 'WhatsApp',
                         'facebook' => 'Facebook',
-                        'ambos' => 'WhatsApp + Facebook',
+                        'both' => 'WhatsApp + Facebook',
                         default => ucfirst($state),
                     })
-                    ->color(fn(string $state): string => match ($state) {
+                    ->color(fn (string $state): string => match ($state) {
                         'whatsapp' => 'success',
                         'facebook' => 'info',
-                        'ambos' => 'warning',
+                        'both' => 'warning',
                         default => 'gray',
                     })
                     ->sortable()
                     ->searchable(),
 
-                /*
-                 * ESTADO
-                 */
-                IconColumn::make('activo')
+                IconColumn::make('active')
                     ->label('Estado')
                     ->boolean()
                     ->sortable()
-                    ->alignCenter()
-                    ->width('90px'),
+                    ->alignCenter(),
 
-                /*
-                 * FECHA DE CREACIÓN
-                 */
                 TextColumn::make('created_at')
                     ->label('Creada')
                     ->dateTime('d/m/Y H:i')
@@ -120,37 +84,17 @@ class PublicacionesTable
                     ->color('gray')
                     ->icon('heroicon-o-calendar-days')
                     ->toggleable(isToggledHiddenByDefault: true),
-
             ])
-
-            /*
-             * ACCIONES POR REGISTRO
-             */
             ->recordActions([
-
-                EditAction::make()
-                    ->label('Editar')
-                    ->icon('heroicon-o-pencil-square')
-                    ->color('primary'),
-
-                DeleteAction::make()
-                    ->label('Eliminar')
-                    ->icon('heroicon-o-trash')
-                    ->color('danger'),
-
+                EditAction::make()->label('Editar')->icon('heroicon-o-pencil-square'),
+                DeleteAction::make()->label('Eliminar')->icon('heroicon-o-trash'),
             ])
-
-            /*
-             * ACCIONES MASIVAS
-             */
             ->toolbarActions([
-
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->label('Eliminar seleccionadas')
                         ->icon('heroicon-o-trash'),
                 ]),
-
             ]);
     }
 }
