@@ -233,7 +233,7 @@ class PublicacionForm
                                 Select::make('facebook_groups')
                                     ->label('Grupos de Facebook')
                                     ->relationship(
-                                        name: 'facebookGrupos',
+                                        name: 'facebookGroups',
                                         titleAttribute: 'nombre'
                                     )
                                     ->multiple()
