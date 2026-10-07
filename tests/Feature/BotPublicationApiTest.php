@@ -106,6 +106,81 @@ class BotPublicationApiTest extends TestCase
             ->assertJsonPath('data.0.destino', 'ambos');
     }
 
+    public function test_it_does_not_generate_a_recurring_publication_before_its_start_date(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-08',
+            'time' => '09:00',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación futura',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'hourly',
+            'interval_hours' => 2,
+            'recurrence_start_time' => '09:00',
+            'recurrence_end_time' => '17:00',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_it_stops_generating_a_recurring_publication_after_its_end_date(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-01',
+            'time' => '09:00',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación finalizada',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'hourly',
+            'interval_hours' => 2,
+            'recurrence_start_time' => '09:00',
+            'recurrence_end_time' => '17:00',
+            'end_date' => '2026-10-06',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_it_respects_the_daily_recurrence_time_window(): void
+    {
+        Publication::create([
+            'date' => '2026-10-01',
+            'time' => '09:00',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación con ventana horaria',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'hourly',
+            'interval_hours' => 3,
+            'recurrence_start_time' => '11:00',
+            'recurrence_end_time' => '20:00',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(4, 'data')
+            ->assertJsonPath('data.0.time', '11:00')
+            ->assertJsonPath('data.3.time', '20:00');
+    }
+
     public function test_it_generates_hourly_occurrences_with_the_configured_interval(): void
     {
         $publication = Publication::create([
