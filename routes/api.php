@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\FacebookGroupController;
-use App\Http\Controllers\Api\BotPublicacionController;
+use App\Http\Controllers\Api\BotPublicationController;
 use App\Http\Middleware\VerifyBotApiToken;
 use Illuminate\Support\Facades\Route;
 
@@ -9,7 +9,7 @@ Route::middleware(VerifyBotApiToken::class)
     ->prefix('bot')
     ->group(function (): void {
         Route::get('/publications', [
-            BotPublicacionController::class,
+            BotPublicationController::class,
             'index',
         ])->name('api.bot.publications');
 
