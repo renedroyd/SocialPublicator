@@ -7,17 +7,40 @@ use App\Models\FacebookGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class FacebookGroupController extends Controller
 {
     public function sync(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'groups' => ['required', 'array'],
-            'groups.*.facebook_id' => ['required', 'string', 'max:255'],
-            'groups.*.name' => ['required', 'string', 'max:255'],
-            'groups.*.url' => ['nullable', 'string', 'max:2048'],
-        ]);
+        $rawGroups = $request->input('groups');
+
+        // Keep compatibility with the current stable bot while the API contract
+        // is migrated to English.
+        if (!is_array($rawGroups)) {
+            $rawGroups = $request->input('grupos', []);
+        }
+
+        $groups = collect($rawGroups)
+            ->map(static function (array $group): array {
+                return [
+                    'facebook_id' => $group['facebook_id'] ?? null,
+                    'name' => $group['name'] ?? $group['nombre'] ?? null,
+                    'url' => $group['url'] ?? null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        $data = Validator::make(
+            ['groups' => $groups],
+            [
+                'groups' => ['required', 'array'],
+                'groups.*.facebook_id' => ['required', 'string', 'max:255'],
+                'groups.*.name' => ['required', 'string', 'max:255'],
+                'groups.*.url' => ['nullable', 'string', 'max:2048'],
+            ]
+        )->validate();
 
         $synchronizedAt = now();
         $receivedIds = [];
@@ -28,7 +51,7 @@ class FacebookGroupController extends Controller
                     ['facebook_id' => $group['facebook_id']],
                     [
                         'name' => $group['name'],
-                        'url' => $group['url'] ?? null,
+                        'url' => $group['url'],
                         'active' => true,
                         'last_synchronized_at' => $synchronizedAt,
                     ],
