@@ -181,7 +181,6 @@ class BotPublicationApiTest extends TestCase
             ->assertJsonPath('data.3.time', '20:00');
     }
 
-
     public function test_it_keeps_past_occurrences_in_the_daily_schedule(): void
     {
         Publication::create([
