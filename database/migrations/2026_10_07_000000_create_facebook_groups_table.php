@@ -11,10 +11,10 @@ return new class extends Migration
         Schema::create('facebook_groups', function (Blueprint $table) {
             $table->id();
             $table->string('facebook_id')->unique();
-            $table->string('nombre');
+            $table->string('name');
             $table->text('url')->nullable();
-            $table->boolean('activo')->default(true);
-            $table->timestamp('ultima_sincronizacion')->nullable();
+            $table->boolean('active')->default(true);
+            $table->timestamp('last_synchronized_at')->nullable();
             $table->timestamps();
         });
     }

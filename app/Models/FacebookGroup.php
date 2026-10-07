@@ -9,20 +9,22 @@ class FacebookGroup extends Model
 {
     protected $fillable = [
         'facebook_id',
-        'nombre',
+        'name',
         'url',
-        'activo',
-        'ultima_sincronizacion',
+        'active',
+        'last_synchronized_at',
     ];
 
     protected $casts = [
-        'activo' => 'boolean',
-        'ultima_sincronizacion' => 'datetime',
+        'active' => 'boolean',
+        'last_synchronized_at' => 'datetime',
     ];
 
-    public function publicaciones(): BelongsToMany
+    public function publications(): BelongsToMany
     {
-        return $this->belongsToMany(Publication::class, 'facebook_grupo_publicacion')
-            ->withTimestamps();
+        return $this->belongsToMany(
+            Publication::class,
+            'facebook_group_publication'
+        )->withTimestamps();
     }
 }

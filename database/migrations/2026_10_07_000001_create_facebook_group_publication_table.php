@@ -10,10 +10,21 @@ return new class extends Migration
     {
         Schema::create('facebook_group_publication', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('publicacion_id')->constrained('publicaciones')->cascadeOnDelete();
-            $table->foreignId('facebook_grupo_id')->constrained('facebook_groups')->cascadeOnDelete();
+
+            $table->foreignId('publication_id')
+                ->constrained('publications')
+                ->cascadeOnDelete();
+
+            $table->foreignId('facebook_group_id')
+                ->constrained('facebook_groups')
+                ->cascadeOnDelete();
+
             $table->timestamps();
-            $table->unique(['publicacion_id', 'facebook_grupo_id']);
+
+            $table->unique([
+                'publication_id',
+                'facebook_group_id',
+            ]);
         });
     }
 

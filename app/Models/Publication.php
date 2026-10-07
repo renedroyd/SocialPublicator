@@ -9,49 +9,47 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Publication extends Model
 {
     protected $fillable = [
-        'fecha',
-        'hora',
-        'imagen',
-        'texto',
-        'destino',
-        'activo',
-
-
-        'tipo_recurrencia',
-        'intervalo_horas',
-        'hora_inicio_recurrencia',
-        'hora_fin_recurrencia',
-        'fecha_fin',
+        'date',
+        'time',
+        'image',
+        'text',
+        'destination',
+        'active',
+        'recurrence_type',
+        'interval_hours',
+        'recurrence_start_time',
+        'recurrence_end_time',
+        'end_date',
     ];
 
     protected function casts(): array
     {
         return [
-            'fecha' => 'date:Y-m-d',
-            'activo' => 'boolean',
-            'fecha_fin' => 'date',
-            'intervalo_horas' => 'integer',
+            'date' => 'date:Y-m-d',
+            'active' => 'boolean',
+            'end_date' => 'date',
+            'interval_hours' => 'integer',
         ];
     }
 
-    public function esRecurrente(): bool
+    public function isRecurring(): bool
     {
-        return $this->tipo_recurrencia !== 'ninguna';
+        return $this->recurrence_type !== 'none';
     }
 
-    public function productos(): BelongsToMany
+    public function products(): BelongsToMany
     {
         return $this->belongsToMany(
             Product::class,
-            'publicacion_producto'
+            'publication_product'
         )
             ->withPivot([
-                'cantidad',
-                'precio_publicado',
-                'orden',
+                'quantity',
+                'published_price',
+                'sort_order',
             ])
             ->withTimestamps()
-            ->orderByPivot('orden');
+            ->orderByPivot('sort_order');
     }
 
     public function destinations(): BelongsToMany
@@ -67,20 +65,22 @@ class Publication extends Model
         return $this->hasOne(PublicationSchedule::class);
     }
 
-    public function facebookGrupos(): BelongsToMany
+    public function facebookGroups(): BelongsToMany
     {
-        return $this->belongsToMany(FacebookGroup::class, 'facebook_grupo_publicacion')->withTimestamps();
+        return $this->belongsToMany(
+            FacebookGroup::class,
+            'facebook_group_publication'
+        )->withTimestamps();
     }
 
     protected static function booted(): void
     {
         static::saving(function (Publication $publication): void {
             if (
-                $publication->tipo_recurrencia === 'cada_horas' &&
-                filled($publication->hora_inicio_recurrencia)
+                $publication->recurrence_type === 'hourly' &&
+                filled($publication->recurrence_start_time)
             ) {
-                $publication->hora =
-                    $publication->hora_inicio_recurrencia;
+                $publication->time = $publication->recurrence_start_time;
             }
         });
     }
