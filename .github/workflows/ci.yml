@@ -1,8 +1,5 @@
 name: CI
 
-permissions:
-  contents: write
-
 on:
   push:
     branches:
@@ -44,7 +41,7 @@ jobs:
       - name: Run tests
         run: php artisan test
 
-      - name: Apply PHP formatting
+      - name: Check PHP formatting
         run: |
           BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
           FILES="$(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$GITHUB_SHA" -- '*.php')"
@@ -53,15 +50,4 @@ jobs:
             exit 0
           fi
 
-          vendor/bin/pint $FILES
-
-          if ! git diff --quiet -- $FILES; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add $FILES
-            git commit -m "style: apply Pint formatting"
-            git push origin "HEAD:${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
-          fi
-
-      - name: Check PHP formatting
-        run: vendor/bin/pint --test
+          vendor/bin/pint --test $FILES
