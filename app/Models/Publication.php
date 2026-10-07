@@ -15,8 +15,6 @@ class Publication extends Model
         'texto',
         'destino',
         'activo',
-
-
         'tipo_recurrencia',
         'intervalo_horas',
         'hora_inicio_recurrencia',
@@ -67,9 +65,12 @@ class Publication extends Model
         return $this->hasOne(PublicationSchedule::class);
     }
 
-    public function facebookGrupos(): BelongsToMany
+    public function facebookGroups(): BelongsToMany
     {
-        return $this->belongsToMany(FacebookGroup::class, 'facebook_grupo_publicacion')->withTimestamps();
+        return $this->belongsToMany(
+            FacebookGroup::class,
+            'facebook_group_publication'
+        )->withTimestamps();
     }
 
     protected static function booted(): void
@@ -79,8 +80,7 @@ class Publication extends Model
                 $publication->tipo_recurrencia === 'cada_horas' &&
                 filled($publication->hora_inicio_recurrencia)
             ) {
-                $publication->hora =
-                    $publication->hora_inicio_recurrencia;
+                $publication->hora = $publication->hora_inicio_recurrencia;
             }
         });
     }
