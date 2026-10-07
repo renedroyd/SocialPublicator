@@ -11,6 +11,7 @@ return new class extends Migration
     {
         if (DB::getDriverName() === 'sqlite') {
             $this->rebuildSqliteTable();
+
             return;
         }
 
@@ -28,6 +29,7 @@ return new class extends Migration
     {
         if (DB::getDriverName() === 'sqlite') {
             $this->rebuildSqliteTable(true);
+
             return;
         }
 
