@@ -144,4 +144,36 @@ class BotCommandApiTest extends TestCase
             'attempts' => 1,
         ]);
     }
+
+    public function test_retrying_execution_reuses_an_active_retry_command(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-09',
+            'time' => '09:00',
+            'image' => 'publications/retry.jpg',
+            'text' => 'Publicación para reintento',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'none',
+        ]);
+
+        $execution = PublicationExecution::create([
+            'publication_id' => $publication->id,
+            'occurrence_id' => $publication->id.'_2026-10-09_09-00',
+            'channel' => 'whatsapp',
+            'target_key' => 'Venta mayorista de cervezas.',
+            'status' => 'failed',
+            'attempts' => 1,
+            'error_message' => 'Error simulado',
+        ]);
+
+        $service = app(BotCommandService::class);
+
+        $firstCommand = $service->queueRetry($execution);
+        $secondCommand = $service->queueRetry($execution->fresh());
+
+        $this->assertSame($firstCommand->id, $secondCommand->id);
+        $this->assertDatabaseCount('bot_commands', 1);
+    }
+
 }
