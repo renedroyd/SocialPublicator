@@ -16,9 +16,9 @@ class OperationalAlerts extends BaseWidget
 
     protected ?string $pollingInterval = '30s';
 
-    protected static ?string $heading = 'Centro de alertas';
+    protected ?string $heading = 'Centro de alertas';
 
-    protected static ?string $description = 'Incidencias que requieren atención del operador.';
+    protected ?string $description = 'Incidencias que requieren atención del operador.';
 
     protected function getStats(): array
     {
