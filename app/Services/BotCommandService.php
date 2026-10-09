@@ -12,28 +12,50 @@ class BotCommandService
 {
     public function queueRetry(PublicationExecution $execution): BotCommand
     {
-        if (! in_array($execution->status, ['failed', 'pending'], true)) {
-            throw new LogicException(
-                "La ejecución {$execution->id} no puede reintentarse desde {$execution->status}."
-            );
-        }
+        $botName = (string) config('services.bot_api.command_bot_name', 'WBot');
 
-        return BotCommand::query()->create([
-            'bot_name' => (string) config('services.bot_api.command_bot_name', 'WBot'),
-            'type' => 'retry_publication',
-            'payload' => [
-                'execution_id' => $execution->id,
-                'publication_id' => $execution->publication_id,
-                'occurrence_id' => $execution->occurrence_id,
-                'channel' => $execution->channel,
-                'target_key' => $execution->target_key,
-                'facebook_group_id' => $execution->facebook_group_id,
-            ],
-            'idempotency_key' => 'retry_'.$execution->id.'_'.Str::uuid(),
-            'status' => 'pending',
-            'available_at' => now(),
-            'max_attempts' => 3,
-        ]);
+        return DB::transaction(function () use ($execution, $botName): BotCommand {
+            $execution = PublicationExecution::query()
+                ->lockForUpdate()
+                ->findOrFail($execution->id);
+
+            if (! in_array($execution->status, ['failed', 'pending'], true)) {
+                throw new LogicException(
+                    "La ejecución {$execution->id} no puede reintentarse desde {$execution->status}."
+                );
+            }
+
+            // Reuse an outstanding retry command instead of queueing duplicates
+            // when an operator double-clicks or repeats the action.
+            $activeCommand = BotCommand::query()
+                ->where('bot_name', $botName)
+                ->where('type', 'retry_publication')
+                ->whereIn('status', ['pending', 'claimed'])
+                ->where('payload->execution_id', $execution->id)
+                ->latest('id')
+                ->first();
+
+            if ($activeCommand !== null) {
+                return $activeCommand;
+            }
+
+            return BotCommand::query()->create([
+                'bot_name' => $botName,
+                'type' => 'retry_publication',
+                'payload' => [
+                    'execution_id' => $execution->id,
+                    'publication_id' => $execution->publication_id,
+                    'occurrence_id' => $execution->occurrence_id,
+                    'channel' => $execution->channel,
+                    'target_key' => $execution->target_key,
+                    'facebook_group_id' => $execution->facebook_group_id,
+                ],
+                'idempotency_key' => 'retry_'.$execution->id.'_'.Str::uuid(),
+                'status' => 'pending',
+                'available_at' => now(),
+                'max_attempts' => 3,
+            ]);
+        });
     }
 
     public function claim(string $botName): ?BotCommand
