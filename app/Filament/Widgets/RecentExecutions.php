@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Publications\PublicationResource;
+use App\Models\BotCommand;
 use App\Models\PublicationExecution;
 use App\Services\BotCommandService;
 use Filament\Actions\Action;
@@ -124,7 +125,7 @@ class RecentExecutions extends TableWidget
                     )
                     ->requiresConfirmation()
                     ->action(
-                        fn (PublicationExecution $record): \App\Models\BotCommand => app(
+                        fn (PublicationExecution $record): BotCommand => app(
                             BotCommandService::class
                         )->queueRetry($record)
                     ),
