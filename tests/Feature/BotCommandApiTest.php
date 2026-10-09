@@ -147,6 +147,45 @@ class BotCommandApiTest extends TestCase
         ]);
     }
 
+    public function test_repeating_execution_start_does_not_create_a_duplicate_or_increment_attempts(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-09',
+            'time' => '09:00',
+            'image' => 'publications/idempotent.jpg',
+            'text' => 'Publicación idempotente',
+            'destination' => 'facebook',
+            'active' => true,
+            'recurrence_type' => 'none',
+        ]);
+
+        $payload = [
+            'publication_id' => $publication->id,
+            'occurrence_id' => $publication->id.'_2026-10-09_09-00',
+            'channel' => 'facebook',
+            'target_key' => 'facebook:123456789',
+        ];
+
+        $first = $this
+            ->withToken('test-token')
+            ->postJson('/api/bot/executions/start', $payload)
+            ->assertOk()
+            ->assertJsonPath('data.status', 'running')
+            ->assertJsonPath('data.attempts', 1);
+
+        $executionId = $first->json('data.id');
+
+        $second = $this
+            ->withToken('test-token')
+            ->postJson('/api/bot/executions/start', $payload)
+            ->assertOk()
+            ->assertJsonPath('data.id', $executionId)
+            ->assertJsonPath('data.status', 'running')
+            ->assertJsonPath('data.attempts', 1);
+
+        $this->assertDatabaseCount('publication_executions', 1);
+    }
+
     public function test_retrying_execution_reuses_an_active_retry_command(): void
     {
         $publication = Publication::create([
