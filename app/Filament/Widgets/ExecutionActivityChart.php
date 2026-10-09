@@ -4,7 +4,6 @@ namespace App\Filament\Widgets;
 
 use App\Models\PublicationExecution;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Carbon;
 
 class ExecutionActivityChart extends ChartWidget
 {
