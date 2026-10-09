@@ -9,7 +9,7 @@ use Filament\Widgets\TableWidget;
 
 class UpcomingPublications extends TableWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 7;
 
     protected int|string|array $columnSpan = 'full';
 
