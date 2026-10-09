@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\BotCommand;
 use App\Models\Publication;
+use App\Models\PublicationExecution;
+use App\Services\BotCommandService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -175,5 +177,4 @@ class BotCommandApiTest extends TestCase
         $this->assertSame($firstCommand->id, $secondCommand->id);
         $this->assertDatabaseCount('bot_commands', 1);
     }
-
 }
