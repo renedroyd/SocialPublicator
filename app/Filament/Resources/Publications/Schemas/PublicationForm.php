@@ -21,7 +21,6 @@ class PublicationForm
     {
         return $schema
             ->components([
-
                 /*
                  * Scheduling
                  */
@@ -33,7 +32,6 @@ class PublicationForm
                     ->collapsible()
                     ->persistCollapsed(false)
                     ->schema([
-
                         Grid::make()
                             ->columns([
                                 'default' => 1,
@@ -41,7 +39,6 @@ class PublicationForm
                                 'lg' => 4,
                             ])
                             ->schema([
-
                                 DatePicker::make('date')
                                     ->label('Fecha de inicio')
                                     ->placeholder('Seleccionar fecha')
@@ -63,7 +60,6 @@ class PublicationForm
                                     ->placeholder('Seleccionar hora')
                                     ->helperText('Hora de la primera publicación.')
                                     ->seconds(false)
-                                    //->native(false)
                                     ->displayFormat('H:i')
                                     ->format('H:i')
                                     ->required()
@@ -104,7 +100,6 @@ class PublicationForm
                                 fn (Get $get): bool => $get('recurrence_type') === 'hourly'
                             )
                             ->schema([
-
                                 TimePicker::make('recurrence_start_time')
                                     ->label('Hora de inicio')
                                     ->placeholder('Ej.: 09:00')
@@ -113,10 +108,7 @@ class PublicationForm
                                     ->native(false)
                                     ->displayFormat('H:i')
                                     ->format('H:i')
-                                    ->required(
-                                        fn (Get $get): bool =>
-                                            $get('recurrence_type') === 'hourly'
-                                    )
+                                    ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                                     ->live()
                                     ->afterStateUpdated(
                                         function (?string $state, Set $set): void {
@@ -141,10 +133,7 @@ class PublicationForm
                                     ->minValue(1)
                                     ->maxValue(24)
                                     ->step(1)
-                                    ->required(
-                                        fn (Get $get): bool =>
-                                            $get('recurrence_type') === 'hourly'
-                                    )
+                                    ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                                     ->suffix('horas')
                                     ->prefixIcon('heroicon-o-clock')
                                     ->columnSpan([
@@ -161,10 +150,7 @@ class PublicationForm
                                     ->native(false)
                                     ->displayFormat('H:i')
                                     ->format('H:i')
-                                    ->required(
-                                        fn (Get $get): bool =>
-                                            $get('recurrence_type') === 'hourly'
-                                    )
+                                    ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                                     ->prefixIcon('heroicon-o-stop')
                                     ->columnSpan([
                                         'default' => 1,
@@ -199,7 +185,6 @@ class PublicationForm
                     )
                     ->icon('heroicon-o-paper-airplane')
                     ->schema([
-
                         Grid::make()
                             ->columns([
                                 'default' => 1,
@@ -207,7 +192,6 @@ class PublicationForm
                                 'lg' => 4,
                             ])
                             ->schema([
-
                                 Select::make('destination')
                                     ->label('Canal de publicación')
                                     ->options([
@@ -259,22 +243,12 @@ class PublicationForm
                             ->preload()
                             ->optionsLimit(50)
                             ->native(false)
-                            ->required(
-                                fn (Get $get): bool =>
-                                    in_array(
-                                        $get('destination'),
-                                        ['facebook', 'both'],
-                                        true
-                                    )
-                            )
-                            ->visible(
-                                fn (Get $get): bool =>
-                                    in_array(
-                                        $get('destination'),
-                                        ['facebook', 'both'],
-                                        true
-                                    )
-                            )
+                            ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
+                            ->visible(fn (Get $get): bool => in_array(
+                                $get('destination'),
+                                ['facebook', 'both'],
+                                true
+                            ))
                             ->helperText(
                                 'Selecciona uno o varios grupos donde se compartirá la publicación.'
                             )
@@ -293,7 +267,6 @@ class PublicationForm
                     ->icon('heroicon-o-photo')
                     ->collapsible()
                     ->schema([
-
                         FileUpload::make('image')
                             ->label('Imagen de la publicación')
                             ->placeholder(
@@ -328,7 +301,6 @@ class PublicationForm
                     )
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->schema([
-
                         Textarea::make('text')
                             ->label('Texto de la publicación')
                             ->placeholder(
@@ -343,7 +315,6 @@ class PublicationForm
                             ->required()
                             ->live()
                             ->columnSpanFull(),
-
                     ])
                     ->compact()
                     ->columnSpanFull(),
@@ -352,4 +323,3 @@ class PublicationForm
             ->columns(1);
     }
 }
-
