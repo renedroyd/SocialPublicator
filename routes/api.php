@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\BotPublicationController;
+use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\FacebookGroupController;
 use App\Http\Middleware\VerifyBotApiToken;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +18,11 @@ Route::middleware(VerifyBotApiToken::class)
             BotPublicationController::class,
             'index',
         ])->name('api.bot.publications.legacy');
+
+        Route::post('/status', [
+            BotStatusController::class,
+            'store',
+        ])->name('api.bot.status');
 
         Route::post('/facebook/groups/sync', [
             FacebookGroupController::class,
