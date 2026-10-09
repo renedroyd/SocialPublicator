@@ -74,6 +74,7 @@ class PublicationForm
                                     ->label('Recurrencia')
                                     ->options([
                                         'none' => 'Sin recurrencia',
+                                        'daily' => 'Diaria',
                                         'hourly' => 'Cada X horas',
                                     ])
                                     ->default('none')
@@ -81,7 +82,7 @@ class PublicationForm
                                     ->native(false)
                                     ->live()
                                     ->searchable(false)
-                                    ->helperText('Define si se repetirá automáticamente.')
+                                    ->helperText('Elige si se publicará una sola vez, diariamente o cada X horas.')
                                     ->prefixIcon('heroicon-o-arrow-path')
                                     ->columnSpan([
                                         'default' => 1,
@@ -158,10 +159,28 @@ class PublicationForm
                                         'lg' => 1,
                                     ]),
 
+                        Grid::make()
+                            ->columns([
+                                'default' => 1,
+                                'sm' => 2,
+                                'lg' => 4,
+                            ])
+                            ->visible(
+                                fn (Get $get): bool => in_array(
+                                    $get('recurrence_type'),
+                                    ['daily', 'hourly'],
+                                    true
+                                )
+                            )
+                            ->schema([
                                 DatePicker::make('end_date')
                                     ->label('Fecha de finalización')
                                     ->placeholder('Sin fecha límite')
-                                    ->helperText('Último día de la recurrencia.')
+                                    ->helperText(
+                                        fn (Get $get): string => $get('recurrence_type') === 'daily'
+                                            ? 'Último día en que se realizará la publicación diaria.'
+                                            : 'Último día de la recurrencia.'
+                                    )
                                     ->native(false)
                                     ->displayFormat('d/m/Y')
                                     ->format('Y-m-d')
@@ -169,9 +188,10 @@ class PublicationForm
                                     ->prefixIcon('heroicon-o-calendar')
                                     ->columnSpan([
                                         'default' => 1,
-                                        'sm' => 1,
+                                        'sm' => 2,
                                         'lg' => 1,
                                     ]),
+                            ]),
                             ]),
                     ])
                     ->columnSpanFull(),
