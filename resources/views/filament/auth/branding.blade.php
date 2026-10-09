@@ -1,5 +1,6 @@
-<div style="width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;gap:.8rem;margin:0 auto 1.75rem;padding:1.25rem 1rem .5rem">
-<img src="{{ asset('images/viralyx-isotipo.svg') }}" alt="Isotipo de VIRALYX" style="width:clamp(5.25rem,12vw,7rem);height:auto;max-height:7rem;object-fit:contain;filter:drop-shadow(0 0 18px rgba(0,190,255,.16))">
-<div style="font-size:clamp(2rem,5vw,2.65rem);font-weight:850;letter-spacing:.16em;line-height:1.1;color:var(--gray-950,#111827)">VIRALYX</div>
-<p style="margin:0;max-width:29rem;font-size:clamp(.95rem,2vw,1.08rem);line-height:1.65;letter-spacing:.015em;color:var(--gray-600,#4b5563)">Automatiza tu contenido. <span style="font-weight:650;background:linear-gradient(90deg,#08baf8,#6550f5,#9b43f5);-webkit-background-clip:text;background-clip:text;color:transparent">Multiplica tu alcance.</span></p>
+<div class="viralyx-login-brand" aria-label="VIRALYX">
+    <img src="{{ asset('images/viralyx-isotipo.svg') }}" alt="Isotipo de VIRALYX" class="viralyx-login-symbol">
+    <div class="viralyx-login-wordmark">VIRALY<span>X</span></div>
+    <h1>Bienvenido de nuevo</h1>
+    <p>Inicia sesión en tu cuenta para continuar</p>
 </div>
