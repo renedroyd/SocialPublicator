@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Publications\Schemas;
 
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
@@ -75,6 +76,7 @@ class PublicationForm
                                     ->options([
                                         'none' => 'Sin recurrencia',
                                         'daily' => 'Diaria',
+                                        'weekly' => 'Semanal',
                                         'hourly' => 'Cada X horas',
                                     ])
                                     ->default('none')
@@ -82,7 +84,7 @@ class PublicationForm
                                     ->native(false)
                                     ->live()
                                     ->searchable(false)
-                                    ->helperText('Elige si se publicará una sola vez, diariamente o cada X horas.')
+                                    ->helperText('Elige si se publicará una sola vez, diariamente, semanalmente o cada X horas.')
                                     ->prefixIcon('heroicon-o-arrow-path')
                                     ->columnSpan([
                                         'default' => 1,
@@ -90,6 +92,25 @@ class PublicationForm
                                         'lg' => 2,
                                     ]),
                             ]),
+
+                        CheckboxList::make('recurrence_days')
+                            ->label('Días de publicación')
+                            ->options([
+                                '1' => 'Lunes',
+                                '2' => 'Martes',
+                                '3' => 'Miércoles',
+                                '4' => 'Jueves',
+                                '5' => 'Viernes',
+                                '6' => 'Sábado',
+                                '7' => 'Domingo',
+                            ])
+                            ->columns(4)
+                            ->gridDirection('row')
+                            ->required(fn (Get $get): bool => $get('recurrence_type') === 'weekly')
+                            ->visible(fn (Get $get): bool => $get('recurrence_type') === 'weekly')
+                            ->helperText('Selecciona uno o varios días de la semana.')
+                            ->live()
+                            ->columnSpanFull(),
 
                         Grid::make()
                             ->columns([
@@ -169,7 +190,7 @@ class PublicationForm
                             ->visible(
                                 fn (Get $get): bool => in_array(
                                     $get('recurrence_type'),
-                                    ['daily', 'hourly'],
+                                    ['daily', 'weekly', 'hourly'],
                                     true
                                 )
                             )
@@ -178,9 +199,11 @@ class PublicationForm
                                     ->label('Fecha de finalización')
                                     ->placeholder('Sin fecha límite')
                                     ->helperText(
-                                        fn (Get $get): string => $get('recurrence_type') === 'daily'
-                                            ? 'Último día en que se realizará la publicación diaria.'
-                                            : 'Último día de la recurrencia.'
+                                        fn (Get $get): string => match ($get('recurrence_type')) {
+                                            'daily' => 'Último día en que se realizará la publicación diaria.',
+                                            'weekly' => 'Último día en que se realizará la publicación semanal.',
+                                            default => 'Último día de la recurrencia.',
+                                        }
                                     )
                                     ->native(false)
                                     ->displayFormat('d/m/Y')

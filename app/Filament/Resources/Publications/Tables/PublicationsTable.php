@@ -53,6 +53,7 @@ class PublicationsTable
                     ->formatStateUsing(
                         fn (string $state): string => match ($state) {
                             'daily' => 'Diaria',
+                            'weekly' => 'Semanal',
                             'hourly' => 'Cada X horas',
                             default => 'Una vez',
                         }
@@ -60,6 +61,7 @@ class PublicationsTable
                     ->color(
                         fn (string $state): string => match ($state) {
                             'daily' => 'success',
+                            'weekly' => 'warning',
                             'hourly' => 'info',
                             default => 'gray',
                         }
@@ -67,6 +69,7 @@ class PublicationsTable
                     ->icon(
                         fn (string $state): string => match ($state) {
                             'daily' => 'heroicon-o-calendar-days',
+                            'weekly' => 'heroicon-o-calendar',
                             'hourly' => 'heroicon-o-arrow-path',
                             default => 'heroicon-o-minus-circle',
                         }

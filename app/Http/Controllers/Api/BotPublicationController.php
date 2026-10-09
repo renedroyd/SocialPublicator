@@ -67,6 +67,7 @@ class BotPublicationController extends Controller
                     'text' => $publication->text,
                     'destination' => $publication->destination,
                     'recurrence_type' => $publication->recurrence_type,
+                    'recurrence_days' => $publication->recurrence_days,
                     'interval_hours' => $publication->interval_hours,
                     'recurrence_start_time' => $publication->recurrence_start_time,
                     'recurrence_end_time' => $publication->recurrence_end_time,
@@ -86,10 +87,12 @@ class BotPublicationController extends Controller
                         : $publication->destination,
                     'tipo_recurrencia' => match ($publication->recurrence_type) {
                         'daily' => 'diaria',
+                        'weekly' => 'semanal',
                         'hourly' => 'cada_horas',
                         default => 'ninguna',
                     },
                     'intervalo_horas' => $publication->interval_hours,
+                    'dias_recurrencia' => $publication->recurrence_days,
                     'hora_inicio_recurrencia' => $publication->recurrence_start_time,
                     'hora_fin_recurrencia' => $publication->recurrence_end_time,
                     'fecha_fin' => $publication->end_date?->format('Y-m-d'),
@@ -148,6 +151,31 @@ class BotPublicationController extends Controller
             $dayStart->gt(Carbon::parse($publication->end_date)->endOfDay())
         ) {
             return [];
+        }
+
+        if ($publication->recurrence_type === 'weekly') {
+            $days = collect($publication->recurrence_days ?? [])
+                ->map(static fn ($day): int => (int) $day)
+                ->filter(static fn (int $day): bool => $day >= 1 && $day <= 7)
+                ->unique()
+                ->values()
+                ->all();
+
+            if ($days === []) {
+                return [];
+            }
+
+            if (! in_array($now->dayOfWeekIso, $days, true)) {
+                return [];
+            }
+
+            $time = substr((string) $publication->time, 0, 5);
+
+            if ($time === '') {
+                return [];
+            }
+
+            return [Carbon::parse($now->format('Y-m-d').' '.$time)];
         }
 
         if ($publication->recurrence_type === 'daily') {

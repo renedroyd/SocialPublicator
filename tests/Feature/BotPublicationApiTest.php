@@ -331,4 +331,56 @@ class BotPublicationApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
+
+    public function test_it_generates_weekly_recurrence_only_on_selected_weekdays(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-01',
+            'time' => '14:30',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación semanal',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'weekly',
+            'recurrence_days' => ['1', '3', '5'],
+            'end_date' => '2026-10-31',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $publication->id)
+            ->assertJsonPath('data.0.date', '2026-10-07')
+            ->assertJsonPath('data.0.time', '14:30')
+            ->assertJsonPath('data.0.occurrence_id', $publication->id.'_2026-10-07_14-30')
+            ->assertJsonPath('data.0.recurrence_type', 'weekly')
+            ->assertJsonPath('data.0.tipo_recurrencia', 'semanal')
+            ->assertJsonPath('data.0.recurrence_days', ['1', '3', '5']);
+    }
+
+    public function test_it_does_not_generate_weekly_recurrence_on_unselected_day(): void
+    {
+        Publication::create([
+            'date' => '2026-10-01',
+            'time' => '14:30',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación semanal fuera de día',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'weekly',
+            'recurrence_days' => ['1', '5'],
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
 }

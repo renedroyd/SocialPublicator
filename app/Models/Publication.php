@@ -17,6 +17,7 @@ class Publication extends Model
         'destination',
         'active',
         'recurrence_type',
+        'recurrence_days',
         'interval_hours',
         'recurrence_start_time',
         'recurrence_end_time',
@@ -30,6 +31,7 @@ class Publication extends Model
             'active' => 'boolean',
             'end_date' => 'date',
             'interval_hours' => 'integer',
+            'recurrence_days' => 'array',
         ];
     }
 
