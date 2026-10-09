@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    // Stores ISO weekday numbers (1 = Monday ... 7 = Sunday) for weekly schedules.
     public function up(): void
     {
         Schema::table('publications', function (Blueprint $table): void {
