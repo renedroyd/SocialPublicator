@@ -19,9 +19,9 @@ class SystemHealthOverview extends BaseWidget
 
     protected ?string $pollingInterval = '60s';
 
-    protected static ?string $heading = 'Salud del sistema';
+    protected ?string $heading = 'Salud del sistema';
 
-    protected static ?string $description = 'Estado operativo de base de datos, cola, programación y ejecuciones.';
+    protected ?string $description = 'Estado operativo de base de datos, cola, programación y ejecuciones.';
 
     protected function getStats(): array
     {
