@@ -6,8 +6,8 @@ use App\Models\BotCommand;
 use App\Models\Publication;
 use App\Models\PublicationExecution;
 use App\Services\BotCommandService;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class BotCommandApiTest extends TestCase
