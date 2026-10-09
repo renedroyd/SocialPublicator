@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class Publication
+class Publication extends Model
 {
     protected $fillable = [
         'date',
@@ -44,8 +44,15 @@ class Publication
 
     public function products(): BelongsToMany
     {
-        return $this->belongsToMany(Product::class, 'publication_product')
-            ->withPivot(['quantity', 'published_price', 'sort_order'])
+        return $this->belongsToMany(
+            Product::class,
+            'publication_product'
+        )
+            ->withPivot([
+                'quantity',
+                'published_price',
+                'sort_order',
+            ])
             ->withTimestamps()
             ->orderByPivot('sort_order');
     }
