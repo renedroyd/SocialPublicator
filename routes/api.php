@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\BotPublicationController;
 use App\Http\Controllers\Api\BotStatusController;
+use App\Http\Controllers\Api\BotCommandController;
 use App\Http\Controllers\Api\FacebookGroupController;
 use App\Http\Middleware\VerifyBotApiToken;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,15 @@ Route::middleware(VerifyBotApiToken::class)
             BotPublicationController::class,
             'index',
         ])->name('api.bot.publications.legacy');
+
+        Route::get('/commands/claim', [BotCommandController::class, 'claim'])
+            ->name('api.bot.commands.claim');
+
+        Route::post('/commands/{command}/complete', [BotCommandController::class, 'complete'])
+            ->name('api.bot.commands.complete');
+
+        Route::post('/commands/{command}/fail', [BotCommandController::class, 'fail'])
+            ->name('api.bot.commands.fail');
 
         Route::post('/status', [
             BotStatusController::class,
