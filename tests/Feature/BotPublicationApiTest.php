@@ -383,4 +383,120 @@ class BotPublicationApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
+
+    public function test_it_generates_minute_based_occurrences(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-01',
+            'time' => '09:00',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación cada 15 minutos',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'hourly',
+            'interval_minutes' => 15,
+            'recurrence_start_time' => '09:00',
+            'recurrence_end_time' => '10:00',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('data.0.interval_minutes', 15)
+            ->assertJsonPath('data.0.intervalo_minutos', 15);
+
+        $this->assertSame(
+            ['09:00', '09:15', '09:30', '09:45', '10:00'],
+            collect($response->json('data'))->pluck('time')->all()
+        );
+    }
+
+    public function test_it_supports_a_one_minute_recurrence(): void
+    {
+        Publication::create([
+            'date' => '2026-10-01',
+            'time' => '09:00',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación cada minuto',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'hourly',
+            'interval_minutes' => 1,
+            'recurrence_start_time' => '09:00',
+            'recurrence_end_time' => '09:03',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response->assertOk()->assertJsonCount(4, 'data');
+
+        $this->assertSame(
+            ['09:00', '09:01', '09:02', '09:03'],
+            collect($response->json('data'))->pluck('time')->all()
+        );
+    }
+
+    public function test_it_supports_minute_intervals_that_cross_an_hour(): void
+    {
+        Publication::create([
+            'date' => '2026-10-01',
+            'time' => '09:00',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación cada 90 minutos',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'hourly',
+            'interval_minutes' => 90,
+            'recurrence_start_time' => '09:00',
+            'recurrence_end_time' => '13:00',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response->assertOk()->assertJsonCount(3, 'data');
+
+        $this->assertSame(
+            ['09:00', '10:30', '12:00'],
+            collect($response->json('data'))->pluck('time')->all()
+        );
+    }
+
+    public function test_it_keeps_legacy_hour_intervals_working(): void
+    {
+        Publication::create([
+            'date' => '2026-10-01',
+            'time' => '09:00',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación heredada',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'hourly',
+            'interval_hours' => 2,
+            'recurrence_start_time' => '09:00',
+            'recurrence_end_time' => '13:00',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonPath('data.0.interval_minutes', 120)
+            ->assertJsonPath('data.0.intervalo_minutos', 120);
+
+        $this->assertSame(
+            ['09:00', '11:00', '13:00'],
+            collect($response->json('data'))->pluck('time')->all()
+        );
+    }
 }
