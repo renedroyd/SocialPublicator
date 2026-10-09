@@ -307,5 +307,4 @@ class BotCommandApiTest extends TestCase
             'external_id' => 'facebook-post-456',
         ]);
     }
-
 }
