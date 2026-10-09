@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class Publication extends Model
+class Publication
 {
     protected $fillable = [
         'date',
@@ -19,6 +19,7 @@ class Publication extends Model
         'recurrence_type',
         'recurrence_days',
         'interval_hours',
+        'interval_minutes',
         'recurrence_start_time',
         'recurrence_end_time',
         'end_date',
@@ -31,6 +32,7 @@ class Publication extends Model
             'active' => 'boolean',
             'end_date' => 'date',
             'interval_hours' => 'integer',
+            'interval_minutes' => 'integer',
             'recurrence_days' => 'array',
         ];
     }
@@ -42,15 +44,8 @@ class Publication extends Model
 
     public function products(): BelongsToMany
     {
-        return $this->belongsToMany(
-            Product::class,
-            'publication_product'
-        )
-            ->withPivot([
-                'quantity',
-                'published_price',
-                'sort_order',
-            ])
+        return $this->belongsToMany(Product::class, 'publication_product')
+            ->withPivot(['quantity', 'published_price', 'sort_order'])
             ->withTimestamps()
             ->orderByPivot('sort_order');
     }
