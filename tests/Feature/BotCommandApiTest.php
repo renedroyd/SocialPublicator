@@ -265,13 +265,13 @@ class BotCommandApiTest extends TestCase
         $this->assertDatabaseCount('bot_commands', 1);
     }
 
-    public function test_restarting_unknown_execution_keeps_unknown_status_without_incrementing_attempts(): void
+    public function test_late_success_confirmation_resolves_unknown_execution(): void
     {
         $publication = Publication::create([
             'date' => '2026-10-09',
             'time' => '09:00',
-            'image' => 'publications/unknown.jpg',
-            'text' => 'Publicación con resultado desconocido',
+            'image' => 'publications/late-success.jpg',
+            'text' => 'Publicación confirmada tardíamente',
             'destination' => 'facebook',
             'active' => true,
             'recurrence_type' => 'none',
@@ -281,30 +281,30 @@ class BotCommandApiTest extends TestCase
             'publication_id' => $publication->id,
             'occurrence_id' => $publication->id.'_2026-10-09_09-00',
             'channel' => 'facebook',
-            'target_key' => 'facebook:unknown-target',
+            'target_key' => 'facebook:late-success',
             'status' => 'unknown',
             'attempts' => 1,
-            'started_at' => now()->subMinutes(20),
-            'completed_at' => now()->subMinutes(5),
-            'error_message' => 'Resultado externo desconocido',
+            'started_at' => now()->subMinutes(25),
+            'completed_at' => now()->subMinutes(10),
+            'error_message' => 'La ejecución superó el tiempo límite',
         ]);
 
         $response = $this
             ->withToken('test-token')
-            ->postJson('/api/bot/executions/start', [
-                'publication_id' => $publication->id,
-                'occurrence_id' => $execution->occurrence_id,
-                'channel' => 'facebook',
-                'target_key' => 'facebook:unknown-target',
+            ->postJson("/api/bot/executions/{$execution->id}/complete", [
+                'external_id' => 'facebook-post-456',
             ]);
 
         $response
             ->assertOk()
-            ->assertJsonPath('data.id', $execution->id)
-            ->assertJsonPath('data.status', 'unknown')
-            ->assertJsonPath('data.attempts', 1);
+            ->assertJsonPath('data.status', 'succeeded')
+            ->assertJsonPath('data.external_id', 'facebook-post-456');
 
-        $this->assertDatabaseCount('publication_executions', 1);
-        $this->assertDatabaseCount('bot_commands', 0);
+        $this->assertDatabaseHas('publication_executions', [
+            'id' => $execution->id,
+            'status' => 'succeeded',
+            'attempts' => 1,
+            'external_id' => 'facebook-post-456',
+        ]);
     }
 }

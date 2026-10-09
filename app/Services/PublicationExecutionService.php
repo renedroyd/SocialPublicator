@@ -63,7 +63,7 @@ class PublicationExecutionService
                 ->lockForUpdate()
                 ->findOrFail($execution->id);
 
-            if ($execution->status !== 'running') {
+            if (! in_array($execution->status, ['running', 'unknown'], true)) {
                 throw new LogicException(
                     "Execution {$execution->id} cannot succeed from status {$execution->status}."
                 );
