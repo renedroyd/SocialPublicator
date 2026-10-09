@@ -54,7 +54,7 @@ class PublicationsTable
                         fn (string $state): string => match ($state) {
                             'daily' => 'Diaria',
                             'weekly' => 'Semanal',
-                            'hourly' => 'Cada X horas',
+                            'hourly' => 'Cada X minutos',
                             default => 'Una vez',
                         }
                     )

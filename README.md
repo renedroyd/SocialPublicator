@@ -42,7 +42,7 @@ El modelo `Publication` concentra la configuración principal:
 - Texto.
 - Destino: WhatsApp, Facebook o ambos.
 - Estado activo/inactivo.
-- Recurrencia por horas.
+- Recurrencia configurable por minutos.
 - Hora de inicio de recurrencia.
 - Hora límite diaria.
 - Fecha de finalización.
@@ -55,7 +55,7 @@ La fecha y la hora de programación son datos explícitos de agenda. Los timesta
 Actualmente se soporta:
 
 - **Sin recurrencia:** una publicación en la fecha y hora indicadas.
-- **Cada X horas:** generación de ocurrencias dentro de una ventana diaria, respetando fecha inicial, fecha final, hora de inicio, hora límite e intervalo.
+- **Cada X minutos:** generación de ocurrencias dentro de una ventana diaria, con un intervalo mínimo de 1 minuto. Las configuraciones históricas expresadas en horas se convierten automáticamente a minutos.
 
 El API genera un identificador estable por ocurrencia:
 

@@ -77,14 +77,14 @@ class PublicationForm
                                         'none' => 'Sin recurrencia',
                                         'daily' => 'Diaria',
                                         'weekly' => 'Semanal',
-                                        'hourly' => 'Cada X horas',
+                                        'hourly' => 'Cada X minutos',
                                     ])
                                     ->default('none')
                                     ->required()
                                     ->native(false)
                                     ->live()
                                     ->searchable(false)
-                                    ->helperText('Elige si se publicará una sola vez, diariamente, semanalmente o cada X horas.')
+                                    ->helperText('Elige si se publicará una sola vez, diariamente, semanalmente o cada X minutos.')
                                     ->prefixIcon('heroicon-o-arrow-path')
                                     ->columnSpan([
                                         'default' => 1,
@@ -146,17 +146,17 @@ class PublicationForm
                                         'lg' => 1,
                                     ]),
 
-                                TextInput::make('interval_hours')
+                                TextInput::make('interval_minutes')
                                     ->label('Intervalo')
-                                    ->placeholder('Ej.: 2')
-                                    ->helperText('Horas entre publicaciones.')
+                                    ->placeholder('Ej.: 15')
+                                    ->helperText('Minutos entre publicaciones. Mínimo: 1 minuto.')
                                     ->numeric()
                                     ->integer()
                                     ->minValue(1)
-                                    ->maxValue(24)
+                                    ->maxValue(1440)
                                     ->step(1)
                                     ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
-                                    ->suffix('horas')
+                                    ->suffix('minutos')
                                     ->prefixIcon('heroicon-o-clock')
                                     ->columnSpan([
                                         'default' => 1,
