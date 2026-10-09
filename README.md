@@ -161,6 +161,34 @@ También existe el endpoint legado:
 POST /api/bot/facebook/grupos/sincronizar
 ```
 
+### Reportar ejecuciones del bot
+
+WBot informa el ciclo de vida de cada entrega mediante estos endpoints protegidos por el token de bot:
+
+```http
+POST /api/bot/executions/start
+POST /api/bot/executions/{execution}/complete
+POST /api/bot/executions/{execution}/fail
+```
+
+Al iniciar una ejecución, el bot envía `publication_id`, `occurrence_id`, `channel` (`whatsapp` o `facebook`) y `target_key`; para destinos de Facebook puede enviar también `facebook_group_id`. La finalización admite `external_id` para conservar el identificador de la publicación o mensaje externo. Los estados de ejecución son `pending`, `running`, `succeeded` y `failed`, y el campo `attempts` registra los intentos de entrega.
+
+### Comandos remotos para WBot
+
+Laravel puede encolar comandos para que el bot los reclame y ejecute:
+
+```http
+GET /api/bot/commands/claim?bot_name=WBot
+POST /api/bot/commands/{command}/complete
+POST /api/bot/commands/{command}/fail
+```
+
+El comando de reintento usa el tipo `retry_publication` y conserva en su payload la ejecución, ocurrencia, canal y destino originales. Las reclamaciones se identifican por bot; el bot debe enviar `bot_name` al completar o reportar el fallo. Los comandos pasan por `pending`, `claimed`, `succeeded` o `failed`. Los fallos pueden reencolarse hasta `max_attempts`, con una espera de 30 segundos entre intentos.
+
+La configuración de Laravel incluye `BOT_API_TOKEN` y `BOT_COMMAND_BOT_NAME=WBot`; en WBot se configuran `LARAVEL_API_URL`, `LARAVEL_API_TOKEN` y opcionalmente `BOT_NAME`. Los tokens deben ser iguales en ambos extremos y nunca deben versionarse.
+
+El panel Filament muestra el historial operativo de ejecuciones, con filtros por estado, canal y publicación, identificador de ocurrencia, número de intentos, tiempos, ID externo y mensaje de error. La acción **Reintentar** crea un comando remoto y evita duplicar comandos de reintento que sigan pendientes o reclamados para esa ejecución.
+
 ## Estructura principal
 
 ```text
