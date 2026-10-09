@@ -8,7 +8,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class InventoryOverview extends BaseWidget
 {
-    protected static ?int $sort = 8;
+    protected static ?int $sort = 9;
 
     protected int|string|array $columnSpan = 'full';
 
