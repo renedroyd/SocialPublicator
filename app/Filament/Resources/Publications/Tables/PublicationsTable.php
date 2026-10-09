@@ -157,4 +157,3 @@ class PublicationsTable
             ->recordAction(null);
     }
 }
-
