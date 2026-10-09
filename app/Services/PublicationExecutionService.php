@@ -36,7 +36,7 @@ class PublicationExecutionService
                 ->lockForUpdate()
                 ->findOrFail($execution->id);
 
-            if ($execution->status !== 'pending') {
+            if (! in_array($execution->status, ['pending', 'failed'], true)) {
                 throw new LogicException(
                     "Execution {$execution->id} cannot be started from status {$execution->status}."
                 );
@@ -47,6 +47,7 @@ class PublicationExecutionService
                 'started_at' => now(),
                 'completed_at' => null,
                 'error_message' => null,
+                'attempts' => DB::raw('attempts + 1'),
             ]);
 
             return $execution->refresh();

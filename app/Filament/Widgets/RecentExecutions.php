@@ -3,7 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Publications\PublicationResource;
+use App\Models\BotCommand;
 use App\Models\PublicationExecution;
+use App\Services\BotCommandService;
 use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -110,6 +112,24 @@ class RecentExecutions extends TableWidget
                     ]),
             ])
             ->recordActions([
+                Action::make('retry')
+                    ->label('Reintentar')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->visible(
+                        fn (PublicationExecution $record): bool => in_array(
+                            $record->status,
+                            ['failed', 'pending'],
+                            true
+                        )
+                    )
+                    ->requiresConfirmation()
+                    ->action(
+                        fn (PublicationExecution $record): BotCommand => app(
+                            BotCommandService::class
+                        )->queueRetry($record)
+                    ),
+
                 Action::make('viewPublication')
                     ->label('Ver publicación')
                     ->icon('heroicon-o-arrow-top-right-on-square')

@@ -37,6 +37,7 @@ return [
 
     'bot_api' => [
         'token' => env('BOT_API_TOKEN'),
+        'command_bot_name' => env('BOT_COMMAND_BOT_NAME', 'WBot'),
     ],
 
 ];

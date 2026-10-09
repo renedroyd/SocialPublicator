@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\BotCommandController;
+use App\Http\Controllers\Api\BotExecutionController;
 use App\Http\Controllers\Api\BotPublicationController;
 use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\FacebookGroupController;
@@ -18,6 +20,24 @@ Route::middleware(VerifyBotApiToken::class)
             BotPublicationController::class,
             'index',
         ])->name('api.bot.publications.legacy');
+
+        Route::post('/executions/start', [BotExecutionController::class, 'start'])
+            ->name('api.bot.executions.start');
+
+        Route::post('/executions/{execution}/complete', [BotExecutionController::class, 'complete'])
+            ->name('api.bot.executions.complete');
+
+        Route::post('/executions/{execution}/fail', [BotExecutionController::class, 'fail'])
+            ->name('api.bot.executions.fail');
+
+        Route::get('/commands/claim', [BotCommandController::class, 'claim'])
+            ->name('api.bot.commands.claim');
+
+        Route::post('/commands/{command}/complete', [BotCommandController::class, 'complete'])
+            ->name('api.bot.commands.complete');
+
+        Route::post('/commands/{command}/fail', [BotCommandController::class, 'fail'])
+            ->name('api.bot.commands.fail');
 
         Route::post('/status', [
             BotStatusController::class,
