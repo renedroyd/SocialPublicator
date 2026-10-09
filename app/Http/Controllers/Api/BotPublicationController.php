@@ -69,6 +69,7 @@ class BotPublicationController extends Controller
                     'recurrence_type' => $publication->recurrence_type,
                     'recurrence_days' => $publication->recurrence_days,
                     'interval_hours' => $publication->interval_hours,
+                    'interval_minutes' => $publication->interval_minutes ?? ($publication->interval_hours ? $publication->interval_hours * 60 : null),
                     'recurrence_start_time' => $publication->recurrence_start_time,
                     'recurrence_end_time' => $publication->recurrence_end_time,
                     'end_date' => $publication->end_date?->format('Y-m-d'),
@@ -92,6 +93,7 @@ class BotPublicationController extends Controller
                         default => 'ninguna',
                     },
                     'intervalo_horas' => $publication->interval_hours,
+                    'intervalo_minutos' => $publication->interval_minutes ?? ($publication->interval_hours ? $publication->interval_hours * 60 : null),
                     'dias_recurrencia' => $publication->recurrence_days,
                     'hora_inicio_recurrencia' => $publication->recurrence_start_time,
                     'hora_fin_recurrencia' => $publication->recurrence_end_time,
@@ -192,9 +194,9 @@ class BotPublicationController extends Controller
             return [];
         }
 
-        $intervalHours = (int) $publication->interval_hours;
+        $intervalMinutes = (int) ($publication->interval_minutes ?? (($publication->interval_hours ?? 0) * 60));
 
-        if ($intervalHours < 1 || empty($publication->recurrence_start_time)) {
+        if ($intervalMinutes < 1 || empty($publication->recurrence_start_time)) {
             return [];
         }
 
@@ -215,7 +217,7 @@ class BotPublicationController extends Controller
 
         while ($current->lte($end)) {
             $occurrences[] = $current->copy();
-            $current->addHours($intervalHours);
+            $current->addMinutes($intervalMinutes);
         }
 
         return $occurrences;
