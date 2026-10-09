@@ -2,7 +2,9 @@
 
 namespace App\Filament\Widgets;
 
+use App\Filament\Resources\Publications\PublicationResource;
 use App\Models\PublicationExecution;
+use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -106,6 +108,18 @@ class RecentExecutions extends TableWidget
                         'whatsapp' => 'WhatsApp',
                         'facebook' => 'Facebook',
                     ]),
+            ])
+            ->recordActions([
+                Action::make('viewPublication')
+                    ->label('Ver publicación')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->color('gray')
+                    ->url(
+                        fn (PublicationExecution $record): string => PublicationResource::getUrl(
+                            'edit',
+                            ['record' => $record->publication_id],
+                        )
+                    ),
             ])
             ->defaultSort('created_at', 'desc')
             ->paginated([5, 10, 25]);
