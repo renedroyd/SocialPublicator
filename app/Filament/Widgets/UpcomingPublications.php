@@ -61,15 +61,10 @@ class UpcomingPublications extends TableWidget
                 ->label('Recurrencia')
                 ->badge()
                 ->formatStateUsing(
-                    fn (string $state): string => $state === 'hourly'
-                        ? 'Cada '.$this->getRecordInterval($state).' h'
+                    fn (string $state, Publication $record): string => $state === 'hourly'
+                        ? 'Cada '.((int) $record->interval_hours).' h'
                         : 'Una vez'
                 ),
         ];
-    }
-
-    private function getRecordInterval(string $state): string
-    {
-        return $state === 'hourly' ? 'N' : '1';
     }
 }
