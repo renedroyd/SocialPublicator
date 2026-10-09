@@ -6,6 +6,7 @@ use App\Models\BotCommand;
 use App\Models\Publication;
 use App\Models\PublicationExecution;
 use App\Services\BotCommandService;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -184,6 +185,53 @@ class BotCommandApiTest extends TestCase
             ->assertJsonPath('data.attempts', 1);
 
         $this->assertDatabaseCount('publication_executions', 1);
+    }
+
+    public function test_stale_running_executions_are_marked_unknown_without_auto_retry(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-09',
+            'time' => '09:00',
+            'image' => 'publications/stale.jpg',
+            'text' => 'Publicación interrumpida',
+            'destination' => 'facebook',
+            'active' => true,
+            'recurrence_type' => 'none',
+        ]);
+
+        $stale = PublicationExecution::create([
+            'publication_id' => $publication->id,
+            'occurrence_id' => $publication->id.'_2026-10-09_09-00',
+            'channel' => 'facebook',
+            'target_key' => 'facebook:123',
+            'status' => 'running',
+            'attempts' => 1,
+            'started_at' => now()->subMinutes(20),
+        ]);
+
+        $recent = PublicationExecution::create([
+            'publication_id' => $publication->id,
+            'occurrence_id' => $publication->id.'_2026-10-09_09-10',
+            'channel' => 'facebook',
+            'target_key' => 'facebook:456',
+            'status' => 'running',
+            'attempts' => 1,
+            'started_at' => now()->subMinutes(5),
+        ]);
+
+        Artisan::call('publications:mark-stale-executions');
+
+        $this->assertDatabaseHas('publication_executions', [
+            'id' => $stale->id,
+            'status' => 'unknown',
+            'attempts' => 1,
+        ]);
+        $this->assertDatabaseHas('publication_executions', [
+            'id' => $recent->id,
+            'status' => 'running',
+            'attempts' => 1,
+        ]);
+        $this->assertDatabaseCount('bot_commands', 0);
     }
 
     public function test_retrying_execution_reuses_an_active_retry_command(): void
