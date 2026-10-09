@@ -253,14 +253,7 @@ class PublicationForm
                             ->preload()
                             ->optionsLimit(50)
                             ->native(false)
-                            ->required(
-                                fn (Get $get): bool =>
-                                    in_array(
-                                        $get('destination'),
-                                        ['facebook', 'both'],
-                                        true
-                                    )
-                            )
+                            ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
                             ->visible(
                                 fn (Get $get): bool =>
                                     in_array(
