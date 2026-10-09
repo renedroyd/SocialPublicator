@@ -383,5 +383,4 @@ class BotPublicationApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
-
 }
