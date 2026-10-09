@@ -335,7 +335,6 @@ class PublicationForm
                             ->required()
                             ->live()
                             ->columnSpanFull(),
-
                     ])
                     ->compact()
                     ->columnSpanFull(),
