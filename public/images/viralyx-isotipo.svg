@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 260" role="img" aria-labelledby="title">
+<title id="title">Isotipo VIRALYX</title>
+<defs>
+ <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#08d9f5"/><stop offset=".42" stop-color="#155bff"/><stop offset=".72" stop-color="#6d35f5"/><stop offset="1" stop-color="#b33ff4"/></linearGradient>
+ <linearGradient id="branch" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#075bff"/><stop offset=".55" stop-color="#00c8f4"/><stop offset="1" stop-color="#12e4de"/></linearGradient>
+ <linearGradient id="purple" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#08baf8"/><stop offset=".55" stop-color="#5537f7"/><stop offset="1" stop-color="#c34cf5"/></linearGradient>
+</defs>
+<g stroke-linecap="round" stroke-linejoin="round">
+ <path fill="url(#ribbon)" d="M25 39 C22 33 27 27 35 27 H82 C104 27 118 39 130 62 L185 169 C193 186 207 190 218 174 L245 133 C254 120 270 116 280 125 C290 135 284 151 274 165 L239 216 C224 237 203 246 180 243 C158 240 145 226 133 205 Z"/>
+ <path fill="url(#branch)" d="M169 177 L210 101 C218 86 229 78 239 66 C248 55 251 43 250 31 C249 13 262 1 280 3 C299 5 312 20 310 38 C308 56 294 68 277 69 C263 69 251 77 242 89 L208 133 L190 172 C183 187 174 190 169 177 Z"/>
+ <path fill="url(#purple)" d="M208 134 C224 123 236 109 247 92 C255 79 270 76 282 84 C294 92 294 108 283 117 C273 126 259 123 247 132 L224 150 C216 156 204 146 208 134 Z"/>
+ <path fill="url(#branch)" d="M224 151 C236 142 246 132 255 121 C265 109 281 110 289 121 C297 133 291 146 279 151 C267 156 256 151 246 158 L230 170 C221 177 214 160 224 151 Z"/>
+ <path fill="url(#ribbon)" d="M132 205 C143 222 155 233 174 239 C191 245 209 241 222 229 L236 212 C246 199 244 184 231 177 C218 170 205 178 198 190 L187 207 C181 217 170 217 163 207 L146 178 Z"/>
+ <path fill="url(#branch)" d="M190 116 C200 98 210 84 219 68 C225 57 224 46 218 37 C211 26 214 13 225 7 C236 1 249 7 253 19 C258 32 249 44 238 47 C230 49 226 57 221 66 L205 96 C199 107 195 114 190 116 Z"/>
+ <circle cx="228" cy="24" r="13" fill="url(#ribbon)"/>
+ <circle cx="278" cy="28" r="29" fill="url(#branch)"/>
+ <circle cx="275" cy="103" r="21" fill="url(#purple)"/>
+ <circle cx="236" cy="142" r="17" fill="url(#branch)"/>
+</g>
+</svg>
