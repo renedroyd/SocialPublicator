@@ -260,6 +260,7 @@ class BotPublicationApiTest extends TestCase
             collect($response->json('data'))->pluck('time')->all()
         );
     }
+
     public function test_it_generates_one_occurrence_per_day_for_daily_recurrence(): void
     {
         $publication = Publication::create([
@@ -330,5 +331,4 @@ class BotPublicationApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
-
 }
