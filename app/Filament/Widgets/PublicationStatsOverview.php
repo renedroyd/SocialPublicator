@@ -6,7 +6,6 @@ use App\Models\Publication;
 use App\Models\PublicationExecution;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Illuminate\Support\Carbon;
 
 class PublicationStatsOverview extends BaseWidget
 {
@@ -19,7 +18,6 @@ class PublicationStatsOverview extends BaseWidget
     protected function getStats(): array
     {
         $today = now()->startOfDay();
-        $tomorrow = $today->copy()->addDay();
         $weekEnd = $today->copy()->addDays(7);
 
         $total = Publication::query()->count();
