@@ -109,10 +109,7 @@ class PublicationForm
                                     ->native(false)
                                     ->displayFormat('H:i')
                                     ->format('H:i')
-                                    ->required(
-                                        fn (Get $get): bool =>
-                                            $get('recurrence_type') === 'hourly'
-                                    )
+                                    ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                                     ->live()
                                     ->afterStateUpdated(
                                         function (?string $state, Set $set): void {
@@ -137,10 +134,7 @@ class PublicationForm
                                     ->minValue(1)
                                     ->maxValue(24)
                                     ->step(1)
-                                    ->required(
-                                        fn (Get $get): bool =>
-                                            $get('recurrence_type') === 'hourly'
-                                    )
+                                    ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                                     ->suffix('horas')
                                     ->prefixIcon('heroicon-o-clock')
                                     ->columnSpan([
@@ -157,10 +151,7 @@ class PublicationForm
                                     ->native(false)
                                     ->displayFormat('H:i')
                                     ->format('H:i')
-                                    ->required(
-                                        fn (Get $get): bool =>
-                                            $get('recurrence_type') === 'hourly'
-                                    )
+                                    ->required(fn (Get $get): bool => $get('recurrence_type') === 'hourly')
                                     ->prefixIcon('heroicon-o-stop')
                                     ->columnSpan([
                                         'default' => 1,
@@ -254,14 +245,11 @@ class PublicationForm
                             ->optionsLimit(50)
                             ->native(false)
                             ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
-                            ->visible(
-                                fn (Get $get): bool =>
-                                    in_array(
-                                        $get('destination'),
-                                        ['facebook', 'both'],
-                                        true
-                                    )
-                            )
+                            ->visible(fn (Get $get): bool => in_array(
+                                $get('destination'),
+                                ['facebook', 'both'],
+                                true
+                            ))
                             ->helperText(
                                 'Selecciona uno o varios grupos donde se compartirá la publicación.'
                             )
