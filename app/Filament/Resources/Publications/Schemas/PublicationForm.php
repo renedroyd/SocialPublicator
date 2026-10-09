@@ -60,7 +60,6 @@ class PublicationForm
                                     ->placeholder('Seleccionar hora')
                                     ->helperText('Hora de la primera publicación.')
                                     ->seconds(false)
-                                    //->native(false)
                                     ->displayFormat('H:i')
                                     ->format('H:i')
                                     ->required()
