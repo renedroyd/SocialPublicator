@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\Api\BotPublicationController;
-use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\BotCommandController;
 use App\Http\Controllers\Api\BotExecutionController;
+use App\Http\Controllers\Api\BotPublicationController;
+use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\FacebookGroupController;
 use App\Http\Middleware\VerifyBotApiToken;
 use Illuminate\Support\Facades\Route;
