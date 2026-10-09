@@ -84,9 +84,11 @@ class BotPublicationController extends Controller
                     'destino' => $publication->destination === 'both'
                         ? 'ambos'
                         : $publication->destination,
-                    'tipo_recurrencia' => $publication->recurrence_type === 'hourly'
-                        ? 'cada_horas'
-                        : 'ninguna',
+                    'tipo_recurrencia' => match ($publication->recurrence_type) {
+                        'daily' => 'diaria',
+                        'hourly' => 'cada_horas',
+                        default => 'ninguna',
+                    },
                     'intervalo_horas' => $publication->interval_hours,
                     'hora_inicio_recurrencia' => $publication->recurrence_start_time,
                     'hora_fin_recurrencia' => $publication->recurrence_end_time,
@@ -146,6 +148,16 @@ class BotPublicationController extends Controller
             $dayStart->gt(Carbon::parse($publication->end_date)->endOfDay())
         ) {
             return [];
+        }
+
+        if ($publication->recurrence_type === 'daily') {
+            $time = substr((string) $publication->time, 0, 5);
+
+            if ($time === '') {
+                return [];
+            }
+
+            return [Carbon::parse($now->format('Y-m-d').' '.$time)];
         }
 
         if ($publication->recurrence_type !== 'hourly') {

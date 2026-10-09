@@ -47,6 +47,34 @@ class PublicationsTable
                         'class' => 'whitespace-nowrap',
                     ]),
 
+                TextColumn::make('recurrence_type')
+                    ->label('Recurrencia')
+                    ->badge()
+                    ->formatStateUsing(
+                        fn (string $state): string => match ($state) {
+                            'daily' => 'Diaria',
+                            'hourly' => 'Cada X horas',
+                            default => 'Una vez',
+                        }
+                    )
+                    ->color(
+                        fn (string $state): string => match ($state) {
+                            'daily' => 'success',
+                            'hourly' => 'info',
+                            default => 'gray',
+                        }
+                    )
+                    ->icon(
+                        fn (string $state): string => match ($state) {
+                            'daily' => 'heroicon-o-calendar-days',
+                            'hourly' => 'heroicon-o-arrow-path',
+                            default => 'heroicon-o-minus-circle',
+                        }
+                    )
+                    ->sortable()
+                    ->alignCenter()
+                    ->width('150px'),
+
                 ImageColumn::make('image')
                     ->label('Vista previa')
                     ->disk('public')

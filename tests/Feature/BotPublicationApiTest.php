@@ -260,4 +260,75 @@ class BotPublicationApiTest extends TestCase
             collect($response->json('data'))->pluck('time')->all()
         );
     }
+
+    public function test_it_generates_one_occurrence_per_day_for_daily_recurrence(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-01',
+            'time' => '14:30',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación diaria',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'daily',
+            'end_date' => '2026-10-10',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $publication->id)
+            ->assertJsonPath('data.0.date', '2026-10-07')
+            ->assertJsonPath('data.0.time', '14:30')
+            ->assertJsonPath('data.0.occurrence_id', $publication->id.'_2026-10-07_14-30')
+            ->assertJsonPath('data.0.recurrence_type', 'daily')
+            ->assertJsonPath('data.0.tipo_recurrencia', 'diaria');
+    }
+
+    public function test_it_does_not_generate_daily_recurrence_after_its_end_date(): void
+    {
+        Publication::create([
+            'date' => '2026-10-01',
+            'time' => '14:30',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación diaria finalizada',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'daily',
+            'end_date' => '2026-10-06',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
+
+    public function test_it_does_not_generate_daily_recurrence_before_its_start_date(): void
+    {
+        Publication::create([
+            'date' => '2026-10-08',
+            'time' => '14:30',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación diaria futura',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'daily',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->getJson('/api/bot/publications');
+
+        $response
+            ->assertOk()
+            ->assertJsonCount(0, 'data');
+    }
 }
