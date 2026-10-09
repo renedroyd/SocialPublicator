@@ -158,6 +158,7 @@ class PublicationForm
                                         'sm' => 1,
                                         'lg' => 1,
                                     ]),
+                            ]),
 
                         Grid::make()
                             ->columns([
@@ -191,7 +192,6 @@ class PublicationForm
                                         'sm' => 2,
                                         'lg' => 1,
                                     ]),
-                            ]),
                             ]),
                     ])
                     ->columnSpanFull(),
