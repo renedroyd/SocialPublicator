@@ -6,8 +6,8 @@ use App\Models\BotCommand;
 use App\Models\Publication;
 use App\Models\PublicationExecution;
 use App\Services\BotCommandService;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class BotCommandApiTest extends TestCase
@@ -263,5 +263,48 @@ class BotCommandApiTest extends TestCase
 
         $this->assertSame($firstCommand->id, $secondCommand->id);
         $this->assertDatabaseCount('bot_commands', 1);
+    }
+
+    public function test_restarting_unknown_execution_keeps_unknown_status_without_incrementing_attempts(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-09',
+            'time' => '09:00',
+            'image' => 'publications/unknown.jpg',
+            'text' => 'Publicación con resultado desconocido',
+            'destination' => 'facebook',
+            'active' => true,
+            'recurrence_type' => 'none',
+        ]);
+
+        $execution = PublicationExecution::create([
+            'publication_id' => $publication->id,
+            'occurrence_id' => $publication->id.'_2026-10-09_09-00',
+            'channel' => 'facebook',
+            'target_key' => 'facebook:unknown-target',
+            'status' => 'unknown',
+            'attempts' => 1,
+            'started_at' => now()->subMinutes(20),
+            'completed_at' => now()->subMinutes(5),
+            'error_message' => 'Resultado externo desconocido',
+        ]);
+
+        $response = $this
+            ->withToken('test-token')
+            ->postJson('/api/bot/executions/start', [
+                'publication_id' => $publication->id,
+                'occurrence_id' => $execution->occurrence_id,
+                'channel' => 'facebook',
+                'target_key' => 'facebook:unknown-target',
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.id', $execution->id)
+            ->assertJsonPath('data.status', 'unknown')
+            ->assertJsonPath('data.attempts', 1);
+
+        $this->assertDatabaseCount('publication_executions', 1);
+        $this->assertDatabaseCount('bot_commands', 0);
     }
 }
