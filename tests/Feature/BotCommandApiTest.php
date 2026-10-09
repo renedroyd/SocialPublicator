@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\BotCommand;
 use App\Models\Publication;
-use App\Models\PublicationExecution;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
