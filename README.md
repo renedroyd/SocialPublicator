@@ -1,58 +1,367 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SocialPublicator
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Plataforma Laravel para la gestión, programación y distribución de publicaciones hacia múltiples canales sociales. El proyecto centraliza el contenido, la programación, los destinos y el seguimiento de ejecuciones para que los bots y futuras integraciones puedan consumir una única fuente de verdad.
 
-## About Laravel
+## Estado actual
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Framework:** Laravel 13
+- **PHP:** ^8.3
+- **Administración:** Filament 5
+- **Autenticación API:** Laravel Sanctum / token de bot
+- **Base de datos por defecto:** SQLite
+- **Pruebas:** PHPUnit mediante `php artisan test`
+- **Calidad de código:** Laravel Pint
+- **CI:** GitHub Actions
+- **Zona horaria de la aplicación:** `America/Havana` por defecto
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+El CI actual ejecuta PHP 8.4, instala las dependencias, prepara una base SQLite, ejecuta las migraciones, ejecuta toda la suite de pruebas y valida el formato PHP de los archivos modificados.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Objetivos
 
-## Learning Laravel
+SocialPublicator está evolucionando desde un gestor de publicaciones para WhatsApp hacia una plataforma profesional y extensible para:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+1. Crear y administrar contenido.
+2. Programar publicaciones por fecha y hora.
+3. Definir publicaciones recurrentes.
+4. Asociar productos e información de inventario al contenido.
+5. Seleccionar uno o varios destinos sociales.
+6. Gestionar grupos de Facebook asociados a una publicación.
+7. Exponer publicaciones programadas a bots mediante una API protegida.
+8. Registrar las ejecuciones para evitar publicaciones duplicadas y mantener trazabilidad.
+9. Incorporar progresivamente nuevos canales sociales sin duplicar la lógica de negocio.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Arquitectura funcional
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### Publicaciones
 
-## Agentic Development
+El modelo `Publication` concentra la configuración principal:
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+- Fecha de inicio.
+- Hora.
+- Imagen.
+- Texto.
+- Destino: WhatsApp, Facebook o ambos.
+- Estado activo/inactivo.
+- Recurrencia por horas.
+- Hora de inicio de recurrencia.
+- Hora límite diaria.
+- Fecha de finalización.
+- Relaciones con productos, grupos de Facebook y ejecuciones.
+
+La fecha y la hora de programación son datos explícitos de agenda. Los timestamps de auditoría (`created_at` y `updated_at`) utilizan la zona horaria configurada por `APP_TIMEZONE`.
+
+### Recurrencia
+
+Actualmente se soporta:
+
+- **Sin recurrencia:** una publicación en la fecha y hora indicadas.
+- **Cada X horas:** generación de ocurrencias dentro de una ventana diaria, respetando fecha inicial, fecha final, hora de inicio, hora límite e intervalo.
+
+El API genera un identificador estable por ocurrencia:
+
+```text
+{publication_id}_{YYYY-MM-DD}_{HH-mm}
+```
+
+Esto permite que un bot trate cada ejecución programada como una unidad independiente.
+
+### Productos e inventario
+
+Las publicaciones pueden relacionarse con productos mediante la tabla pivote correspondiente. Los productos disponen de categorías y movimientos de inventario, permitiendo evolucionar hacia publicaciones dinámicas basadas en disponibilidad y precios.
+
+### Facebook
+
+La aplicación mantiene los grupos de Facebook sincronizados desde el bot mediante un endpoint protegido. Una publicación puede seleccionar uno o varios grupos activos cuando su destino incluye Facebook.
+
+Cada grupo almacena:
+
+- ID de Facebook.
+- Nombre.
+- URL.
+- Estado activo.
+- Fecha de última sincronización.
+
+### Ejecuciones
+
+`PublicationExecution` registra el ciclo de entrega de una publicación a un destino concreto.
+
+Estados principales:
+
+- `pending`
+- `running`
+- `succeeded`
+- `failed`
+
+El servicio `PublicationExecutionService` controla las transiciones y utiliza transacciones/bloqueos para evitar carreras entre procesos. La base de datos aplica una restricción de unicidad sobre la combinación de ocurrencia y destino, proporcionando una barrera adicional contra duplicados.
+
+## API para bots
+
+Las rutas del bot están protegidas por el middleware `VerifyBotApiToken`.
+
+### Obtener publicaciones programadas
+
+```http
+GET /api/bot/publications
+Authorization: Bearer <BOT_API_TOKEN>
+```
+
+También se mantiene temporalmente el endpoint legado:
+
+```http
+GET /api/bot/publicaciones
+```
+
+La respuesta contiene el contrato moderno en inglés y campos heredados en español para mantener compatibilidad con la versión estable actual del WBot mientras se completa la migración.
+
+Ejemplo conceptual:
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "occurrence_id": "1_2026-10-08_09-00",
+      "date": "2026-10-08",
+      "time": "09:00",
+      "image": "https://example.test/storage/publications/example.jpg",
+      "text": "Contenido de la publicación",
+      "destination": "both",
+      "recurrence_type": "none",
+      "facebook_groups": []
+    }
+  ]
+}
+```
+
+### Sincronizar grupos de Facebook
+
+```http
+POST /api/bot/facebook/groups/sync
+Authorization: Bearer <BOT_API_TOKEN>
+Content-Type: application/json
+```
+
+Payload:
+
+```json
+{
+  "groups": [
+    {
+      "facebook_id": "123456789",
+      "name": "Grupo de ejemplo",
+      "url": "https://www.facebook.com/groups/123456789"
+    }
+  ]
+}
+```
+
+También existe el endpoint legado:
+
+```http
+POST /api/bot/facebook/grupos/sincronizar
+```
+
+## Estructura principal
+
+```text
+app/
+├── Filament/
+│   └── Resources/
+│       ├── Categories/
+│       ├── Products/
+│       └── Publications/
+├── Http/
+│   ├── Controllers/
+│   │   └── Api/
+│   │       ├── BotPublicationController.php
+│   │       └── FacebookGroupController.php
+│   ├── Middleware/
+│   └── ...
+├── Models/
+│   ├── Category.php
+│   ├── FacebookGroup.php
+│   ├── InventoryMovement.php
+│   ├── Product.php
+│   ├── Publication.php
+│   ├── PublicationDestination.php
+│   ├── PublicationExecution.php
+│   └── PublicationSchedule.php
+└── Services/
+    └── PublicationExecutionService.php
+
+database/
+├── migrations/
+└── seeders/
+
+routes/
+└── api.php
+
+tests/
+├── Feature/
+└── Unit/
+
+.github/
+└── workflows/
+    └── ci.yml
+```
+
+## Instalación
+
+Requisitos:
+
+- PHP 8.3 o superior.
+- Composer.
+- Node.js y npm para los assets del panel.
+- Una base de datos soportada por Laravel. SQLite es la configuración de desarrollo recomendada actualmente.
+
+Instalar dependencias:
+
+```bash
+composer install
+npm install
+```
+
+Crear el entorno:
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Para SQLite:
+
+```bash
+touch database/database.sqlite
+php artisan migrate
+```
+
+Configurar el token utilizado por los bots y el resto de variables necesarias en `.env`.
+
+Construir los assets:
+
+```bash
+npm run build
+```
+
+Iniciar el entorno de desarrollo:
+
+```bash
+php artisan serve
+```
+
+## Zona horaria
+
+La aplicación utiliza:
+
+```env
+APP_TIMEZONE=America/Havana
+```
+
+y `config/app.php` obtiene la zona horaria desde esa variable:
+
+```php
+'timezone' => env('APP_TIMEZONE', 'America/Havana'),
+```
+
+Esto es especialmente importante para las publicaciones programadas y para los timestamps de auditoría. En una futura instalación multi-región, `APP_TIMEZONE` puede configurarse según la zona horaria de la instancia.
+
+Después de cambiar variables de entorno en una instalación existente, limpiar la configuración cacheada:
+
+```bash
+php artisan config:clear
+```
+
+## Pruebas
+
+Ejecutar toda la suite:
+
+```bash
+php artisan test
+```
+
+Validar formato:
+
+```bash
+vendor/bin/pint --test
+```
+
+Para preparar el entorno utilizado por los agentes de desarrollo, el repositorio incluye las instrucciones de Laravel Boost en `AGENTS.md`:
 
 ```bash
 composer require laravel/boost --dev
-
 php artisan boost:install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Integración continua
 
-## Contributing
+El workflow `.github/workflows/ci.yml` verifica:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. Checkout del repositorio.
+2. PHP 8.4.
+3. Extensiones requeridas para Laravel y SQLite.
+4. Instalación de Composer.
+5. Creación del entorno de pruebas.
+6. Migraciones.
+7. Tests de Laravel.
+8. Formato Pint únicamente sobre los archivos PHP modificados.
 
-## Code of Conduct
+El estado de CI debe ser verde antes de integrar cambios en `main`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Convenciones de desarrollo
 
-## Security Vulnerabilities
+- Mantener los identificadores de dominio y código en inglés.
+- Mantener compatibilidad temporal con los nombres heredados del bot cuando sea necesario.
+- Preferir cambios pequeños y verificables.
+- Añadir pruebas para cambios de comportamiento.
+- Mantener las migraciones como historial evolutivo del esquema.
+- Evitar duplicar lógica de programación en cada canal social.
+- Utilizar servicios de dominio para operaciones que requieran transacciones, idempotencia o coordinación entre procesos.
+- No almacenar secretos en el repositorio.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Roadmap técnico
 
-## License
+### Corto plazo
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- Consolidar el contrato API moderno en inglés.
+- Completar la migración del WBot a los nombres nuevos.
+- Mejorar las pruebas de programación y zona horaria.
+- Incorporar visualización del historial de ejecuciones en Filament.
+- Añadir filtros y métricas de publicaciones por canal y estado.
+
+### Medio plazo
+
+- Arquitectura de adaptadores por red social.
+- Cola de trabajos para publicación asíncrona.
+- Reintentos y backoff por canal.
+- Registro de respuestas externas y IDs de publicaciones.
+- Calendario visual de publicaciones.
+- Plantillas de contenido.
+- Gestión avanzada de productos e inventario dentro del compositor.
+
+### Largo plazo
+
+- Nuevas redes sociales mediante conectores independientes.
+- Multiusuario y roles.
+- Multiempresa/multicuenta.
+- Analítica de publicaciones.
+- Auditoría completa.
+- Gestión centralizada de credenciales OAuth.
+- Programación basada en zona horaria por cuenta o destino.
+
+## Seguridad
+
+- Las credenciales y tokens deben mantenerse exclusivamente en `.env` o en el gestor de secretos del entorno.
+- Los endpoints del bot requieren autenticación mediante token.
+- Las operaciones de sincronización de Facebook se validan antes de persistirse.
+- Las ejecuciones de publicaciones se controlan para evitar duplicados.
+- En producción se debe usar HTTPS y una configuración de `APP_DEBUG=false`.
+
+## Licencia
+
+El proyecto utiliza la licencia MIT.
+
+## Documentación oficial
+
+- Laravel: https://laravel.com/docs
+- Filament: https://filamentphp.com/docs
+- Laravel Boost: https://laravel.com/docs/ai
