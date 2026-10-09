@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Pages\Auth;
+namespace App\Filament\Auth;
 
 use Filament\Actions\Action;
 use Filament\Auth\Pages\Login as BaseLogin;
