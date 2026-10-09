@@ -61,7 +61,7 @@ html, body, .fi-body { min-height:100%; background:#070b18 !important; }
 .viralyx-login-symbol { width:108px; height:84px; object-fit:contain; filter:drop-shadow(0 0 18px rgba(0,190,255,.18)); }
 .viralyx-login-wordmark { margin-top:3px; color:#f7f8ff; font-size:29px; line-height:1.15; font-weight:850; letter-spacing:.105em; }
 .viralyx-login-wordmark span { background:linear-gradient(100deg,#08c8f6,#5d48ff 55%,#bd45f5); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing:-.02em; }
-.viralyx-login-brand h1 { margin:14px 0 4px; color:#f5f6ff; font-size:16px; font-weight:700; line-height:1.4; }
+.viralyx-login-brand h1 { margin:14px 0 0; color:#f5f6ff; font-family:inherit; font-size:16px; font-weight:700; line-height:1.45; }\n.viralyx-login-brand h1 span { color:#8c7cff; font-family:inherit; font-weight:700; }
 .viralyx-login-brand p { margin:0; color:#a3afca; font-size:13px; line-height:1.5; }
 .fi-simple-main form { gap:14px !important; }
 .fi-fo-field-wrp-label { color:#e2e8fa !important; font-size:13px !important; font-weight:500 !important; }
