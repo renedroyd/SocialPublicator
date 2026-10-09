@@ -14,6 +14,7 @@ class PublicationExecution extends Model
         'target_key',
         'facebook_group_id',
         'status',
+        'attempts',
         'started_at',
         'completed_at',
         'external_id',
