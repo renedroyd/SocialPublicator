@@ -199,12 +199,11 @@ class PublicationForm
                                     ->label('Fecha de finalización')
                                     ->placeholder('Sin fecha límite')
                                     ->helperText(
-                                        fn (Get $get): string => $get('recurrence_type') === 'daily'
-                                            ? match ($get('recurrence_type')) {
-                                                'daily' => 'Último día en que se realizará la publicación diaria.',
-                                                'weekly' => 'Último día en que se realizará la publicación semanal.',
-                                                default => 'Último día de la recurrencia.',
-                                            }
+                                        fn (Get $get): string => match ($get('recurrence_type')) {
+                                            'daily' => 'Último día en que se realizará la publicación diaria.',
+                                            'weekly' => 'Último día en que se realizará la publicación semanal.',
+                                            default => 'Último día de la recurrencia.',
+                                        }
                                     )
                                     ->native(false)
                                     ->displayFormat('d/m/Y')
