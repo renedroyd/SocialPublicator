@@ -24,11 +24,9 @@ class BotExecutionController extends Controller
 
         $execution = $service->getOrCreate($validated);
 
-        if ($execution->status === 'succeeded') {
-            return response()->json(['data' => $execution]);
-        }
-
-        if ($execution->status === 'running') {
+        // An unknown external result must never be silently restarted: the post
+        // may already exist on the social network.
+        if (in_array($execution->status, ['succeeded', 'running', 'unknown'], true)) {
             return response()->json(['data' => $execution]);
         }
 
