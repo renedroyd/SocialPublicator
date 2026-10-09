@@ -77,6 +77,7 @@ class RecentExecutions extends TableWidget
                             'failed' => 'danger',
                             'pending' => 'warning',
                             'running' => 'info',
+                            'unknown' => 'warning',
                             default => 'gray',
                         }
                     )
@@ -86,6 +87,7 @@ class RecentExecutions extends TableWidget
                             'failed' => 'Fallida',
                             'pending' => 'Pendiente',
                             'running' => 'Ejecutando',
+                            'unknown' => 'Resultado desconocido',
                             default => ucfirst($state ?? '—'),
                         }
                     ),
@@ -131,6 +133,7 @@ class RecentExecutions extends TableWidget
                         'failed' => 'Fallidas',
                         'pending' => 'Pendientes',
                         'running' => 'Ejecutando',
+                        'unknown' => 'Resultado desconocido',
                     ]),
 
                 SelectFilter::make('publication_id')
