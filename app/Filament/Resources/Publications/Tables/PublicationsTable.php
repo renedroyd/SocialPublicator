@@ -10,6 +10,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
 
 class PublicationsTable
 {
@@ -30,7 +31,6 @@ class PublicationsTable
             )
             ->emptyStateIcon('heroicon-o-megaphone')
             ->columns([
-
                 TextColumn::make('time')
                     ->label('Hora')
                     ->time('H:i')
@@ -80,12 +80,29 @@ class PublicationsTable
 
                 ImageColumn::make('image')
                     ->label('Vista previa')
-                    ->disk('public')
+                    ->getStateUsing(function ($record): ?string {
+                        $image = $record->image;
+
+                        if (blank($image)) {
+                            return null;
+                        }
+
+                        if (filter_var($image, FILTER_VALIDATE_URL)) {
+                            return $image;
+                        }
+
+                        return Storage::disk('public')->url(ltrim($image, '/'));
+                    })
                     ->square()
                     ->size(64)
                     ->alignCenter()
                     ->extraAttributes([
                         'class' => 'rounded-xl overflow-hidden shadow-sm',
+                    ])
+                    ->extraImgAttributes([
+                        'loading' => 'lazy',
+                        'alt' => 'Vista previa de la publicación',
+                        'class' => 'rounded-xl object-cover',
                     ])
                     ->placeholder('heroicon-o-photo'),
 
