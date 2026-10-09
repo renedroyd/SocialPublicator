@@ -20,7 +20,7 @@ class RecentExecutions extends TableWidget
 
     protected static ?string $heading = 'Actividad reciente';
 
-    protected static ?string $description = 'Últimas ejecuciones registradas por el sistema de publicaciones.';
+    protected static ?string $description = 'Historial operativo por publicación, canal, destino e intentos de entrega.';
 
     protected ?string $pollingInterval = '30s';
 
@@ -41,7 +41,8 @@ class RecentExecutions extends TableWidget
                 TextColumn::make('publication.text')
                     ->label('Publicación')
                     ->limit(70)
-                    ->wrap(),
+                    ->wrap()
+                    ->searchable(),
 
                 TextColumn::make('channel')
                     ->label('Canal')
@@ -57,7 +58,15 @@ class RecentExecutions extends TableWidget
                 TextColumn::make('target_key')
                     ->label('Destino')
                     ->limit(35)
+                    ->searchable()
                     ->placeholder('—'),
+
+                TextColumn::make('occurrence_id')
+                    ->label('Ocurrencia')
+                    ->limit(32)
+                    ->searchable()
+                    ->copyable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('status')
                     ->label('Estado')
@@ -81,11 +90,31 @@ class RecentExecutions extends TableWidget
                         }
                     ),
 
+                TextColumn::make('attempts')
+                    ->label('Intentos')
+                    ->badge()
+                    ->color(fn (?int $state): string => ($state ?? 0) > 1 ? 'warning' : 'gray')
+                    ->sortable(),
+
+                TextColumn::make('started_at')
+                    ->label('Inicio')
+                    ->dateTime('d/m/Y H:i:s')
+                    ->placeholder('—')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('completed_at')
                     ->label('Completada')
                     ->dateTime('d/m/Y H:i:s')
                     ->placeholder('—')
                     ->sortable(),
+
+                TextColumn::make('external_id')
+                    ->label('ID externo')
+                    ->limit(28)
+                    ->placeholder('—')
+                    ->copyable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('error_message')
                     ->label('Error')
@@ -103,6 +132,12 @@ class RecentExecutions extends TableWidget
                         'pending' => 'Pendientes',
                         'running' => 'Ejecutando',
                     ]),
+
+                SelectFilter::make('publication_id')
+                    ->label('Publicación')
+                    ->relationship('publication', 'text')
+                    ->searchable()
+                    ->preload(),
 
                 SelectFilter::make('channel')
                     ->label('Canal')
