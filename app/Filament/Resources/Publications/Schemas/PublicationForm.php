@@ -21,7 +21,6 @@ class PublicationForm
     {
         return $schema
             ->components([
-
                 /*
                  * Scheduling
                  */
@@ -33,7 +32,6 @@ class PublicationForm
                     ->collapsible()
                     ->persistCollapsed(false)
                     ->schema([
-
                         Grid::make()
                             ->columns([
                                 'default' => 1,
@@ -41,7 +39,6 @@ class PublicationForm
                                 'lg' => 4,
                             ])
                             ->schema([
-
                                 DatePicker::make('date')
                                     ->label('Fecha de inicio')
                                     ->placeholder('Seleccionar fecha')
@@ -104,7 +101,6 @@ class PublicationForm
                                 fn (Get $get): bool => $get('recurrence_type') === 'hourly'
                             )
                             ->schema([
-
                                 TimePicker::make('recurrence_start_time')
                                     ->label('Hora de inicio')
                                     ->placeholder('Ej.: 09:00')
@@ -199,7 +195,6 @@ class PublicationForm
                     )
                     ->icon('heroicon-o-paper-airplane')
                     ->schema([
-
                         Grid::make()
                             ->columns([
                                 'default' => 1,
@@ -207,7 +202,6 @@ class PublicationForm
                                 'lg' => 4,
                             ])
                             ->schema([
-
                                 Select::make('destination')
                                     ->label('Canal de publicación')
                                     ->options([
@@ -293,7 +287,6 @@ class PublicationForm
                     ->icon('heroicon-o-photo')
                     ->collapsible()
                     ->schema([
-
                         FileUpload::make('image')
                             ->label('Imagen de la publicación')
                             ->placeholder(
@@ -328,7 +321,6 @@ class PublicationForm
                     )
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->schema([
-
                         Textarea::make('text')
                             ->label('Texto de la publicación')
                             ->placeholder(
