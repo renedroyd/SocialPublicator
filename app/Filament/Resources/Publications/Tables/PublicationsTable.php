@@ -18,83 +18,143 @@ class PublicationsTable
         return $table
             ->defaultSort('time', 'asc')
             ->striped()
+            ->persistSortInSession()
+            ->persistSearchInSession()
             ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(10)
             ->searchPlaceholder('Buscar publicaciones...')
+            ->searchDebounce('500ms')
             ->emptyStateHeading('No hay publicaciones')
-            ->emptyStateDescription('Crea una publicación para comenzar a configurar tu cronograma.')
+            ->emptyStateDescription(
+                'Crea una publicación para comenzar a configurar tu cronograma.'
+            )
             ->emptyStateIcon('heroicon-o-megaphone')
             ->columns([
+
                 TextColumn::make('time')
                     ->label('Hora')
                     ->time('H:i')
                     ->sortable()
                     ->searchable()
                     ->badge()
-                    ->icon('heroicon-o-clock')
+                    ->icon('heroicon-m-clock')
                     ->weight('bold')
                     ->size('lg')
-                    ->alignCenter(),
+                    ->color('primary')
+                    ->alignCenter()
+                    ->width('110px')
+                    ->extraAttributes([
+                        'class' => 'whitespace-nowrap',
+                    ]),
 
                 ImageColumn::make('image')
-                    ->label('Imagen')
+                    ->label('Vista previa')
                     ->disk('public')
                     ->square()
-                    ->size(70)
-                    ->alignCenter(),
+                    ->size(64)
+                    ->alignCenter()
+                    ->extraAttributes([
+                        'class' => 'rounded-xl overflow-hidden shadow-sm',
+                    ])
+                    ->placeholder('heroicon-o-photo'),
 
                 TextColumn::make('text')
                     ->label('Contenido')
                     ->searchable()
                     ->wrap()
-                    ->limit(180)
+                    ->limit(160)
                     ->lineClamp(3)
                     ->weight('medium')
                     ->color('gray')
-                    ->tooltip(fn (TextColumn $column): ?string => filled($column->getState()) ? $column->getState() : null)
-                    ->grow(),
+                    ->tooltip(
+                        fn (TextColumn $column): ?string => filled($column->getState())
+                            ? $column->getState()
+                            : null
+                    )
+                    ->grow()
+                    ->extraAttributes([
+                        'class' => 'min-w-[220px]',
+                    ]),
 
                 TextColumn::make('destination')
                     ->label('Destino')
                     ->badge()
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        'whatsapp' => 'WhatsApp',
-                        'facebook' => 'Facebook',
-                        'both' => 'WhatsApp + Facebook',
-                        default => ucfirst($state),
-                    })
-                    ->color(fn (string $state): string => match ($state) {
-                        'whatsapp' => 'success',
-                        'facebook' => 'info',
-                        'both' => 'warning',
-                        default => 'gray',
-                    })
+                    ->icon(
+                        fn (string $state): string => match ($state) {
+                            'whatsapp' => 'heroicon-o-chat-bubble-left-right',
+                            'facebook' => 'heroicon-o-globe-alt',
+                            'both' => 'heroicon-o-share',
+                            default => 'heroicon-o-paper-airplane',
+                        }
+                    )
+                    ->formatStateUsing(
+                        fn (string $state): string => match ($state) {
+                            'whatsapp' => 'WhatsApp',
+                            'facebook' => 'Facebook',
+                            'both' => 'WhatsApp + Facebook',
+                            default => ucfirst($state),
+                        }
+                    )
+                    ->color(
+                        fn (string $state): string => match ($state) {
+                            'whatsapp' => 'success',
+                            'facebook' => 'info',
+                            'both' => 'warning',
+                            default => 'gray',
+                        }
+                    )
                     ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->alignCenter()
+                    ->width('170px'),
 
                 IconColumn::make('active')
                     ->label('Estado')
                     ->boolean()
                     ->sortable()
-                    ->alignCenter(),
+                    ->alignCenter()
+                    ->trueIcon('heroicon-o-check-circle')
+                    ->falseIcon('heroicon-o-pause-circle')
+                    ->trueColor('success')
+                    ->falseColor('gray')
+                    ->tooltip(
+                        fn (bool $state): string => $state
+                            ? 'Publicación activa'
+                            : 'Publicación inactiva'
+                    )
+                    ->width('90px'),
 
                 TextColumn::make('created_at')
                     ->label('Creada')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->color('gray')
-                    ->icon('heroicon-o-calendar-days')
+                    ->icon('heroicon-m-calendar-days')
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                EditAction::make()->label('Editar')->icon('heroicon-o-pencil-square'),
-                DeleteAction::make()->label('Eliminar')->icon('heroicon-o-trash'),
+                EditAction::make()
+                    ->label('Editar')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('gray'),
+
+                DeleteAction::make()
+                    ->label('Eliminar')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->label('Eliminar seleccionadas')
-                        ->icon('heroicon-o-trash'),
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation(),
                 ]),
-            ]);
+            ])
+            ->recordUrl(null)
+            ->recordAction(null);
     }
 }
+
