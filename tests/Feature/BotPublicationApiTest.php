@@ -331,6 +331,7 @@ class BotPublicationApiTest extends TestCase
             ->assertOk()
             ->assertJsonCount(0, 'data');
     }
+
     public function test_it_generates_weekly_recurrence_only_on_selected_weekdays(): void
     {
         $publication = Publication::create([
