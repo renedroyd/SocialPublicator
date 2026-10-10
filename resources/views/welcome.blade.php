@@ -170,6 +170,21 @@
         .vx-compare-after h3 { color:#fff; }
         .vx-compare-before { opacity:.84; }
 
+        .vx-audience-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+        .vx-audience-card { padding:26px 22px; border:1px solid var(--line); border-radius:20px; background:rgba(255,255,255,.025); transition:transform .25s ease, border-color .25s ease, background .25s ease; }
+        .vx-audience-card:hover { transform:translateY(-5px); border-color:rgba(8,217,245,.25); background:rgba(255,255,255,.045); }
+        .vx-audience-card .vx-icon { margin-bottom:18px; }
+        .vx-audience-card h3 { margin:0 0 9px; font-size:18px; }
+        .vx-audience-card p { margin:0; color:#9fa8c2; line-height:1.65; font-size:14px; }
+
+        .vx-faq { display:grid; gap:12px; max-width:900px; }
+        .vx-faq details { border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,.025); overflow:hidden; }
+        .vx-faq summary { cursor:pointer; list-style:none; padding:21px 24px; font-weight:800; display:flex; align-items:center; justify-content:space-between; gap:20px; }
+        .vx-faq summary::-webkit-details-marker { display:none; }
+        .vx-faq summary::after { content:"+"; color:#72eafa; font-size:22px; font-weight:400; }
+        .vx-faq details[open] summary::after { content:"−"; }
+        .vx-faq details p { margin:0; padding:0 24px 22px; color:#9fa8c2; line-height:1.7; }
+
         .vx-cta {
             padding:120px 0; text-align:center; position:relative; overflow:hidden;
             background:radial-gradient(circle at 50% 35%,rgba(21,91,255,.22),transparent 35%),linear-gradient(180deg,#080b18,#060816);
@@ -184,7 +199,7 @@
 
         @media (max-width: 900px) {
             .vx-nav-links { display:none; }
-            .vx-grid-3, .vx-flow { grid-template-columns:1fr 1fr; gap:18px; }
+            .vx-grid-3, .vx-flow, .vx-audience-grid { grid-template-columns:1fr 1fr; gap:18px; }
             .vx-flow::before { display:none; }
             .vx-stats { grid-template-columns:1fr 1fr; }
             .vx-stat:nth-child(2) { border-right:0; }
@@ -203,7 +218,7 @@
             .vx-hero h1 { font-size:clamp(40px,12vw,58px); }
             .vx-hero p { font-size:17px; }
             .vx-section { padding:78px 0; }
-            .vx-grid-3, .vx-flow, .vx-mini-grid { grid-template-columns:1fr; }
+            .vx-grid-3, .vx-flow, .vx-audience-grid, .vx-mini-grid { grid-template-columns:1fr; }
             .vx-compare-grid { grid-template-columns:1fr; }
             .vx-parallax { min-height:500px; background-attachment:scroll; }
             .vx-parallax::before { background:linear-gradient(90deg,rgba(5,7,20,.93),rgba(5,7,20,.68)); }
@@ -419,6 +434,48 @@
                     <span class="vx-kicker">Marketing que trabaja por tu negocio</span>
                     <h2>Más presencia. Más oportunidades. <span class="vx-gradient">Más crecimiento.</span></h2>
                     <p>Tu cliente ya está conectado. La pregunta es si tu negocio está presente cuando busca, compara y decide. VIRALYX te ayuda a construir esa presencia todos los días.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="para-quien" class="vx-section vx-section-soft">
+            <div class="vx-container">
+                <div class="vx-section-head">
+                    <span class="vx-kicker">Pensado para negocios que quieren crecer</span>
+                    <h2>Una plataforma. <span class="vx-gradient">Muchos negocios.</span></h2>
+                    <p>VIRALYX se adapta a la realidad de tu negocio: desde una tienda que necesita vender todos los días hasta una marca que quiere profesionalizar su comunicación.</p>
+                </div>
+                <div class="vx-audience-grid">
+                    <article class="vx-audience-card"><div class="vx-icon">▣</div><h3>Tiendas y comercios</h3><p>Promociona productos, ofertas y novedades sin dejar que la rutina apague tu presencia digital.</p></article>
+                    <article class="vx-audience-card"><div class="vx-icon">◉</div><h3>Restaurantes y servicios</h3><p>Convierte promociones, menús, novedades y campañas en contenido planificado y constante.</p></article>
+                    <article class="vx-audience-card"><div class="vx-icon">✦</div><h3>Profesionales y marcas</h3><p>Construye autoridad y reconocimiento con una comunicación ordenada que refleje el valor de tu trabajo.</p></article>
+                    <article class="vx-audience-card"><div class="vx-icon">↗</div><h3>Equipos de marketing</h3><p>Centraliza operaciones, reduce tareas repetitivas y crea un proceso más escalable para tus clientes.</p></article>
+                </div>
+            </div>
+        </section>
+
+        <section class="vx-parallax vx-parallax-1">
+            <div class="vx-container">
+                <div class="vx-parallax-content">
+                    <span class="vx-kicker">De la idea a la oportunidad</span>
+                    <h2>Tu contenido deja de ser una tarea. <span class="vx-gradient">Se convierte en un sistema.</span></h2>
+                    <p>Cuando planificas con intención, cada publicación puede formar parte de una conversación más grande: atraer, informar, recordar y vender.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq" class="vx-section vx-section-dark">
+            <div class="vx-container">
+                <div class="vx-section-head">
+                    <span class="vx-kicker">Preguntas frecuentes</span>
+                    <h2>Si estás pensando en crecer, <span class="vx-gradient">esto es para ti.</span></h2>
+                    <p>VIRALYX está diseñado para quitar complejidad, no para añadirla.</p>
+                </div>
+                <div class="vx-faq">
+                    <details open><summary>¿Qué problema resuelve VIRALYX?</summary><p>Centraliza y organiza la gestión de publicaciones para que puedas planificar tu comunicación, reducir trabajo manual y mantener una presencia digital constante.</p></details>
+                    <details><summary>¿Tengo que publicar todos los días?</summary><p>No. La clave es la estrategia y la constancia adecuada para tu negocio. VIRALYX te ayuda a preparar y distribuir contenido con anticipación.</p></details>
+                    <details><summary>¿Puede crecer conmigo?</summary><p>Sí. La plataforma está planteada como una base para incorporar más canales, automatizaciones, métricas y capacidades de colaboración a medida que evolucione tu operación.</p></details>
+                    <details><summary>¿VIRALYX reemplaza a mi equipo de marketing?</summary><p>No. Su objetivo es potenciarlo: menos tiempo en tareas repetitivas significa más tiempo para creatividad, estrategia, atención al cliente y ventas.</p></details>
                 </div>
             </div>
         </section>
