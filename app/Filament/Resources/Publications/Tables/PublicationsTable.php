@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Publications\Tables;
 
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
@@ -46,6 +47,17 @@ class PublicationsTable
                     ->extraAttributes([
                         'class' => 'whitespace-nowrap',
                     ]),
+
+                TextColumn::make('schedule.next_run_at')
+                    ->label('Próxima ejecución')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable()
+                    ->alignCenter()
+                    ->placeholder('—')
+                    ->icon('heroicon-o-clock')
+                    ->color('primary')
+                    ->weight('semibold')
+                    ->width('155px'),
 
                 TextColumn::make('recurrence_type')
                     ->label('Recurrencia')
@@ -180,16 +192,22 @@ class PublicationsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                EditAction::make()
-                    ->label('Editar')
-                    ->icon('heroicon-o-pencil-square')
-                    ->color('gray'),
+                ActionGroup::make([
+                    EditAction::make()
+                        ->label('Editar')
+                        ->icon('heroicon-o-pencil-square')
+                        ->color('gray'),
 
-                DeleteAction::make()
-                    ->label('Eliminar')
-                    ->icon('heroicon-o-trash')
-                    ->color('danger')
-                    ->requiresConfirmation(),
+                    DeleteAction::make()
+                        ->label('Eliminar')
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->requiresConfirmation(),
+                ])
+                    ->label('Acciones')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->tooltip('Acciones')
+                    ->button(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
