@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -40,6 +41,105 @@ class Publication extends Model
     public function isRecurring(): bool
     {
         return $this->recurrence_type !== 'none';
+    }
+
+    public function nextExecutionAt(): ?Carbon
+    {
+        $startDate = $this->date?->copy()->startOfDay();
+
+        if (! $startDate) {
+            return null;
+        }
+
+        $now = now();
+        $endDate = $this->end_date ? Carbon::parse($this->end_date)->endOfDay() : null;
+        $time = $this->recurrence_type === 'hourly'
+            ? ($this->recurrence_start_time ?: $this->time)
+            : $this->time;
+
+        if (blank($time)) {
+            return null;
+        }
+
+        $firstRun = $startDate->copy()->setTimeFromTimeString($time);
+
+        if ($this->recurrence_type === 'none') {
+            return $firstRun;
+        }
+
+        if ($endDate && $endDate->lt($now)) {
+            return null;
+        }
+
+        if ($this->recurrence_type === 'daily') {
+            $candidate = $firstRun->copy();
+
+            if ($candidate->lt($now)) {
+                $candidate = $now->copy()->startOfDay()->setTimeFromTimeString($time);
+
+                if ($candidate->lt($now)) {
+                    $candidate->addDay();
+                }
+            }
+
+            return (! $endDate || $candidate->lte($endDate)) ? $candidate : null;
+        }
+
+        if ($this->recurrence_type === 'weekly') {
+            $days = collect($this->recurrence_days ?? [])
+                ->map(fn ($day): int => (int) $day)
+                ->all();
+
+            for ($offset = 0; $offset <= 370; $offset++) {
+                $candidate = $now->copy()->startOfDay()->addDays($offset)
+                    ->setTimeFromTimeString($time);
+
+                if ($candidate->lt($firstRun) || $candidate->lt($now)) {
+                    continue;
+                }
+
+                if (! in_array($candidate->dayOfWeekIso, $days, true)) {
+                    continue;
+                }
+
+                if ($endDate && $candidate->gt($endDate)) {
+                    return null;
+                }
+
+                return $candidate;
+            }
+
+            return null;
+        }
+
+        if ($this->recurrence_type === 'hourly') {
+            $interval = max(1, (int) ($this->interval_minutes ?: 60));
+            $endTime = $this->recurrence_end_time ?: '23:59';
+
+            for ($offset = 0; $offset <= 370; $offset++) {
+                $day = $now->copy()->startOfDay()->addDays($offset);
+                $candidate = $day->copy()->setTimeFromTimeString($time);
+                $dailyEnd = $day->copy()->setTimeFromTimeString($endTime);
+
+                while ($candidate->lte($dailyEnd)) {
+                    if ($candidate->gte($firstRun) && $candidate->gte($now)) {
+                        if ($endDate && $candidate->gt($endDate)) {
+                            return null;
+                        }
+
+                        return $candidate;
+                    }
+
+                    $candidate->addMinutes($interval);
+                }
+
+                if ($endDate && $day->gt($endDate)) {
+                    return null;
+                }
+            }
+        }
+
+        return null;
     }
 
     public function products(): BelongsToMany
