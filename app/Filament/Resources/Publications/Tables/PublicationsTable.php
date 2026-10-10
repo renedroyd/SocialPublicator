@@ -52,7 +52,6 @@ class PublicationsTable
                     ->label('Próxima ejecución')
                     ->getStateUsing(fn ($record) => $record->schedule?->next_run_at ?? $record->nextExecutionAt())
                     ->dateTime('d/m/Y H:i')
-                    ->sortable()
                     ->alignCenter()
                     ->placeholder('—')
                     ->icon('heroicon-o-clock')
