@@ -7,7 +7,6 @@
     <meta name="theme-color" content="#060816">
     <title>VIRALYX — Convierte tu presencia digital en crecimiento</title>
     <link rel="preconnect" href="https://images.unsplash.com">
-    @fonts
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         :root {
@@ -159,6 +158,18 @@
         .vx-stat strong { display:block; font-size:clamp(30px,4vw,46px); letter-spacing:-.04em; }
         .vx-stat span { display:block; color:#8e98b4; margin-top:7px; font-size:13px; }
 
+        .vx-compare-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; max-width:980px; }
+        .vx-compare-card { padding:34px; border-radius:24px; border:1px solid var(--line); background:rgba(255,255,255,.025); }
+        .vx-compare-card h3 { margin:12px 0 24px; font-size:27px; letter-spacing:-.03em; }
+        .vx-compare-label { font-size:11px; font-weight:900; letter-spacing:.16em; color:#8d96af; }
+        .vx-compare-card ul { list-style:none; padding:0; margin:0; display:grid; gap:15px; }
+        .vx-compare-card li { display:flex; gap:11px; color:#aab2c8; line-height:1.5; }
+        .vx-compare-card li span { width:22px; flex:0 0 22px; display:grid; place-items:center; font-weight:900; color:#737d98; }
+        .vx-compare-after { border-color:rgba(8,217,245,.24); background:linear-gradient(145deg,rgba(8,217,245,.09),rgba(109,53,245,.07)); box-shadow:0 25px 70px rgba(21,91,255,.10); }
+        .vx-compare-after .vx-compare-label, .vx-compare-after li span { color:#72eafa; }
+        .vx-compare-after h3 { color:#fff; }
+        .vx-compare-before { opacity:.84; }
+
         .vx-cta {
             padding:120px 0; text-align:center; position:relative; overflow:hidden;
             background:radial-gradient(circle at 50% 35%,rgba(21,91,255,.22),transparent 35%),linear-gradient(180deg,#080b18,#060816);
@@ -193,6 +204,7 @@
             .vx-hero p { font-size:17px; }
             .vx-section { padding:78px 0; }
             .vx-grid-3, .vx-flow, .vx-mini-grid { grid-template-columns:1fr; }
+            .vx-compare-grid { grid-template-columns:1fr; }
             .vx-parallax { min-height:500px; background-attachment:scroll; }
             .vx-parallax::before { background:linear-gradient(90deg,rgba(5,7,20,.93),rgba(5,7,20,.68)); }
             .vx-stats { grid-template-columns:1fr 1fr; }
@@ -363,6 +375,40 @@
                     <div class="vx-stat"><strong class="vx-gradient">24/7</strong><span>capacidad de planificación</span></div>
                     <div class="vx-stat"><strong class="vx-gradient">∞</strong><span>ideas para convertir en contenido</span></div>
                     <div class="vx-stat"><strong class="vx-gradient">↑</strong><span>visibilidad con estrategia</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="vx-section vx-section-dark vx-compare">
+            <div class="vx-container">
+                <div class="vx-section-head">
+                    <span class="vx-kicker">El costo de seguir haciéndolo como siempre</span>
+                    <h2>Menos improvisación. <span class="vx-gradient">Más estrategia.</span></h2>
+                    <p>VIRALYX no sustituye la creatividad de tu negocio: elimina la fricción que te impide convertir esa creatividad en una presencia digital constante.</p>
+                </div>
+                <div class="vx-compare-grid">
+                    <article class="vx-compare-card vx-compare-before">
+                        <span class="vx-compare-label">SIN VIRALYX</span>
+                        <h3>Marketing reactivo</h3>
+                        <ul>
+                            <li><span>×</span> Publicaciones hechas a última hora</li>
+                            <li><span>×</span> Contenido repartido entre herramientas</li>
+                            <li><span>×</span> Días de silencio en tus redes</li>
+                            <li><span>×</span> Mucho tiempo dedicado a tareas repetitivas</li>
+                            <li><span>×</span> Oportunidades perdidas por falta de constancia</li>
+                        </ul>
+                    </article>
+                    <article class="vx-compare-card vx-compare-after">
+                        <span class="vx-compare-label">CON VIRALYX</span>
+                        <h3>Marketing con dirección</h3>
+                        <ul>
+                            <li><span>✓</span> Contenido planificado con anticipación</li>
+                            <li><span>✓</span> Gestión centralizada y organizada</li>
+                            <li><span>✓</span> Presencia constante de tu marca</li>
+                            <li><span>✓</span> Automatización de tareas repetitivas</li>
+                            <li><span>✓</span> Más tiempo para vender y atender clientes</li>
+                        </ul>
+                    </article>
                 </div>
             </div>
         </section>
