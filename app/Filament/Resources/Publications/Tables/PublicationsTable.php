@@ -48,8 +48,9 @@ class PublicationsTable
                         'class' => 'whitespace-nowrap',
                     ]),
 
-                TextColumn::make('schedule.next_run_at')
+                TextColumn::make('next_execution_at')
                     ->label('Próxima ejecución')
+                    ->getStateUsing(fn ($record) => $record->schedule?->next_run_at ?? $record->nextExecutionAt())
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->alignCenter()
@@ -204,7 +205,7 @@ class PublicationsTable
                         ->color('danger')
                         ->requiresConfirmation(),
                 ])
-                    ->label('Acciones')
+                    ->label('')
                     ->icon('heroicon-m-ellipsis-vertical')
                     ->tooltip('Acciones')
                     ->button(),
