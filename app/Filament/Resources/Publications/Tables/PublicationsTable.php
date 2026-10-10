@@ -6,9 +6,9 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Storage;
 
@@ -156,19 +156,18 @@ class PublicationsTable
                     ->alignCenter()
                     ->width('170px'),
 
-                IconColumn::make('active')
-                    ->label('Estado')
-                    ->boolean()
+                ToggleColumn::make('active')
+                    ->label('Activa')
                     ->sortable()
                     ->alignCenter()
-                    ->trueIcon('heroicon-o-check-circle')
-                    ->falseIcon('heroicon-o-pause-circle')
-                    ->trueColor('success')
-                    ->falseColor('gray')
+                    ->onColor('success')
+                    ->offColor('gray')
+                    ->onIcon('heroicon-o-check-circle')
+                    ->offIcon('heroicon-o-pause-circle')
                     ->tooltip(
                         fn (bool $state): string => $state
-                            ? 'Publicación activa'
-                            : 'Publicación inactiva'
+                            ? 'Desactivar publicación'
+                            : 'Activar publicación'
                     )
                     ->width('90px'),
 
