@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->spa(hasPrefetching: true)
             ->sidebarWidth('15rem')
             ->sidebarCollapsibleOnDesktop()
             ->login(Login::class)
