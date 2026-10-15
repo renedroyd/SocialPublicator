@@ -109,6 +109,6 @@ class FacebookGroupController extends Controller
     {
         $normalized = preg_replace('/\s+/u', ' ', trim($name)) ?? trim($name);
 
-        return preg_match('/^(?:grupo\s+facebook|facebook\s+group)(?:\s+\\d+)?$/iu', $normalized) === 1;
+        return preg_match('/^(?:grupo\s+facebook|facebook\s+group)(?:\s+\d+)?$/iu', $normalized) === 1;
     }
 }
