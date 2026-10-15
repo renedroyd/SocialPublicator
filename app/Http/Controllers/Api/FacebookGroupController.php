@@ -44,9 +44,35 @@ class FacebookGroupController extends Controller
 
         $synchronizedAt = now();
         $receivedIds = [];
+        $ignoredGenericNames = 0;
 
-        DB::transaction(function () use ($data, $synchronizedAt, &$receivedIds): void {
+        DB::transaction(function () use ($data, $synchronizedAt, &$receivedIds, &$ignoredGenericNames): void {
             foreach ($data['groups'] as $group) {
+                $existing = FacebookGroup::query()
+                    ->where('facebook_id', $group['facebook_id'])
+                    ->first();
+
+                if ($this->isGenericGroupName($group['name'])) {
+                    // Never create placeholder records, and never overwrite a
+                    // real name already known by Laravel with "Grupo Facebook 123".
+                    if (! $existing) {
+                        $ignoredGenericNames++;
+
+                        continue;
+                    }
+
+                    $existing->forceFill([
+                        'url' => $group['url'] ?: $existing->url,
+                        'active' => true,
+                        'last_synchronized_at' => $synchronizedAt,
+                    ])->save();
+
+                    $receivedIds[] = $existing->id;
+                    $ignoredGenericNames++;
+
+                    continue;
+                }
+
                 $record = FacebookGroup::updateOrCreate(
                     ['facebook_id' => $group['facebook_id']],
                     [
@@ -63,7 +89,8 @@ class FacebookGroupController extends Controller
 
         return response()->json([
             'success' => true,
-            'total' => count($receivedIds),
+            'total' => count(array_unique($receivedIds)),
+            'ignored_generic_names' => $ignoredGenericNames,
             'data' => FacebookGroup::query()
                 ->whereIn('id', $receivedIds)
                 ->orderBy('name')
@@ -76,5 +103,12 @@ class FacebookGroupController extends Controller
                     'last_synchronized_at',
                 ]),
         ]);
+    }
+
+    private function isGenericGroupName(string $name): bool
+    {
+        $normalized = preg_replace('/\\s+/u', ' ', trim($name)) ?? trim($name);
+
+        return preg_match('/^(?:grupo\\s+facebook|facebook\\s+group)(?:\\s+\\d+)?$/iu', $normalized) === 1;
     }
 }
