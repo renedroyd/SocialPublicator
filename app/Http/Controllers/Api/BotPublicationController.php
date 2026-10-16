@@ -64,6 +64,9 @@ class BotPublicationController extends Controller
                     'image' => $publication->image
                         ? url(Storage::url($publication->image))
                         : null,
+                    'video' => $publication->video
+                        ? url(Storage::url($publication->video))
+                        : null,
                     'text' => $publication->text,
                     'destination' => $publication->destination,
                     'recurrence_type' => $publication->recurrence_type,
