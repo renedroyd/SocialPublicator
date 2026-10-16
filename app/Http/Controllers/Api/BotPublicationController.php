@@ -85,6 +85,9 @@ class BotPublicationController extends Controller
                     'imagen' => $publication->image
                         ? url(Storage::url($publication->image))
                         : null,
+                    'video_url' => $publication->video
+                        ? url(Storage::url($publication->video))
+                        : null,
                     'texto' => $publication->text,
                     'destino' => $publication->destination === 'both'
                         ? 'ambos'
