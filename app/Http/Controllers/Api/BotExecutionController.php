@@ -17,7 +17,7 @@ class BotExecutionController extends Controller
         $validated = $request->validate([
             'publication_id' => ['required', 'integer', 'exists:publications,id'],
             'occurrence_id' => ['required', 'string', 'max:120'],
-            'channel' => ['required', 'string', 'in:whatsapp,facebook'],
+            'channel' => ['required', 'string', 'in:whatsapp,facebook,tiktok'],
             'target_key' => ['required', 'string', 'max:160'],
             'facebook_group_id' => ['nullable', 'integer', 'exists:facebook_groups,id'],
         ]);
