@@ -35,6 +35,12 @@ return [
         ],
     ],
 
+    'tiktok' => [
+        'client_key' => env('TIKTOK_CLIENT_KEY'),
+        'client_secret' => env('TIKTOK_CLIENT_SECRET'),
+        'redirect_uri' => env('TIKTOK_REDIRECT_URI', env('APP_URL').'/integrations/tiktok/callback'),
+    ],
+
     'bot_api' => [
         'token' => env('BOT_API_TOKEN'),
         'command_bot_name' => env('BOT_COMMAND_BOT_NAME', 'WBot'),
