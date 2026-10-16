@@ -241,6 +241,7 @@ class PublicationForm
                                         'whatsapp' => 'WhatsApp',
                                         'facebook' => 'Facebook',
                                         'both' => 'WhatsApp + Facebook',
+                                        'tiktok' => 'TikTok',
                                     ])
                                     ->default('whatsapp')
                                     ->required()
@@ -324,12 +325,25 @@ class PublicationForm
                             ->imageEditor()
                             ->openable()
                             ->downloadable()
-                            ->required()
+                            ->required(fn (Get $get): bool => $get('destination') !== 'tiktok')
                             ->imagePreviewHeight('320')
                             ->panelLayout('integrated')
                             ->removeUploadedFileButtonPosition('top')
                             ->uploadButtonPosition('center')
                             ->uploadProgressIndicatorPosition('center')
+                            ->columnSpanFull(),
+
+                        FileUpload::make('video')
+                            ->label('Vídeo para TikTok')
+                            ->helperText('MP4, MOV o WebM. TikTok comprobará la duración máxima permitida para la cuenta conectada.')
+                            ->acceptedFileTypes(['video/mp4', 'video/quicktime', 'video/webm'])
+                            ->maxSize(512000)
+                            ->disk('public')
+                            ->directory('publications/videos')
+                            ->required(fn (Get $get): bool => $get('destination') === 'tiktok')
+                            ->visible(fn (Get $get): bool => $get('destination') === 'tiktok')
+                            ->downloadable()
+                            ->openable()
                             ->columnSpanFull(),
                     ])
                     ->compact()
@@ -340,7 +354,7 @@ class PublicationForm
                  */
                 Section::make('Mensaje')
                     ->description(
-                        'Escribe el contenido que acompañará a la imagen en WhatsApp y Facebook.'
+                        'Escribe el texto que acompañará a la publicación en las plataformas seleccionadas.'
                     )
                     ->icon('heroicon-o-chat-bubble-left-right')
                     ->schema([
