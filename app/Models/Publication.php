@@ -14,6 +14,7 @@ class Publication extends Model
         'date',
         'time',
         'image',
+        'video',
         'text',
         'destination',
         'active',
