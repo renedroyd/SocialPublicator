@@ -7,7 +7,7 @@ use Filament\Widgets\ChartWidget;
 
 class PublicationOverview extends ChartWidget
 {
-    protected static ?int $sort = 6;
+    protected static ?int $sort = 5;
 
     protected int|string|array $columnSpan = ['md' => 4, 'xl' => 4];
 

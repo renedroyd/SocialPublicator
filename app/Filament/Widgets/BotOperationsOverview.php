@@ -23,28 +23,28 @@ class BotOperationsOverview extends BaseWidget
 
         if ($bots->isEmpty()) {
             return [
-                Stat::make('Bot', 'Sin reporte')
-                    ->description('Esperando heartbeat')
+                Stat::make('Estado del bot', 'Sin reporte')
+                    ->description('Esperando el primer heartbeat')
                     ->descriptionIcon('heroicon-m-signal')
                     ->color('gray'),
-                Stat::make('WhatsApp', '—')
-                    ->description('Sin datos')
+                Stat::make('WhatsApp', 'Sin datos')
+                    ->description('Aún no hay estado de conexión')
                     ->descriptionIcon('heroicon-m-chat-bubble-left-right')
                     ->color('gray'),
-                Stat::make('Facebook', '—')
-                    ->description('Sin datos')
+                Stat::make('Facebook', 'Sin datos')
+                    ->description('Aún no hay estado de conexión')
                     ->descriptionIcon('heroicon-m-globe-alt')
                     ->color('gray'),
                 Stat::make('Publicaciones', '0')
                     ->description('Sin actividad reportada')
                     ->descriptionIcon('heroicon-m-megaphone')
                     ->color('gray'),
-                Stat::make('Próxima', '—')
+                Stat::make('Próxima publicación', '—')
                     ->description('Sin programación reportada')
                     ->descriptionIcon('heroicon-m-clock')
                     ->color('gray'),
-                Stat::make('Incidencias', '0')
-                    ->description('Sin errores')
+                Stat::make('Última incidencia', 'Ninguna')
+                    ->description('El bot aún no ha reportado errores')
                     ->descriptionIcon('heroicon-m-check-circle')
                     ->color('success'),
             ];
@@ -67,28 +67,29 @@ class BotOperationsOverview extends BaseWidget
         $lastPublication = $latest?->metadata['lastPublication'] ?? null;
         $nextPublication = $latest?->metadata['nextPublication'] ?? null;
         $lastError = $latest?->metadata['lastError'] ?? $latest?->message;
+        $lastHeartbeat = $latest?->last_seen_at?->diffForHumans() ?? 'Sin heartbeat';
 
         $botState = $online === $bots->count()
-            ? 'Online'
-            : ($online > 0 ? 'Degradado' : 'Offline');
+            ? 'En línea'
+            : ($online > 0 ? 'Degradado' : 'Sin conexión');
 
         return [
             Stat::make('Estado del bot', $botState)
                 ->description($online.' de '.$bots->count().' bots activos')
                 ->descriptionIcon('heroicon-m-signal')
                 ->color(match ($botState) {
-                    'Online' => 'success',
+                    'En línea' => 'success',
                     'Degradado' => 'warning',
                     default => 'danger',
                 }),
 
             Stat::make('WhatsApp', $this->humanState($whatsapp))
-                ->description($latest?->last_seen_at?->diffForHumans() ?? 'Sin heartbeat')
+                ->description('Último reporte: '.$lastHeartbeat)
                 ->descriptionIcon('heroicon-m-chat-bubble-left-right')
                 ->color($this->stateColor($whatsapp)),
 
             Stat::make('Facebook', $this->humanState($facebook))
-                ->description($latest?->platform ?? 'Sin datos')
+                ->description('Último reporte: '.$lastHeartbeat)
                 ->descriptionIcon('heroicon-m-globe-alt')
                 ->color($this->stateColor($facebook)),
 
@@ -102,8 +103,8 @@ class BotOperationsOverview extends BaseWidget
                 ->descriptionIcon('heroicon-m-clock')
                 ->color($nextPublication ? 'info' : 'gray'),
 
-            Stat::make('Último error', $this->displayValue($lastError, 55))
-                ->description($lastError ? ($latest?->metadata['lastErrorAt'] ?? 'Error reportado') : 'Sistema sin errores')
+            Stat::make('Última incidencia', $this->displayValue($lastError, 55))
+                ->description($lastError ? ($latest?->metadata['lastErrorAt'] ?? 'Error reportado') : 'Sin incidencias reportadas')
                 ->descriptionIcon($lastError ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
                 ->color($lastError ? 'danger' : 'success'),
         ];
@@ -126,7 +127,7 @@ class BotOperationsOverview extends BaseWidget
             'disconnected', 'offline' => 'Desconectado',
             'error' => 'Error',
             'disabled' => 'No configurado',
-            default => 'Desconocido',
+            default => 'Sin reporte',
         };
     }
 
@@ -136,7 +137,7 @@ class BotOperationsOverview extends BaseWidget
             'connected', 'online' => 'success',
             'starting' => 'warning',
             'error', 'disconnected', 'offline' => 'danger',
-            'disabled' => 'gray',
+            'disabled', 'unknown' => 'gray',
             default => 'gray',
         };
     }
