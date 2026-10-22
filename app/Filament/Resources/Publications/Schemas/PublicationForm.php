@@ -275,6 +275,29 @@ class PublicationForm
                                     ]),
                             ]),
 
+                        Select::make('whatsappGroups')
+                            ->label('Grupos de WhatsApp')
+                            ->relationship(
+                                name: 'whatsappGroups',
+                                titleAttribute: 'name'
+                            )
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->optionsLimit(100)
+                            ->native(false)
+                            ->required(fn (Get $get): bool => in_array($get('destination'), ['whatsapp', 'both'], true))
+                            ->visible(fn (Get $get): bool => in_array(
+                                $get('destination'),
+                                ['whatsapp', 'both'],
+                                true
+                            ))
+                            ->helperText(
+                                'Selecciona uno o varios grupos de WhatsApp donde se enviará la publicación.'
+                            )
+                            ->prefixIcon('heroicon-o-chat-bubble-left-right')
+                            ->columnSpanFull(),
+
                         Select::make('facebookGroups')
                             ->label('Grupos de Facebook')
                             ->relationship(

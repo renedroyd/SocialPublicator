@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BotExecutionController;
 use App\Http\Controllers\Api\BotPublicationController;
 use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\FacebookGroupController;
+use App\Http\Controllers\Api\WhatsAppGroupController;
 use App\Http\Middleware\VerifyBotApiToken;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +44,11 @@ Route::middleware(VerifyBotApiToken::class)
             BotStatusController::class,
             'store',
         ])->name('api.bot.status');
+
+        Route::post('/whatsapp/groups/sync', [
+            WhatsAppGroupController::class,
+            'sync',
+        ])->name('api.bot.whatsapp.groups.sync');
 
         Route::post('/facebook/groups/sync', [
             FacebookGroupController::class,
