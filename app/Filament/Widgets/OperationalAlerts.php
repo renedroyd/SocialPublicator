@@ -10,7 +10,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class OperationalAlerts extends BaseWidget
 {
-    protected static ?int $sort = 4;
+    protected static ?int $sort = 3;
 
     protected int|string|array $columnSpan = 'full';
 
