@@ -175,6 +175,14 @@ class Publication extends Model
         return $this->hasOne(PublicationSchedule::class);
     }
 
+    public function whatsappGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            WhatsAppGroup::class,
+            'whatsapp_group_publication'
+        )->withTimestamps();
+    }
+
     public function facebookGroups(): BelongsToMany
     {
         return $this->belongsToMany(
