@@ -34,6 +34,12 @@ class Dashboard extends BaseDashboard
                 ->color('primary')
                 ->url(PublicationResource::getUrl('create')),
 
+            Action::make('publications')
+                ->label('Ver publicaciones')
+                ->icon('heroicon-o-calendar-days')
+                ->color('gray')
+                ->url(PublicationResource::getUrl()),
+
             Action::make('products')
                 ->label('Productos')
                 ->icon('heroicon-o-cube')
@@ -53,12 +59,12 @@ class Dashboard extends BaseDashboard
         return [
             PublicationStatsOverview::class,
             BotOperationsOverview::class,
-            SystemHealthOverview::class,
             OperationalAlerts::class,
             ExecutionActivityChart::class,
             PublicationOverview::class,
             UpcomingPublications::class,
             RecentExecutions::class,
+            SystemHealthOverview::class,
             InventoryOverview::class,
         ];
     }
