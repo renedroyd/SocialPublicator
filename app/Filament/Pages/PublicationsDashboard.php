@@ -22,7 +22,7 @@ class PublicationsDashboard extends BaseDashboard
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-calendar-days';
 
-    protected static ?string $slug = 'publication-dashboard';
+    protected static string $routePath = 'publication-dashboard';
 
     public function getHeaderActions(): array
     {
