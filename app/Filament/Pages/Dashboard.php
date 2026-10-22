@@ -1,11 +1,11 @@
 <?php
 
-namespace App\\Filament\\Pages;
+namespace App\Filament\Pages;
 
-use App\\Filament\\Widgets\\BotOperationsOverview;
-use App\\Filament\\Widgets\\OperationalAlerts;
-use App\\Filament\\Widgets\\SystemHealthOverview;
-use Filament\\Pages\\Dashboard as BaseDashboard;
+use App\Filament\Widgets\BotOperationsOverview;
+use App\Filament\Widgets\OperationalAlerts;
+use App\Filament\Widgets\SystemHealthOverview;
+use Filament\Pages\Dashboard as BaseDashboard;
 
 class Dashboard extends BaseDashboard
 {
