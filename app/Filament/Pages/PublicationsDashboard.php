@@ -1,18 +1,18 @@
 <?php
 
-namespace App\\Filament\\Pages;
+namespace App\Filament\Pages;
 
-use App\\Filament\\Resources\\Categories\\CategoryResource;
-use App\\Filament\\Resources\\Products\\ProductResource;
-use App\\Filament\\Resources\\Publications\\PublicationResource;
-use App\\Filament\\Widgets\\ExecutionActivityChart;
-use App\\Filament\\Widgets\\InventoryOverview;
-use App\\Filament\\Widgets\\PublicationOverview;
-use App\\Filament\\Widgets\\PublicationStatsOverview;
-use App\\Filament\\Widgets\\RecentExecutions;
-use App\\Filament\\Widgets\\UpcomingPublications;
-use Filament\\Actions\\Action;
-use Filament\\Pages\\Dashboard as BaseDashboard;
+use App\Filament\Resources\Categories\CategoryResource;
+use App\Filament\Resources\Products\ProductResource;
+use App\Filament\Resources\Publications\PublicationResource;
+use App\Filament\Widgets\ExecutionActivityChart;
+use App\Filament\Widgets\InventoryOverview;
+use App\Filament\Widgets\PublicationOverview;
+use App\Filament\Widgets\PublicationStatsOverview;
+use App\Filament\Widgets\RecentExecutions;
+use App\Filament\Widgets\UpcomingPublications;
+use Filament\Actions\Action;
+use Filament\Pages\Dashboard as BaseDashboard;
 
 class PublicationsDashboard extends BaseDashboard
 {
