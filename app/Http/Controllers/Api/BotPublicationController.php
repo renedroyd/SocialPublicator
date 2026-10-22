@@ -17,6 +17,11 @@ class BotPublicationController extends Controller
 
         $publications = Publication::query()
             ->with([
+                'whatsappGroups' => function ($query): void {
+                    $query
+                        ->where('active', true)
+                        ->orderBy('name');
+                },
                 'facebookGroups' => function ($query): void {
                     $query
                         ->where('active', true)
@@ -38,6 +43,21 @@ class BotPublicationController extends Controller
 
         foreach ($publications as $publication) {
             foreach ($this->generateDailyOccurrences($publication, $now) as $occurrence) {
+                $whatsappGroups = in_array(
+                    $publication->destination,
+                    ['whatsapp', 'both'],
+                    true
+                )
+                    ? $publication->whatsappGroups
+                        ->map(static fn ($group): array => [
+                            'id' => $group->id,
+                            'whatsapp_id' => $group->whatsapp_id,
+                            'name' => $group->name,
+                        ])
+                        ->values()
+                        ->all()
+                    : [];
+
                 $facebookGroups = in_array(
                     $publication->destination,
                     ['facebook', 'both'],
@@ -73,6 +93,8 @@ class BotPublicationController extends Controller
                     'recurrence_start_time' => $publication->recurrence_start_time,
                     'recurrence_end_time' => $publication->recurrence_end_time,
                     'end_date' => $publication->end_date?->format('Y-m-d'),
+                    'whatsapp_groups' => $whatsappGroups,
+                    'whatsappGroups' => $whatsappGroups,
                     'facebook_groups' => $facebookGroups,
 
                     // Legacy fields kept temporarily for the stable WBot baseline.
