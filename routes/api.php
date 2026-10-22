@@ -44,6 +44,11 @@ Route::middleware(VerifyBotApiToken::class)
             'store',
         ])->name('api.bot.status');
 
+        Route::post('/whatsapp/groups/sync', [
+            WhatsAppGroupController::class,
+            'sync',
+        ])->name('api.bot.whatsapp.groups.sync');
+
         Route::post('/facebook/groups/sync', [
             FacebookGroupController::class,
             'sync',
