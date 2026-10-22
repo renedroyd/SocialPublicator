@@ -20,7 +20,7 @@ class PublicationsDashboard extends BaseDashboard
 
     protected static ?string $navigationLabel = 'Publicaciones';
 
-    protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-calendar-days';
 
     protected static ?string $slug = 'publication-dashboard';
 
