@@ -179,7 +179,9 @@ class Publication extends Model
     {
         return $this->belongsToMany(
             WhatsAppGroup::class,
-            'whatsapp_group_publication'
+            'whatsapp_group_publication',
+            'publication_id',
+            'whatsapp_group_id'
         )->withTimestamps();
     }
 
