@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class WhatsAppGroup extends Model
 {
+    protected $table = 'whatsapp_groups';
+
     protected $fillable = [
         'whatsapp_id',
         'name',
