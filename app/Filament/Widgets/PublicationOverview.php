@@ -31,12 +31,16 @@ class PublicationOverview extends ChartWidget
                         (int) ($counts['facebook'] ?? 0),
                         (int) ($counts['both'] ?? 0),
                     ],
+                    'backgroundColor' => ['#16A34A', '#2563EB', '#7C3AED'],
+                    'borderColor' => '#FFFFFF',
+                    'borderWidth' => 2,
+                    'hoverOffset' => 8,
                 ],
             ],
             'labels' => [
-                'WhatsApp',
-                'Facebook',
-                'Ambos',
+                '◉ WhatsApp',
+                'f Facebook',
+                '⇄ Ambos',
             ],
         ];
     }
