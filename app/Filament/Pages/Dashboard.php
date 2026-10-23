@@ -13,6 +13,8 @@ class Dashboard extends BaseDashboard
 
     protected static ?string $navigationLabel = 'Salud del bot';
 
+    protected static ?string $navigationGroup = 'Dashboards';
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-signal';
 
     protected static string $routePath = '/';
