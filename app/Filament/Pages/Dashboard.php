@@ -15,7 +15,7 @@ class Dashboard extends BaseDashboard
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-signal';
 
-    protected static ?string $slug = 'dashboard';
+    protected static string $routePath = '/';
 
     public function getWidgets(): array
     {
