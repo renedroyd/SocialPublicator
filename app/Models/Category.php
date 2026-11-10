@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     use HasFactory;
 
     protected $table = 'categories';

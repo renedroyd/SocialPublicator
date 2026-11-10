@@ -20,7 +20,8 @@ class VerifyDubaiShopWebhookSignature
         $timestamp = (string) $request->header('X-DubaiShop-Timestamp');
         $signature = (string) $request->header('X-DubaiShop-Signature');
         $keys = config('services.dubai_shop.webhook_keys', []);
-        $secret = is_array($keys) ? ($keys[$keyId] ?? null) : null;
+        $keyConfig = is_array($keys) ? ($keys[$keyId] ?? null) : null;
+        $secret = is_array($keyConfig) ? ($keyConfig['secret'] ?? null) : $keyConfig;
 
         if (! is_string($secret) || $secret === '' || ! ctype_digit($timestamp)) {
             return response()->json(['message' => 'Invalid webhook signature.'], 401);
@@ -39,6 +40,10 @@ class VerifyDubaiShopWebhookSignature
         }
 
         $request->attributes->set('dubai_shop_webhook_key_id', $keyId);
+
+        if (is_array($keyConfig) && isset($keyConfig['workspace_id'])) {
+            $request->attributes->set('dubai_shop_workspace_id', (int) $keyConfig['workspace_id']);
+        }
 
         return $next($request);
     }

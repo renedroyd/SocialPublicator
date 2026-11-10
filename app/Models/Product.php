@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     use HasFactory;
 
     protected $fillable = [
@@ -79,7 +81,7 @@ class Product extends Model
             'precio_publicado',
             'orden',
         ])
-        ->withTimestamps()
+        ->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps()
         ->orderByPivot('orden');
     }
 

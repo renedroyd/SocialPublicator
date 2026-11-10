@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ExternalCatalogCampaignTrigger extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     protected $fillable = [
         'campaign_id',
         'external_catalog_item_id',

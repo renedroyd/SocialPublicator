@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class BotStatus extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     protected $fillable = [
         'name',
         'platform',

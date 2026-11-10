@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InventoryMovement extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     use HasFactory;
 
-    protected $table = 'movimientos_inventario';
+    protected $table = 'inventory_movements';
 
     protected $fillable = [
         'producto_id',

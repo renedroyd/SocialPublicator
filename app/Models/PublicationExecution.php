@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PublicationExecution extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     protected $fillable = [
         'publication_id',
         'occurrence_id',

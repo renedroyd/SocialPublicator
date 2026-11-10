@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class IntegrationEventInbox extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     protected $table = 'integration_event_inbox';
 
     protected $fillable = [

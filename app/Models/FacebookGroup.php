@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FacebookGroup extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     protected $fillable = [
         'facebook_id',
         'name',

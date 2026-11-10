@@ -15,10 +15,11 @@ Route::post('/integrations/dubai-shop/v1/events', [DubaiShopWebhookController::c
     ->middleware([
         'throttle:120,1',
         VerifyDubaiShopWebhookSignature::class,
+        ResolveWorkspaceContext::class.':dubai_shop',
     ])
     ->name('api.integrations.dubai-shop.events');
 
-Route::middleware(VerifyBotApiToken::class)
+Route::middleware([VerifyBotApiToken::class, ResolveWorkspaceContext::class.':bot'])
     ->prefix('bot')
     ->group(function (): void {
         Route::get('/publications', [

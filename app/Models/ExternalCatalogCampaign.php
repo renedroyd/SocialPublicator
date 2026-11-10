@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExternalCatalogCampaign extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     public const SELECTION_MANUAL = 'manual';
 
     public const SELECTION_AUTOMATIC = 'automatic';
@@ -56,7 +58,7 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_item',
             'campaign_id',
             'external_catalog_item_id',
-        )->withPivot(['sort_order', 'last_selected_at', 'selection_count'])->withTimestamps()->orderByPivot('sort_order');
+        )->withPivot(['sort_order', 'last_selected_at', 'selection_count'])->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps()->orderByPivot('sort_order');
     }
 
     public function warehouses(): BelongsToMany
@@ -66,7 +68,7 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_warehouse',
             'campaign_id',
             'external_catalog_warehouse_id',
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function whatsappGroups(): BelongsToMany
@@ -76,7 +78,7 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_whatsapp_group',
             'campaign_id',
             'whatsapp_group_id',
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function facebookGroups(): BelongsToMany
@@ -86,7 +88,7 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_facebook_group',
             'campaign_id',
             'facebook_group_id',
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function selections(): HasMany

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class ExternalCatalogItem extends Model
 {
+    use \App\Models\Concerns\BelongsToWorkspace;
+
     public const SOURCE_DUBAI_SHOP = 'dubai_shop';
 
     protected $fillable = [

@@ -2,12 +2,16 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use App\Models\WorkspaceMembership;
+use App\Services\Workspaces\WorkspaceContext;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Database\Eloquent\Model;
+use LogicException;
 use Tests\TestCase;
 
 class WorkspaceAccessTest extends TestCase
@@ -83,5 +87,34 @@ class WorkspaceAccessTest extends TestCase
         $user = User::factory()->create();
 
         $this->assertFalse($user->canAccessPanel(Filament::getPanel('admin')));
+    }
+
+    public function test_workspace_owned_records_are_invisible_outside_the_active_workspace(): void
+    {
+        $first = Workspace::query()->create(['name' => 'Workspace Uno', 'slug' => 'workspace-uno']);
+        $second = Workspace::query()->create(['name' => 'Workspace Dos', 'slug' => 'workspace-dos']);
+        $context = app(WorkspaceContext::class);
+
+        $context->set((int) $first->id);
+        Category::query()->create(['nombre' => 'Bebidas', 'activo' => true]);
+
+        $context->set((int) $second->id);
+        Category::query()->create(['nombre' => 'Bebidas', 'activo' => true]);
+
+        $this->assertSame(1, Category::query()->count());
+        $this->assertSame('Bebidas', Category::query()->firstOrFail()->nombre);
+
+        $context->clear();
+        $this->assertSame(0, Category::query()->count());
+    }
+
+    public function test_creating_workspace_owned_records_without_context_is_rejected_when_multiple_workspaces_exist(): void
+    {
+        Workspace::query()->create(['name' => 'Workspace Uno', 'slug' => 'workspace-uno']);
+        Workspace::query()->create(['name' => 'Workspace Dos', 'slug' => 'workspace-dos']);
+
+        $this->expectException(LogicException::class);
+
+        Category::query()->create(['nombre' => 'Sin contexto', 'activo' => true]);
     }
 }

@@ -37,6 +37,7 @@ return [
 
     'bot_api' => [
         'token' => env('BOT_API_TOKEN'),
+        'workspace_id' => env('BOT_API_WORKSPACE_ID'),
         'command_bot_name' => env('BOT_COMMAND_BOT_NAME', 'WBot'),
     ],
 
@@ -46,6 +47,7 @@ return [
         'api_token' => env('DUBAI_SHOP_API_TOKEN'),
         'timeout' => (int) env('DUBAI_SHOP_TIMEOUT', 15),
         'webhook_keys' => json_decode((string) env('DUBAI_SHOP_WEBHOOK_KEYS', '{}'), true) ?: [],
+        'workspace_id' => env('DUBAI_SHOP_WORKSPACE_ID'),
         'webhook_tolerance_seconds' => (int) env('DUBAI_SHOP_WEBHOOK_TOLERANCE_SECONDS', 300),
     ],
 
