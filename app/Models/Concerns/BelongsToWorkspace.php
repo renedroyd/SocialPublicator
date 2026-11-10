@@ -61,7 +61,7 @@ trait BelongsToWorkspace
                     ->withoutGlobalScope('workspace')
                     ->find($relatedId);
 
-                if (! $related || (int) $related->workspace_id !== (int) $workspaceId) {
+                if ($related === null || (int) $related->workspace_id !== (int) $workspaceId) {
                     throw new LogicException('Cross-workspace relation is not allowed for '.class_basename($model).'.');
                 }
             }

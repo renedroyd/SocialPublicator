@@ -229,5 +229,4 @@ class WorkspaceAccessTest extends TestCase
 
         $publication->products()->attach($foreignProduct->id);
     }
-
 }
