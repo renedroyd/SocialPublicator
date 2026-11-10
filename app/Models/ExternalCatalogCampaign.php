@@ -39,6 +39,8 @@ class ExternalCatalogCampaign extends Model
         return $this->belongsToMany(
             ExternalCatalogItem::class,
             'external_catalog_campaign_item',
+            'campaign_id',
+            'external_catalog_item_id',
         )->withPivot('sort_order')->withTimestamps()->orderByPivot('sort_order');
     }
 
@@ -47,6 +49,8 @@ class ExternalCatalogCampaign extends Model
         return $this->belongsToMany(
             ExternalCatalogWarehouse::class,
             'external_catalog_campaign_warehouse',
+            'campaign_id',
+            'external_catalog_warehouse_id',
         )->withTimestamps();
     }
 
