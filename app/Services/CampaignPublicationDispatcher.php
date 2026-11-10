@@ -25,7 +25,7 @@ class CampaignPublicationDispatcher
      */
     public function dispatchPending(int $limit = 100): array
     {
-        $counts = ['triggers' => 0, 'selections' => 0, 'skipped' => 0, 'errors' => 0];
+        $counts = ['triggers' => 0, 'selections' => 0, 'skipped' => 0, 'blocked' => 0, 'errors' => 0];
 
         $triggers = ExternalCatalogCampaignTrigger::query()
             ->where('status', 'pending')
@@ -41,6 +41,8 @@ class CampaignPublicationDispatcher
                     $counts['triggers']++;
                 } elseif ($result === 'skipped') {
                     $counts['skipped']++;
+                } elseif ($result === 'blocked') {
+                    $counts['blocked']++;
                 }
             } catch (Throwable $exception) {
                 $trigger->update(['last_error' => $exception->getMessage()]);
@@ -94,15 +96,15 @@ class CampaignPublicationDispatcher
         $campaign = $trigger->campaign;
 
         if (! $campaign || ! $campaign->is_active) {
-            $this->skipTrigger($trigger, 'La campaña está inactiva o ya no existe.');
+            $trigger->update(['last_error' => 'La campaña está inactiva; el aviso queda pendiente.']);
 
-            return 'skipped';
+            return 'blocked';
         }
 
         if (! $this->hasDestinations($campaign)) {
-            $this->skipTrigger($trigger, 'La campaña no tiene grupos activos configurados para sus canales.');
+            $trigger->update(['last_error' => 'Configura al menos un grupo activo para cada canal seleccionado.']);
 
-            return 'skipped';
+            return 'blocked';
         }
 
         $payload = $this->client->item($trigger->item->external_id);
@@ -122,6 +124,12 @@ class CampaignPublicationDispatcher
         }
 
         $available = $this->availableInCampaignWarehouses($campaign, $item);
+
+        if ($available === null) {
+            $trigger->update(['last_error' => 'No hay almacenes activos habilitados para abastecimiento online.']);
+
+            return 'blocked';
+        }
 
         if ($trigger->trigger_type === 'catalog.item_out_of_stock' && $available > 0) {
             $this->skipTrigger($trigger, 'El artículo volvió a tener existencias antes del envío.');
@@ -181,15 +189,15 @@ class CampaignPublicationDispatcher
         $campaign = $selections->first()->campaign;
 
         if (! $campaign || ! $campaign->is_active) {
-            $this->skipSelections($selections, 'La campaña está inactiva o ya no existe.');
+            $this->blockSelections($selections, 'La campaña está inactiva; la selección queda pendiente.');
 
-            return 'skipped';
+            return 'blocked';
         }
 
         if (! $this->hasDestinations($campaign)) {
-            $this->skipSelections($selections, 'La campaña no tiene grupos activos configurados para sus canales.');
+            $this->blockSelections($selections, 'Configura al menos un grupo activo para cada canal seleccionado.');
 
-            return 'skipped';
+            return 'blocked';
         }
 
         $items = collect();
@@ -212,6 +220,12 @@ class CampaignPublicationDispatcher
             }
 
             $available = $this->availableInCampaignWarehouses($campaign, $item);
+
+            if ($available === null) {
+                $selection->update(['last_error' => 'No hay almacenes activos habilitados para abastecimiento online.']);
+
+                continue;
+            }
 
             if ($available <= 0) {
                 $selection->update(['status' => 'skipped', 'last_error' => 'No quedan existencias en los almacenes de esta campaña.']);
@@ -291,12 +305,16 @@ class CampaignPublicationDispatcher
         return $hasWhatsApp && $hasFacebook;
     }
 
-    private function availableInCampaignWarehouses(ExternalCatalogCampaign $campaign, ExternalCatalogItem $item): int
+    private function availableInCampaignWarehouses(ExternalCatalogCampaign $campaign, ExternalCatalogItem $item): ?int
     {
         $warehouseIds = $campaign->warehouses
             ->filter(fn ($warehouse): bool => $warehouse->active && $warehouse->online_fulfillment_enabled)
             ->pluck('external_id')
             ->all();
+
+        if ($warehouseIds === []) {
+            return null;
+        }
 
         return collect($item->availability['warehouses'] ?? [])
             ->filter(fn (array $warehouse): bool => in_array(
@@ -352,6 +370,13 @@ class CampaignPublicationDispatcher
     private function skipTrigger(ExternalCatalogCampaignTrigger $trigger, string $reason): void
     {
         $trigger->update(['status' => 'skipped', 'last_error' => $reason]);
+    }
+
+    private function blockSelections($selections, string $reason): void
+    {
+        foreach ($selections as $selection) {
+            $selection->update(['last_error' => $reason]);
+        }
     }
 
     private function skipSelections($selections, string $reason): void
