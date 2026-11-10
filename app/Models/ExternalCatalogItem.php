@@ -29,6 +29,7 @@ class ExternalCatalogItem extends Model
         'revision',
         'source_updated_at',
         'synced_at',
+        'sync_run_id',
     ];
 
     protected function casts(): array
