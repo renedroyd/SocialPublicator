@@ -148,9 +148,6 @@ class BotAgentResource extends Resource
             ->actions([
                 EditAction::make(),
             ])
-            ->headerActions([
-                CreateAction::make(),
-            ])
             ->defaultSort('created_at', 'desc');
     }
 
