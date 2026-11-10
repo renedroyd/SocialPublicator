@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\BotAgent;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
 use App\Models\Workspace;
@@ -26,9 +27,17 @@ class FacebookBrowserConnectionControllerTest extends TestCase
             'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
             'display_name' => 'Perfil Facebook',
         ]);
+        $token = 'facebook-agent-token';
+        BotAgent::query()->create([
+            'name' => 'WBot Facebook',
+            'instance_id' => 'wbot-local-01',
+            'token_hash' => hash('sha256', $token),
+            'social_account_ids' => [$account->id],
+            'is_active' => true,
+        ]);
         app(WorkspaceContext::class)->clear();
 
-        $this->withToken('test-bot-token')->postJson('/api/bot/facebook/connection/state', [
+        $this->withToken($token)->postJson('/api/bot/facebook/connection/state', [
             'social_account_id' => $account->id,
             'agent_instance_id' => 'wbot-local-01',
             'status' => 'connected',
