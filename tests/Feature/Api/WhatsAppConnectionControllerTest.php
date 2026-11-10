@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\BotAgent;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
 use App\Models\Workspace;
@@ -33,9 +34,17 @@ class WhatsAppConnectionControllerTest extends TestCase
             'account_type' => SocialAccount::TYPE_WHATSAPP,
             'display_name' => 'WhatsApp principal',
         ]);
+        $token = 'whatsapp-agent-token';
+        BotAgent::query()->create([
+            'name' => 'WBot WhatsApp',
+            'instance_id' => 'wbot-local-01',
+            'token_hash' => hash('sha256', $token),
+            'social_account_ids' => [$account->id],
+            'is_active' => true,
+        ]);
         app(WorkspaceContext::class)->clear();
 
-        $response = $this->withToken('test-bot-token')->postJson('/api/bot/whatsapp/connection/state', [
+        $response = $this->withToken($token)->postJson('/api/bot/whatsapp/connection/state', [
             'social_account_id' => $account->id,
             'agent_instance_id' => 'wbot-local-01',
             'session_name' => 'whatsapp-main',
@@ -70,7 +79,7 @@ class WhatsAppConnectionControllerTest extends TestCase
         Cache::put('social-account-whatsapp-qr:'.$workspace->id.':'.$account->id, 'expired-qr', now()->addMinute());
         app(WorkspaceContext::class)->clear();
 
-        $this->withToken('test-bot-token')->postJson('/api/bot/whatsapp/connection/state', [
+        $this->withToken($token)->postJson('/api/bot/whatsapp/connection/state', [
             'social_account_id' => $account->id,
             'agent_instance_id' => 'wbot-local-01',
             'status' => 'connected',
