@@ -101,7 +101,12 @@ class BotPublicationController extends Controller
                     ))
                     ->values();
 
-                if ($eligibleWhatsAppGroups->isEmpty() && $eligibleFacebookGroups->isEmpty()) {
+                $hasWhatsAppDestination = in_array($publication->destination, ['whatsapp', 'both'], true)
+                    && $eligibleWhatsAppGroups->isNotEmpty();
+                $hasFacebookDestination = in_array($publication->destination, ['facebook', 'both'], true)
+                    && $eligibleFacebookGroups->isNotEmpty();
+
+                if (! $hasWhatsAppDestination && ! $hasFacebookDestination) {
                     continue;
                 }
             }
