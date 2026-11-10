@@ -79,13 +79,13 @@ class ExternalCatalogCampaignResource extends Resource
         }
 
         if (
-            !$membership->hasPermission('destinations.view')
-            || ! $membership->hasPermission('publications.publish')
+            $membership->hasPermission('destinations.view') === false
+            || $membership->hasPermission('publications.publish') === false
         ) {
             return $query->whereRaw('1 = 0');
         }
 
-        if (! $membership->hasPermission('destinations.manage')) {
+        if ($membership->hasPermission('destinations.manage') === false) {
             $destinationIds = $membership->destinationPermissions()
                 ->where('destination_type', $destinationType)
                 ->whereJsonContains('permissions', 'publish')
@@ -94,7 +94,7 @@ class ExternalCatalogCampaignResource extends Resource
             $query->whereIn('id', $destinationIds);
         }
 
-        if (! $membership->hasPermission('accounts.manage')) {
+        if ($membership->hasPermission('accounts.manage') === false) {
             $accountIds = $membership->socialAccountPermissions()
                 ->whereJsonContains('permissions', 'publish')
                 ->select('social_account_id');
