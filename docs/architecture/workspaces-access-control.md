@@ -58,7 +58,7 @@ La migración crea el workspace principal y asigna los usuarios existentes: el p
 
 Cuando hay un solo workspace, los procesos heredados pueden resolverlo como compatibilidad. Cuando existen varios, las integraciones de bot y Dubai-Shop deben recibir/configurar explícitamente el workspace correspondiente; no se selecciona uno arbitrariamente.
 
-La migración de aislamiento es conservadora con SQLite: el método `down()` no elimina las restricciones allí porque el schema builder de Laravel no permite retirar esas claves foráneas por nombre de forma segura. Para revertir en SQLite se requiere reconstrucción manual de tablas o recrear la base de pruebas. En motores como MySQL, el método de reversión elimina las restricciones y columnas añadidas; los índices globales antiguos no se recrean automáticamente porque podrían existir valores duplicados entre workspaces.
+La migración de aislamiento bloquea explícitamente `down()` en SQLite porque el schema builder de Laravel no permite retirar esas claves foráneas por nombre de forma segura. El rollback lanza un error y conserva el registro de migración; para revertir en SQLite se requiere reconstrucción manual de tablas o recrear la base de pruebas. En motores como MySQL, el método de reversión elimina las restricciones y columnas añadidas; los índices globales antiguos no se recrean automáticamente porque podrían existir valores duplicados entre workspaces.
 
 ## Auditoría
 
