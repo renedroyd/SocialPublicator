@@ -50,6 +50,11 @@ class BotAgentTokenTest extends TestCase
             'status' => 'connected',
         ])->assertForbidden();
 
+        $this->withToken($token)->postJson('/api/bot/whatsapp/groups/sync', [
+            'agent_instance_id' => 'agent-test-01',
+            'groups' => [],
+        ])->assertStatus(422);
+
         $this->withToken($token)->postJson('/api/bot/whatsapp/connection/state', [
             'social_account_id' => $allowedAccount->id,
             'agent_instance_id' => 'another-agent',
