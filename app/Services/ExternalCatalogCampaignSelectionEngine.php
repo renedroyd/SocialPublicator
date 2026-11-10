@@ -29,7 +29,10 @@ class ExternalCatalogCampaignSelectionEngine
                 ->lockForUpdate()
                 ->findOrFail($campaign->id);
 
-            if (! $campaign->is_active || $campaign->warehouses->isEmpty()) {
+            $eligibleWarehouses = $campaign->warehouses
+                ->filter(fn ($warehouse): bool => $warehouse->active && $warehouse->online_fulfillment_enabled);
+
+            if (! $campaign->is_active || $eligibleWarehouses->isEmpty()) {
                 return collect();
             }
 
@@ -63,7 +66,7 @@ class ExternalCatalogCampaignSelectionEngine
                 return collect();
             }
 
-            $warehouseIds = $campaign->warehouses->pluck('external_id')->all();
+            $warehouseIds = $eligibleWarehouses->pluck('external_id')->all();
             $items = $campaign->selection_mode === 'automatic'
                 ? ExternalCatalogItem::query()
                     ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
@@ -90,17 +93,19 @@ class ExternalCatalogCampaignSelectionEngine
             $eligibleItems = $items
                 ->map(function (ExternalCatalogItem $item) use ($warehouseIds, $lastSelectedByItem): array {
                     $availability = $item->availability['warehouses'] ?? [];
-                    $available = collect($availability)
+                    $availableWarehouses = collect($availability)
                         ->filter(fn (array $warehouse): bool => in_array(
                             $warehouse['warehouse_external_id'] ?? null,
                             $warehouseIds,
                             true,
-                        ))
+                        ) && (int) ($warehouse['available_quantity'] ?? 0) > 0);
+                    $available = $availableWarehouses
                         ->sum(fn (array $warehouse): int => max(0, (int) ($warehouse['available_quantity'] ?? 0)));
 
                     return [
                         'item' => $item,
                         'available' => $available,
+                        'warehouse_external_ids' => $availableWarehouses->pluck('warehouse_external_id')->values()->all(),
                         'last_selected_at' => $lastSelectedByItem->get($item->id)?->last_selected_at,
                         'sort_order' => (int) ($item->pivot?->sort_order ?? $item->id),
                         'selection_count' => (int) ($lastSelectedByItem->get($item->id)?->selection_count ?? 0),
@@ -128,6 +133,7 @@ class ExternalCatalogCampaignSelectionEngine
                     'external_catalog_item_id' => $item->id,
                     'selection_group_id' => $groupId,
                     'available_quantity' => $entry['available'],
+                    'warehouse_external_ids' => $entry['warehouse_external_ids'],
                     'selected_at' => $now,
                     'status' => 'planned',
                 ]));
