@@ -129,14 +129,6 @@ return new class extends Migration
             );
         });
 
-        foreach (['publications', 'external_catalog_campaigns'] as $tableName) {
-            Schema::table($tableName, function (Blueprint $table) use ($tableName): void {
-                $table->dropForeign($tableName.'_created_by_user_id_foreign');
-                $table->dropIndex($tableName.'_workspace_creator_index');
-                $table->dropColumn('created_by_user_id');
-            });
-        }
-
         foreach (['facebook_groups', 'whatsapp_groups', 'publication_destinations'] as $tableName) {
             Schema::table($tableName, function (Blueprint $table) use ($tableName): void {
                 $table->unsignedBigInteger('social_account_id')->nullable();
@@ -159,6 +151,14 @@ return new class extends Migration
     {
         if (DB::getDriverName() === 'sqlite') {
             throw new RuntimeException('Social account migration rollback on SQLite requires a manual table rebuild.');
+        }
+
+        foreach (['publications', 'external_catalog_campaigns'] as $tableName) {
+            Schema::table($tableName, function (Blueprint $table) use ($tableName): void {
+                $table->dropForeign($tableName.'_created_by_user_id_foreign');
+                $table->dropIndex($tableName.'_workspace_creator_index');
+                $table->dropColumn('created_by_user_id');
+            });
         }
 
         foreach (['facebook_groups', 'whatsapp_groups', 'publication_destinations'] as $tableName) {
