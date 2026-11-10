@@ -29,6 +29,7 @@ return new class extends Migration
             $table->foreignId('external_catalog_item_id')->constrained('external_catalog_items')->cascadeOnDelete();
             $table->uuid('selection_group_id');
             $table->unsignedInteger('available_quantity')->default(0);
+            $table->json('warehouse_external_ids')->nullable();
             $table->timestamp('selected_at');
             $table->string('status', 24)->default('planned');
             $table->timestamps();
