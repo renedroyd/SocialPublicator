@@ -162,38 +162,6 @@ class WorkspaceMembership extends Model
         return $account !== null && $this->canUseSocialAccount($account, 'publish');
     }
 
-    public function canPublishToDestination(string $destinationType, int $destinationId): bool
-    {
-        if (! $this->canUseDestination($destinationType, $destinationId, 'publish')) {
-            return false;
-        }
-
-        $destinationClass = match ($destinationType) {
-            WorkspaceMembershipDestinationPermission::DESTINATION_FACEBOOK_GROUP => FacebookGroup::class,
-            WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP => WhatsAppGroup::class,
-            WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION => PublicationDestination::class,
-            default => null,
-        };
-
-        if (! $destinationClass) {
-            return false;
-        }
-
-        $destination = (new $destinationClass)->newQuery()->find($destinationId);
-
-        if (! $destination) {
-            return false;
-        }
-
-        if ($destination->social_account_id === null) {
-            return true;
-        }
-
-        $account = SocialAccount::query()->find($destination->social_account_id);
-
-        return $account !== null && $this->canUseSocialAccount($account, 'publish');
-    }
-
     public function canUseDestination(string $destinationType, int $destinationId, string $permission = 'view'): bool
     {
         if (! $this->isActive()) {
