@@ -16,6 +16,7 @@ class WhatsAppConnectionController extends Controller
         $data = $request->validate([
             'social_account_id' => ['required', 'integer'],
             'agent_instance_id' => ['required', 'string', 'max:191'],
+            'session_name' => ['nullable', 'string', 'max:191'],
             'status' => ['required', 'in:qr,pending,connected,disconnected,error'],
             'qr' => ['nullable', 'string', 'max:500000'],
             'phone' => ['nullable', 'string', 'max:191'],
@@ -60,8 +61,8 @@ class WhatsAppConnectionController extends Controller
             [
                 'status' => $connected ? 'connected' : ($disconnected ? 'revoked' : ($hasError ? 'error' : 'pending')),
                 'agent_instance_id' => $data['agent_instance_id'],
-                'session_reference' => 'wppconnect:'.hash('sha256', $data['agent_instance_id'].':'.$account->id),
-                'provider_connection_id' => 'whatsapp-bot',
+                'session_reference' => 'wppconnect:'.hash('sha256', $data['agent_instance_id'].':'.$account->id.':'.($data['session_name'] ?? 'whatsapp-bot')),
+                'provider_connection_id' => $data['session_name'] ?? 'whatsapp-bot',
                 'credentials' => null,
                 'expires_at' => null,
                 'connected_at' => $connected ? now() : null,
