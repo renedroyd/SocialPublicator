@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\IntegrationEventInbox;
+use App\Services\Workspaces\WorkspaceContext;
 use App\Services\ExternalCatalogSyncService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
