@@ -10,7 +10,6 @@ use App\Models\ExternalCatalogCampaign;
 use App\Models\ExternalCatalogItem;
 use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\Workspaces\WorkspaceContext;
-use Illuminate\Database\Eloquent\Builder;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -28,6 +27,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ExternalCatalogCampaignResource extends Resource
 {
@@ -79,7 +79,7 @@ class ExternalCatalogCampaignResource extends Resource
         }
 
         if (
-            ! $membership->hasPermission('destinations.view')
+            !$membership->hasPermission('destinations.view')
             || ! $membership->hasPermission('publications.publish')
         ) {
             return $query->whereRaw('1 = 0');

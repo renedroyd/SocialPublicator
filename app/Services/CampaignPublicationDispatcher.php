@@ -316,7 +316,7 @@ class CampaignPublicationDispatcher
     }
 
     /**
-     * @return array{0: \Illuminate\Support\Collection, 1: \Illuminate\Support\Collection}
+     * @return array{0: Collection, 1: Collection}
      */
     private function authorizedGroups(ExternalCatalogCampaign $campaign): array
     {

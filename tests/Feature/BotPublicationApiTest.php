@@ -580,5 +580,4 @@ class BotPublicationApiTest extends TestCase
             collect($payload['data'][0]['whatsapp_groups'])->pluck('id')->all(),
         );
     }
-
 }
