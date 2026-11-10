@@ -53,7 +53,7 @@ class BotExecutionController extends Controller
         $execution = PublicationExecution::query()->findOrFail($execution);
 
         $validated = $request->validate([
-            'external_id => ['nullable', 'string', 'max:255'],
+            'external_id' => ['nullable', 'string', 'max:255'],
             'instance_id' => ['nullable', 'string', 'max:191'],
         ]);
 
