@@ -196,4 +196,21 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
         $this->assertSame($itemB->id, $second->first()->external_catalog_item_id);
     }
 
+
+    public function test_selection_rechecks_that_campaign_warehouses_remain_online_eligible(): void
+    {
+        [$campaign, $warehouseA] = $this->createCampaign();
+        $warehouseA->update(['online_fulfillment_enabled' => false]);
+        $item = $this->createItem('2d20b7e0-01a1-4e33-8a10-40abfa9b2a00', [
+            ['warehouse_external_id' => $warehouseA->external_id, 'available_quantity' => 9],
+        ]);
+        $campaign->items()->attach($item->id);
+        $campaign->warehouses()->detach($warehouseA->id);
+
+        $selected = app(ExternalCatalogCampaignSelectionEngine::class)
+            ->selectNextGroup($campaign, Carbon::parse('2026-11-10 12:00:00', 'UTC'));
+
+        $this->assertCount(0, $selected);
+    }
+
 }
