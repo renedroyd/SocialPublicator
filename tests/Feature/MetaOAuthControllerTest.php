@@ -80,6 +80,8 @@ class MetaOAuthControllerTest extends TestCase
             'code' => 'one-time-code',
         ]))->assertRedirect(route('filament.admin.resources.social-accounts.index'));
 
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
         $this->assertDatabaseHas('social_accounts', [
             'id' => $account->id,
             'external_account_id' => 'profile-42',
