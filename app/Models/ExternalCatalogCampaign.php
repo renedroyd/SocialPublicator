@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExternalCatalogCampaign extends Model
 {
@@ -26,6 +27,13 @@ class ExternalCatalogCampaign extends Model
         'out_of_stock_behavior',
         'restock_behavior',
         'price_change_behavior',
+        'rotation_strategy',
+        'group_size',
+        'posting_weekdays',
+        'posting_window_start',
+        'posting_window_end',
+        'timezone',
+        'last_selected_at',
     ];
 
     protected function casts(): array
@@ -34,6 +42,9 @@ class ExternalCatalogCampaign extends Model
             'is_active' => 'boolean',
             'max_publications_per_day' => 'integer',
             'minimum_interval_minutes' => 'integer',
+            'group_size' => 'integer',
+            'posting_weekdays' => 'array',
+            'last_selected_at' => 'datetime',
         ];
     }
 
@@ -44,7 +55,7 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_item',
             'campaign_id',
             'external_catalog_item_id',
-        )->withPivot('sort_order')->withTimestamps()->orderByPivot('sort_order');
+        )->withPivot(['sort_order', 'last_selected_at', 'selection_count'])->withTimestamps()->orderByPivot('sort_order');
     }
 
     public function warehouses(): BelongsToMany
@@ -55,6 +66,11 @@ class ExternalCatalogCampaign extends Model
             'campaign_id',
             'external_catalog_warehouse_id',
         )->withTimestamps();
+    }
+
+    public function selections(): HasMany
+    {
+        return $this->hasMany(ExternalCatalogCampaignSelection::class, 'campaign_id');
     }
 
     public function scopeActive($query)

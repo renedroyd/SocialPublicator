@@ -10,12 +10,15 @@ use App\Models\ExternalCatalogItem;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -59,7 +62,7 @@ class ExternalCatalogCampaignResource extends Resource
                 Textarea::make('description')->label(__('Descripción'))->rows(3)->columnSpanFull(),
                 Select::make('selection_mode')->label(__('Selección de productos'))->options([
                     'manual' => __('Manual'),
-                    'automatic' => __('Automática (se configurará en la siguiente fase)'),
+                    'automatic' => __('Automática (todo el catálogo elegible)'),
                 ])->default('manual')->required()->native(false),
                 Select::make('publication_mode')->label(__('Formato de publicación'))->options([
                     'grouped' => __('Agrupada'),
@@ -67,6 +70,26 @@ class ExternalCatalogCampaignResource extends Resource
                 ])->default('grouped')->required()->native(false),
                 TextInput::make('max_publications_per_day')->label(__('Máximo de publicaciones diarias'))->numeric()->integer()->minValue(1)->maxValue(100)->default(3)->required(),
                 TextInput::make('minimum_interval_minutes')->label(__('Intervalo mínimo entre publicaciones (minutos)'))->numeric()->integer()->minValue(1)->maxValue(10080)->default(240)->required(),
+            ]),
+            Section::make(__('Rotación y horario'))->description(__('El planificador crea grupos de artículos dentro de estas reglas. No envía publicaciones a redes sociales.'))->columns(2)->schema([
+                Select::make('rotation_strategy')->label(__('Estrategia de rotación'))->options([
+                    'least_recent' => __('Menos publicado recientemente'),
+                    'round_robin' => __('Turno rotativo'),
+                    'random' => __('Aleatoria'),
+                ])->default('least_recent')->required()->native(false),
+                TextInput::make('group_size')->label(__('Artículos por publicación agrupada'))->numeric()->integer()->minValue(1)->maxValue(20)->default(4)->required(),
+                TimePicker::make('posting_window_start')->label(__('Hora inicial'))->seconds(false)->format('H:i')->default('09:00')->required(),
+                TimePicker::make('posting_window_end')->label(__('Hora final'))->seconds(false)->format('H:i')->default('21:00')->after('posting_window_start')->required(),
+                Select::make('timezone')->label(__('Zona horaria'))->options(collect(timezone_identifiers_list())->mapWithKeys(fn (string $zone): array => [$zone => $zone])->all())->searchable()->native(false)->default(config('app.timezone', 'UTC'))->required(),
+                CheckboxList::make('posting_weekdays')->label(__('Días permitidos'))->options([
+                    1 => __('Lunes'),
+                    2 => __('Martes'),
+                    3 => __('Miércoles'),
+                    4 => __('Jueves'),
+                    5 => __('Viernes'),
+                    6 => __('Sábado'),
+                    7 => __('Domingo'),
+                ])->columns(7)->default([1, 2, 3, 4, 5, 6, 7])->required()->columnSpanFull(),
             ]),
             Section::make(__('Catálogo de Dubai Shop'))->description(__('Solo aparecen artículos externos activos y visibles sincronizados desde Dubai Shop.'))->schema([
                 Select::make('items')
@@ -84,7 +107,8 @@ class ExternalCatalogCampaignResource extends Resource
                     ->searchable()
                     ->preload()
                     ->native(false)
-                    ->helperText(__('Selecciona los artículos que esta campaña podrá publicar.')),
+                    ->helperText(__('Selecciona los artículos que esta campaña podrá publicar.'))
+                    ->visible(fn (Get $get): bool => $get('selection_mode') === 'manual'),
                 Select::make('warehouses')
                     ->label(__('Almacenes habilitados'))
                     ->relationship(

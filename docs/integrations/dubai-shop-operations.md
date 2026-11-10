@@ -57,3 +57,10 @@ Manage campaigns in Filament under **Integraciones → Campañas sociales**. Eac
 - Out-of-stock, replenishment, and price-change preferences. Defaults preserve the approved integration decisions: grouped publications, publish replenishment notices, and publish price changes immediately.
 
 Campaign configuration is intentionally separate from the local SocialPublicator products and inventory. It does not copy external stock into local stock or publish anything by itself. Automatic product selection, rotation, frequency enforcement, and actual social publication are implemented in later phases. Keep the campaign inactive until those phases are enabled and validated.
+
+
+## Campaign selection engine (phase 5)
+
+The `social-publicator:select-campaign-items` command runs every five minutes. It records planned selection groups only; it does not send content to social networks. The engine supports manual campaign lists or automatic selection from the active/visible Dubai Shop mirror, warehouse-scoped availability, least-recent/round-robin/random rotation, grouped or individual mode, daily caps, minimum intervals, weekday and local-time windows, and a configured timezone.
+
+Each selection stores the selected item, quantity available in the campaign's selected warehouses, the warehouse IDs contributing stock, the selection group, and its planned status. Warehouse eligibility is rechecked at selection time. The later publishing phase must still revalidate current availability with Dubai Shop before sending.
