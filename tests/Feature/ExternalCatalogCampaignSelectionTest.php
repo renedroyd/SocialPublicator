@@ -205,7 +205,6 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
             ['warehouse_external_id' => $warehouseA->external_id, 'available_quantity' => 9],
         ]);
         $campaign->items()->attach($item->id);
-        $campaign->warehouses()->detach($warehouseA->id);
 
         $selected = app(ExternalCatalogCampaignSelectionEngine::class)
             ->selectNextGroup($campaign, Carbon::parse('2026-11-10 12:00:00', 'UTC'));
