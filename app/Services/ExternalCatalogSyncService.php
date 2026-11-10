@@ -12,7 +12,10 @@ use RuntimeException;
 
 class ExternalCatalogSyncService
 {
-    public function __construct(private readonly DubaiShopApiClient $client) {}
+    public function __construct(
+        private readonly DubaiShopApiClient $client,
+        private readonly CampaignTriggerService $campaignTriggerService,
+    ) {}
 
     public function syncAll(): array
     {
@@ -163,6 +166,11 @@ class ExternalCatalogSyncService
             return;
         }
 
+        $previousItem = ExternalCatalogItem::query()
+            ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
+            ->where('external_id', $externalId)
+            ->first();
+
         $item = $this->client->item($externalId);
 
         if ($item === null) {
@@ -171,7 +179,16 @@ class ExternalCatalogSyncService
             return;
         }
 
-        $this->upsertItem($item);
+        $syncedItem = $this->upsertItem($item);
+
+        if ($event->revision >= $syncedItem->revision) {
+            $this->campaignTriggerService->evaluate(
+                $event->event_id,
+                $event->event_type,
+                $previousItem,
+                $syncedItem,
+            );
+        }
     }
 
     private function markItemUnavailable(string $externalId, int $revision): void
