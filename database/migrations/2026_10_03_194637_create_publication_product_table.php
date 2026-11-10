@@ -29,31 +29,31 @@ return new class extends Migration
                 */
 
             $table->decimal(
-                'cantidad',
+                'quantity',
                 12,
                 2
             )->default(1);
 
             $table->decimal(
-                'precio_publicado',
+                'published_price',
                 12,
                 2
             )->nullable();
 
             $table->unsignedInteger(
-                'orden'
+                'sort_order'
             )->default(0);
 
             $table->timestamps();
 
             $table->unique([
-                'publicacion_id',
-                'producto_id',
+                'publication_id',
+                'product_id',
             ]);
 
             $table->index([
-                'publicacion_id',
-                'orden',
+                'publication_id',
+                'sort_order',
             ]);
         });
     }
