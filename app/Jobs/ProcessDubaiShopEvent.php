@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\IntegrationEventInbox;
 use App\Services\ExternalCatalogSyncService;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -20,13 +21,17 @@ class ProcessDubaiShopEvent implements ShouldQueue
 
     public array $backoff = [30, 120, 300, 600];
 
-    public function __construct(public readonly int $eventId) {}
+    public function __construct(public readonly int $eventId, public readonly ?int $workspaceId = null) {}
 
     public function handle(ExternalCatalogSyncService $syncService): void
     {
-        $event = IntegrationEventInbox::query()->findOrFail($this->eventId);
+        $context = app(WorkspaceContext::class);
+        $event = IntegrationEventInbox::withoutGlobalScope('workspace')->findOrFail($this->eventId);
+        $context->set($this->workspaceId ?? (int) $event->workspace_id);
 
         if ($event->status === 'processed') {
+            $context->clear();
+
             return;
         }
 
@@ -51,6 +56,8 @@ class ProcessDubaiShopEvent implements ShouldQueue
             ]);
 
             throw $exception;
+        } finally {
+            $context->clear();
         }
     }
 }

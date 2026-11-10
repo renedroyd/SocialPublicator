@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExternalCatalogCampaign extends Model
 {
+    use BelongsToWorkspace;
+
     public const SELECTION_MANUAL = 'manual';
 
     public const SELECTION_AUTOMATIC = 'automatic';
@@ -56,7 +60,7 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_item',
             'campaign_id',
             'external_catalog_item_id',
-        )->withPivot(['sort_order', 'last_selected_at', 'selection_count'])->withTimestamps()->orderByPivot('sort_order');
+        )->withPivot(['sort_order', 'last_selected_at', 'selection_count'])->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps()->orderByPivot('sort_order');
     }
 
     public function warehouses(): BelongsToMany
@@ -66,7 +70,7 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_warehouse',
             'campaign_id',
             'external_catalog_warehouse_id',
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function whatsappGroups(): BelongsToMany
@@ -76,7 +80,7 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_whatsapp_group',
             'campaign_id',
             'whatsapp_group_id',
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function facebookGroups(): BelongsToMany
@@ -86,7 +90,7 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_facebook_group',
             'campaign_id',
             'facebook_group_id',
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function selections(): HasMany

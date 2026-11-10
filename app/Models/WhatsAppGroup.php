@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class WhatsAppGroup extends Model
 {
+    use BelongsToWorkspace;
+
     protected $table = 'whatsapp_groups';
 
     protected $fillable = [
@@ -31,6 +35,6 @@ class WhatsAppGroup extends Model
             'whatsapp_group_publication',
             'whatsapp_group_id',
             'publication_id'
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 }

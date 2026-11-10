@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Auth\Login;
 use App\Filament\Pages\Dashboard;
+use App\Http\Middleware\ResolveWorkspaceContext;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -32,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->login(Login::class)
             ->passwordReset()
+            ->registration()
             ->brandName('VIRALYX')
             ->brandLogo(fn () => view('filament.brand'))
             ->brandLogoHeight('2.5rem')
@@ -42,6 +44,10 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn () => view('filament.panel-styles'),
+            )
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_END,
+                fn () => view('filament.workspace-switcher'),
             )
             ->renderHook(
                 PanelsRenderHook::AUTH_LOGIN_FORM_BEFORE,
@@ -83,6 +89,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                ResolveWorkspaceContext::class,
             ]);
     }
 }

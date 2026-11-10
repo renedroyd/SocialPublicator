@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FacebookGroup extends Model
 {
+    use BelongsToWorkspace;
+
     protected $fillable = [
         'facebook_id',
         'name',
@@ -25,6 +29,6 @@ class FacebookGroup extends Model
         return $this->belongsToMany(
             Publication::class,
             'facebook_group_publication'
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 }

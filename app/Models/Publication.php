@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Publication extends Model
 {
+    use BelongsToWorkspace;
+
     protected $fillable = [
         'date',
         'time',
@@ -156,7 +160,7 @@ class Publication extends Model
                 'published_price',
                 'sort_order',
             ])
-            ->withTimestamps()
+            ->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps()
             ->orderByPivot('sort_order');
     }
 
@@ -165,7 +169,7 @@ class Publication extends Model
         return $this->belongsToMany(
             PublicationDestination::class,
             'publication_publication_destination'
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function executions(): HasMany
@@ -185,7 +189,7 @@ class Publication extends Model
             'whatsapp_group_publication',
             'publication_id',
             'whatsapp_group_id'
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function facebookGroups(): BelongsToMany
@@ -193,7 +197,7 @@ class Publication extends Model
         return $this->belongsToMany(
             FacebookGroup::class,
             'facebook_group_publication'
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     protected static function booted(): void

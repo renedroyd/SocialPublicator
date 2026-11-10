@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ExternalCatalogCampaigns;
 
+use App\Filament\Resources\Concerns\AuthorizesWorkspaceResources;
 use App\Filament\Resources\ExternalCatalogCampaigns\Pages\CreateExternalCatalogCampaign;
 use App\Filament\Resources\ExternalCatalogCampaigns\Pages\EditExternalCatalogCampaign;
 use App\Filament\Resources\ExternalCatalogCampaigns\Pages\ListExternalCatalogCampaigns;
@@ -27,6 +28,13 @@ use Filament\Tables\Table;
 
 class ExternalCatalogCampaignResource extends Resource
 {
+    use AuthorizesWorkspaceResources;
+
+    protected static function workspacePermissionPrefix(): string
+    {
+        return 'campaigns';
+    }
+
     protected static ?string $model = ExternalCatalogCampaign::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';

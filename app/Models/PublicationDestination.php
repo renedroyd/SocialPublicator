@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class PublicationDestination extends Model
 {
+    use BelongsToWorkspace;
+
     protected $fillable = [
         'platform',
         'external_id',
@@ -31,7 +35,7 @@ class PublicationDestination extends Model
         return $this->belongsToMany(
             Publication::class,
             'publication_publication_destination'
-        )->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function scopeForPlatform($query, string $platform)

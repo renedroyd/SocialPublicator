@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class BotCommand extends Model
 {
+    use BelongsToWorkspace;
+
     protected $fillable = [
         'bot_name',
         'type',

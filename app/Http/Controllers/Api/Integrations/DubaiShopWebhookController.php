@@ -57,7 +57,7 @@ class DubaiShopWebhookController extends Controller
         }
 
         if ($event->wasRecentlyCreated) {
-            ProcessDubaiShopEvent::dispatch($event->id)->afterCommit();
+            ProcessDubaiShopEvent::dispatch($event->id, (int) $event->workspace_id)->afterCommit();
         }
 
         return response()->json([

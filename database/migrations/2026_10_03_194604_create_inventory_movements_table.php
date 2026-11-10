@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('producto_id')
-                ->constrained('productos')
+                ->constrained('products')
                 ->cascadeOnDelete();
 
             $table->enum(

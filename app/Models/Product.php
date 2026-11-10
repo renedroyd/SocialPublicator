@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
-    use HasFactory;
+    use BelongsToWorkspace, HasFactory;
 
     protected $fillable = [
         'categoria_id',
@@ -72,15 +74,16 @@ class Product extends Model
     {
         return $this->belongsToMany(
             Publication::class,
-            'publicacion_producto'
+            'publication_product'
         )
-        ->withPivot([
-            'cantidad',
-            'precio_publicado',
-            'orden',
-        ])
-        ->withTimestamps()
-        ->orderByPivot('orden');
+            ->withPivot([
+                'quantity',
+                'published_price',
+                'sort_order',
+            ])
+            ->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
     }
 
     /*
@@ -91,10 +94,7 @@ class Product extends Model
 
     public function getStockBajoAttribute(): bool
     {
-        return (
-            $this->stock > 0 &&
-            $this->stock <= $this->stock_minimo
-        );
+        return $this->stock > 0 && $this->stock <= $this->stock_minimo;
     }
 
     public function getAgotadoAttribute(): bool

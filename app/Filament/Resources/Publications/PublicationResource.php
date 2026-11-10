@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Publications;
 
+use App\Filament\Resources\Concerns\AuthorizesWorkspaceResources;
 use App\Filament\Resources\Publications\Pages\CreatePublication;
 use App\Filament\Resources\Publications\Pages\EditPublication;
 use App\Filament\Resources\Publications\Pages\ListPublications;
@@ -15,6 +16,13 @@ use Filament\Tables\Table;
 
 class PublicationResource extends Resource
 {
+    use AuthorizesWorkspaceResources;
+
+    protected static function workspacePermissionPrefix(): string
+    {
+        return 'publications';
+    }
+
     protected static ?string $model = Publication::class;
 
     protected static ?string $modelLabel = 'publicación';

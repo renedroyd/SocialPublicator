@@ -14,7 +14,7 @@ return new class extends Migration
 
             $table->foreignId('categoria_id')
                 ->nullable()
-                ->constrained('categorias')
+                ->constrained('categories')
                 ->nullOnDelete();
 
             $table->string('sku')
