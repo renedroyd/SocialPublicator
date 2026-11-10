@@ -55,6 +55,38 @@ class WorkspaceMembership extends Model
         return $this->belongsTo(User::class, 'invited_by_user_id');
     }
 
+    protected static function booted(): void
+    {
+        static::created(function (WorkspaceMembership $membership): void {
+            WorkspaceAuditLog::record(
+                $membership->workspace,
+                'workspace.member.added',
+                auth()->user() ?? $membership->inviter,
+                $membership,
+                ['role' => $membership->role],
+            );
+        });
+
+        static::updated(function (WorkspaceMembership $membership): void {
+            WorkspaceAuditLog::record(
+                $membership->workspace,
+                'workspace.member.updated',
+                auth()->user(),
+                $membership,
+                ['changes' => $membership->getChanges()],
+            );
+        });
+
+        static::deleted(function (WorkspaceMembership $membership): void {
+            WorkspaceAuditLog::record(
+                $membership->workspace,
+                'workspace.member.removed',
+                auth()->user(),
+                $membership,
+            );
+        });
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'active';
@@ -67,10 +99,7 @@ class WorkspaceMembership extends Model
 
     public function canManageMembers(): bool
     {
-        return $this->isActive() && in_array($this->role, [
-            self::ROLE_OWNER,
-            self::ROLE_ADMIN,
-        ], true);
+        return $this->hasPermission('members.manage');
     }
 
     public function hasPermission(string $permission): bool
@@ -83,7 +112,7 @@ class WorkspaceMembership extends Model
             return true;
         }
 
-        if (is_array($this->permissions)) {
+        if (is_array($this->permissions) && $this->permissions !== []) {
             return in_array($permission, $this->permissions, true);
         }
 

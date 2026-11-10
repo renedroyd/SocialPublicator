@@ -39,6 +39,30 @@ class WorkspaceInvitation extends Model
         return $this->belongsTo(User::class, 'invited_by_user_id');
     }
 
+    protected static function booted(): void
+    {
+        static::created(function (WorkspaceInvitation $invitation): void {
+            WorkspaceAuditLog::record(
+                $invitation->workspace,
+                'workspace.invitation.created',
+                auth()->user() ?? $invitation->inviter,
+                $invitation,
+                ['email' => $invitation->email, 'role' => $invitation->role],
+            );
+        });
+
+        static::updated(function (WorkspaceInvitation $invitation): void {
+            if ($invitation->wasChanged('revoked_at') && $invitation->revoked_at !== null) {
+                WorkspaceAuditLog::record(
+                    $invitation->workspace,
+                    'workspace.invitation.revoked',
+                    auth()->user(),
+                    $invitation,
+                );
+            }
+        });
+    }
+
     public function isUsable(): bool
     {
         return $this->accepted_at === null

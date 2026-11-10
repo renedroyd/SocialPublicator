@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Workspace;
+use App\Services\Workspaces\AcceptWorkspaceInvitation;
 use App\Services\Workspaces\WorkspaceContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -19,6 +20,17 @@ class ResolveWorkspaceContext
         $workspaceId = null;
 
         if ($request->user()) {
+            $pendingInvitationToken = $request->session()->pull('pending_workspace_invitation_token');
+
+            if (is_string($pendingInvitationToken) && $pendingInvitationToken !== '') {
+                $acceptedMembership = app(AcceptWorkspaceInvitation::class)->accept(
+                    $request->user(),
+                    $pendingInvitationToken,
+                );
+
+                $request->session()->put('active_workspace_id', $acceptedMembership->workspace_id);
+            }
+
             $memberships = $request->user()
                 ->activeWorkspaceMemberships()
                 ->with('workspace')

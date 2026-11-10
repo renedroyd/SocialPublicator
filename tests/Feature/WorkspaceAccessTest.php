@@ -7,8 +7,10 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use App\Models\WorkspaceMembership;
+use App\Services\Workspaces\AcceptWorkspaceInvitation;
 use App\Services\Workspaces\WorkspaceContext;
 use Filament\Facades\Filament;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use LogicException;
 use Tests\TestCase;
@@ -116,4 +118,54 @@ class WorkspaceAccessTest extends TestCase
 
         Category::query()->create(['nombre' => 'Sin contexto', 'activo' => true]);
     }
+
+    public function test_invited_user_can_access_filament_and_accepts_the_invitation_once(): void
+    {
+        $workspace = Workspace::query()->create([
+            'name' => 'Workspace invitado',
+            'slug' => 'workspace-invitado',
+        ]);
+        $user = User::factory()->create(['email' => 'editor@example.test']);
+        $token = str_repeat('a', 64);
+
+        $invitation = WorkspaceInvitation::query()->create([
+            'workspace_id' => $workspace->id,
+            'email' => $user->email,
+            'role' => WorkspaceMembership::ROLE_EDITOR,
+            'token_hash' => hash('sha256', $token),
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $this->assertTrue($user->canAccessPanel(Filament::getPanel('admin')));
+
+        $membership = app(AcceptWorkspaceInvitation::class)->accept($user, $token);
+
+        $this->assertSame($workspace->id, $membership->workspace_id);
+        $this->assertSame(WorkspaceMembership::ROLE_EDITOR, $membership->role);
+        $this->assertNotNull($invitation->fresh()->accepted_at);
+        $this->assertFalse($invitation->fresh()->isUsable());
+    }
+
+    public function test_invitation_cannot_be_accepted_by_a_different_email_address(): void
+    {
+        $workspace = Workspace::query()->create([
+            'name' => 'Workspace privado',
+            'slug' => 'workspace-privado',
+        ]);
+        $user = User::factory()->create(['email' => 'other@example.test']);
+        $token = str_repeat('b', 64);
+
+        WorkspaceInvitation::query()->create([
+            'workspace_id' => $workspace->id,
+            'email' => 'invited@example.test',
+            'role' => WorkspaceMembership::ROLE_EDITOR,
+            'token_hash' => hash('sha256', $token),
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $this->expectException(AuthorizationException::class);
+
+        app(AcceptWorkspaceInvitation::class)->accept($user, $token);
+    }
+
 }

@@ -40,6 +40,12 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->activeWorkspaceMemberships()->exists();
+        return $this->activeWorkspaceMemberships()->exists()
+            || WorkspaceInvitation::query()
+                ->whereRaw('LOWER(email) = ?', [mb_strtolower($this->email)])
+                ->whereNull('accepted_at')
+                ->whereNull('revoked_at')
+                ->where('expires_at', '>', now())
+                ->exists();
     }
 }
