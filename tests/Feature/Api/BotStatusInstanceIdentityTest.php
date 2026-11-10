@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\BotAgent;
 use App\Models\BotStatus;
 use App\Models\Workspace;
 use App\Services\Workspaces\WorkspaceContext;
@@ -25,7 +26,15 @@ class BotStatusInstanceIdentityTest extends TestCase
         config(['services.bot_api.workspace_id' => $workspace->id]);
 
         foreach (['wbot-whatsapp-01', 'wbot-whatsapp-02'] as $instanceId) {
-            $this->withToken('test-bot-token')->postJson('/api/bot/status', [
+            $token = 'token-'.$instanceId;
+            BotAgent::query()->create([
+                'name' => $instanceId,
+                'instance_id' => $instanceId,
+                'token_hash' => hash('sha256', $token),
+                'social_account_ids' => [],
+                'is_active' => true,
+            ]);
+            $this->withToken($token)->postJson('/api/bot/status', [
                 'name' => 'WBot',
                 'instance_id' => $instanceId,
                 'platform' => 'whatsapp',
