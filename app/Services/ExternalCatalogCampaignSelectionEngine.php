@@ -82,7 +82,7 @@ class ExternalCatalogCampaignSelectionEngine
             $lastSelectedByItem = ExternalCatalogCampaignSelection::query()
                 ->where('campaign_id', $campaign->id)
                 ->whereIn('external_catalog_item_id', $items->modelKeys())
-                ->selectRaw('external_catalog_item_id, MAX(selected_at) as last_selected_at')
+                ->selectRaw('external_catalog_item_id, MAX(selected_at) as last_selected_at, COUNT(*) as selection_count')
                 ->groupBy('external_catalog_item_id')
                 ->get()
                 ->keyBy('external_catalog_item_id');
@@ -103,6 +103,7 @@ class ExternalCatalogCampaignSelectionEngine
                         'available' => $available,
                         'last_selected_at' => $lastSelectedByItem->get($item->id)?->last_selected_at,
                         'sort_order' => (int) ($item->pivot?->sort_order ?? $item->id),
+                        'selection_count' => (int) ($lastSelectedByItem->get($item->id)?->selection_count ?? 0),
                     ];
                 })
                 ->filter(fn (array $entry): bool => $entry['available'] > 0)
@@ -113,7 +114,8 @@ class ExternalCatalogCampaignSelectionEngine
             }
 
             $eligibleItems = $this->rotate($eligibleItems, $campaign->rotation_strategy);
-            $group = $eligibleItems->take(max(1, $campaign->group_size));
+            $groupSize = $campaign->publication_mode === 'individual' ? 1 : max(1, $campaign->group_size);
+            $group = $eligibleItems->take($groupSize);
             $groupId = (string) Str::uuid();
             $selections = collect();
 
@@ -186,7 +188,9 @@ class ExternalCatalogCampaignSelectionEngine
             }
 
             if ($strategy === 'round_robin') {
-                return $left['sort_order'] <=> $right['sort_order'];
+                return ($left['selection_count'] <=> $right['selection_count'])
+                    ?: ($leftAt <=> $rightAt)
+                    ?: ($left['sort_order'] <=> $right['sort_order']);
             }
 
             return $left['item']->id <=> $right['item']->id;
