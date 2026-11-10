@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
@@ -38,10 +39,9 @@ class WorkspaceMembershipDestinationPermission extends Model
                 throw new LogicException('Los permisos por destino solo pueden permitir consulta y publicación.');
             }
 
-            if (in_array('publish', $permissions, true) && ! in_array('view', $permissions, true)) {
+            if (in_array('publish', $permissions, true) && in_array('view', $permissions, true) === false) {
                 $grant->permissions = [...$permissions, 'view'];
             }
-
 
             $destinationClass = match ($grant->destination_type) {
                 self::DESTINATION_FACEBOOK_GROUP => FacebookGroup::class,
@@ -50,7 +50,7 @@ class WorkspaceMembershipDestinationPermission extends Model
                 default => null,
             };
 
-            if (! $destinationClass) {
+            if ($destinationClass === null) {
                 throw new LogicException('Tipo de destino no permitido para una autorización.');
             }
 

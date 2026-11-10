@@ -6,8 +6,8 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\PublicationDestination;
 use App\Models\SocialAccount;
-use App\Models\SocialAccountConnection;
 use App\Models\Publication;
+use App\Models\SocialAccountConnection;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
@@ -19,8 +19,8 @@ use App\Services\Workspaces\WorkspaceContext;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use LogicException;
 use Tests\TestCase;
 
@@ -380,7 +380,6 @@ class WorkspaceAccessTest extends TestCase
         ]);
     }
 
-
     public function test_destination_grants_reject_destinations_from_another_workspace(): void
     {
         $first = Workspace::query()->create(['name' => 'Destino A', 'slug' => 'destino-a']);
@@ -412,5 +411,4 @@ class WorkspaceAccessTest extends TestCase
             'permissions' => ['view'],
         ]);
     }
-
 }

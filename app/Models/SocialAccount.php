@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -79,13 +80,13 @@ class SocialAccount extends Model
                 default => false,
             };
 
-            if (! $valid) {
+            if ($valid === false) {
                 throw ValidationException::withMessages([
                     'account_type' => 'El tipo de cuenta no corresponde a la plataforma seleccionada.',
                 ]);
             }
 
-            if (! in_array($account->status, [self::STATUS_PENDING, self::STATUS_CONNECTED, self::STATUS_DISCONNECTED, self::STATUS_ERROR], true)) {
+            if (in_array($account->status, [self::STATUS_PENDING, self::STATUS_CONNECTED, self::STATUS_DISCONNECTED, self::STATUS_ERROR], true) === false) {
                 throw ValidationException::withMessages(['status' => 'Estado de cuenta social no válido.']);
             }
 
@@ -95,7 +96,7 @@ class SocialAccount extends Model
                     ->find($account->parent_account_id);
 
                 if (
-                    ! $parent
+                    $parent === null
                     || $parent->platform !== self::PLATFORM_FACEBOOK
                     || $parent->account_type !== self::TYPE_FACEBOOK_PROFILE
                     || (int) $parent->workspace_id !== (int) app(\App\Services\Workspaces\WorkspaceContext::class)->id()
