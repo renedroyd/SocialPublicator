@@ -99,7 +99,7 @@ class SocialAccount extends Model
                     $parent === null
                     || $parent->platform !== self::PLATFORM_FACEBOOK
                     || $parent->account_type !== self::TYPE_FACEBOOK_PROFILE
-                    || (int) $parent->workspace_id !== (int) app(\App\Services\Workspaces\WorkspaceContext::class)->id()
+                    || (int) $parent->workspace_id !== (int) app(WorkspaceContext::class)->id()
                 ) {
                     throw ValidationException::withMessages([
                         'parent_account_id' => 'Una página de Facebook debe pertenecer a un perfil conectado del mismo workspace.',

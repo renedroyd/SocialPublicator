@@ -58,7 +58,7 @@ class WorkspaceMembershipDestinationPermission extends Model
                 ->withoutGlobalScope('workspace')
                 ->find($grant->destination_id);
 
-            if (! $destination || (int) $destination->workspace_id !== (int) app(\App\Services\Workspaces\WorkspaceContext::class)->id()) {
+            if ($destination === null || (int) $destination->workspace_id !== (int) app(WorkspaceContext::class)->id()) {
                 throw new LogicException('No se puede asignar un destino de otro workspace.');
             }
         });

@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Publication;
 use App\Models\PublicationDestination;
 use App\Models\SocialAccount;
-use App\Models\Publication;
 use App\Models\SocialAccountConnection;
 use App\Models\User;
 use App\Models\Workspace;
