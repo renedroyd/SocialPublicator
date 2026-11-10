@@ -2,41 +2,73 @@
 
 ## Objetivo
 
-SocialPublicator incorpora una capa de espacios de trabajo para que las cuentas sociales, destinos, publicaciones y usuarios puedan pertenecer a un contexto compartido sin depender de Dubai-Shop. La integración comercial seguirá siendo opcional y se conectará al workspace que la habilite.
+SocialPublicator funciona de forma independiente de Dubai-Shop y permite que varios usuarios compartan un espacio de trabajo. Las cuentas sociales, destinos, publicaciones, campañas y datos operativos quedan asociados al workspace correspondiente. La integración comercial con Dubai-Shop continúa siendo opcional y se configura por workspace.
 
-## Modelo de datos inicial
+## Modelo de datos
 
-- `workspaces`: espacio de trabajo, propietario creador y configuración extensible.
+- `workspaces`: espacio de trabajo, creador y configuración extensible.
 - `workspace_memberships`: relación usuario/workspace, rol, permisos explícitos y estado.
-- `workspace_invitations`: invitaciones de un solo uso representadas por un hash de token, con vencimiento, aceptación y revocación.
-- `workspace_audit_logs`: actor, evento, sujeto, metadatos e información de la petición.
+- `workspace_invitations`: invitaciones de un solo uso, con hash del token, vencimiento, aceptación y revocación.
+- `workspace_audit_logs`: actor, evento, sujeto, metadatos, IP y agente de usuario.
+- Las tablas operativas incorporan `workspace_id`, incluyendo catálogo propio y externo, publicaciones, destinos, grupos, ejecuciones, campañas, comandos y estados del bot.
 
-Las invitaciones almacenan únicamente el hash del token; nunca debe guardarse el token en texto claro.
+Las invitaciones almacenan únicamente el hash SHA-256 del token. El enlace se muestra al administrador que invita, vence a los siete días y solo se acepta si la sesión corresponde al correo invitado.
 
-## Roles iniciales
+## Roles y permisos
 
-| Rol | Capacidades |
+| Rol | Capacidades predeterminadas |
 | --- | --- |
-| Propietario | Control total del workspace. |
-| Administrador | Administración del equipo y acceso a todas las capacidades operativas del workspace. |
+| Propietario | Control total del workspace y del equipo. |
+| Administrador | Administración del equipo y acceso a las capacidades operativas. |
 | Editor | Crear, editar y publicar contenido; gestionar campañas editoriales y consultar catálogo/destinos. |
 | Colaborador | Consultar publicaciones, ejecuciones y analítica autorizada. |
 
-Un arreglo de permisos explícitos en la membresía reemplaza los permisos predeterminados del rol. Esto permite construir permisos personalizados sin añadir roles rígidos por cada caso. Una membresía inactiva nunca concede permisos, ni siquiera con el rol de propietario.
+Un arreglo de permisos explícitos en la membresía reemplaza los permisos predeterminados del rol. Esto permite definir combinaciones personalizadas sin crear un rol rígido por cada caso. Una membresía inactiva nunca concede permisos, ni siquiera con el rol de propietario. Solo el propietario puede asignar el rol de administrador.
 
-## Compatibilidad con instalaciones existentes
+La autorización se aplica en los recursos Filament y en las políticas de productos, publicaciones y campañas. Las categorías comparten el permiso del catálogo de productos. Los recursos de miembros e invitaciones requieren el permiso de administración del equipo.
 
-La migración crea un workspace principal cuando ya existen usuarios y conserva las cuentas. El primer usuario existente queda como propietario y los restantes como administradores para mantener el acceso operativo que tenían antes de introducir workspaces. No elimina ni modifica publicaciones, productos, destinos, sesiones de bots ni credenciales.
+**Permisos por cuenta social o por destino:** la base de permisos admite ampliación, pero la asignación granular por cuenta/destino se completará junto con el registro de cuentas sociales en la siguiente fase. No se debe interpretar el rol Editor como autorización universal para cualquier cuenta social futura.
 
-Los usuarios nuevos no obtienen acceso al panel Filament hasta que pertenezcan a un workspace activo.
+## Experiencia de administración
 
-## Alcance de esta entrega
+- Cada usuario puede crear espacios de trabajo y queda como propietario del que crea.
+- La sección **Mis espacios** muestra los workspaces a los que pertenece y permite editar el nombre e identificador si es propietario.
+- El selector de la barra superior permite cambiar el workspace activo.
+- Propietarios y administradores pueden añadir miembros existentes, cambiar roles/estado y revocar membresías.
+- Propietarios y administradores pueden emitir invitaciones; el enlace puede compartirse con el invitado.
+- Un invitado puede iniciar sesión o registrarse con el correo invitado. La aceptación se completa al entrar al panel.
+- No se permite eliminar un workspace desde el panel, evitando borrados accidentales de datos operativos.
 
-Esta primera entrega establece el esquema, relaciones Eloquent, permisos base, auditoría y la protección de acceso al panel. No activa todavía el aislamiento de filas de publicaciones, productos, grupos, campañas y destinos por workspace, ni la interfaz de invitaciones. Esos cambios deben completarse antes de habilitar usuarios de workspaces distintos sobre datos operativos, para evitar cualquier fuga entre espacios.
+## Aislamiento de datos
 
-## Siguientes incrementos
+El aislamiento se aplica en varias capas:
 
-1. Resolver y seleccionar el workspace activo por sesión.
-2. Aplicar `workspace_id`, backfill y scopes/policies a cada recurso operativo, incluyendo los datos del catálogo externo.
-3. Añadir interfaz Filament para miembros, invitaciones, roles y permisos por cuenta/destino.
-4. Registrar automáticamente las operaciones sensibles en el historial de auditoría.
+1. Los modelos operativos usan un scope global por `workspace_id`; sin contexto válido, las consultas no devuelven registros de workspaces.
+2. La creación de registros asigna el workspace activo y falla si no existe contexto.
+3. Las relaciones muchos-a-muchos incluyen el workspace en el pivote.
+4. La migración añade claves foráneas compuestas para impedir que un pivote o una relación obligatoria conecte registros de workspaces distintos.
+5. Las relaciones opcionales que conservan semántica de borrado `SET NULL` se validan al guardar el modelo para impedir referencias cruzadas.
+6. Los identificadores de negocio que antes eran globalmente únicos pasan a ser únicos dentro del workspace cuando corresponde.
+
+También se corrigieron referencias de claves foráneas heredadas en las migraciones de productos, movimientos de inventario y pivote de productos/publicaciones.
+
+## Compatibilidad y migración
+
+La migración crea el workspace principal y asigna los usuarios existentes: el primer usuario queda como propietario y los restantes como administradores, manteniendo el acceso previo. Los registros operativos existentes se asignan al workspace principal. No se eliminan publicaciones, productos, grupos, ejecuciones, comandos ni sesiones de bots.
+
+Cuando hay un solo workspace, los procesos heredados pueden resolverlo como compatibilidad. Cuando existen varios, las integraciones de bot y Dubai-Shop deben recibir/configurar explícitamente el workspace correspondiente; no se selecciona uno arbitrariamente.
+
+La migración de aislamiento es conservadora con SQLite: el método `down()` no elimina las restricciones allí porque el schema builder de Laravel no permite retirar esas claves foráneas por nombre de forma segura. Para revertir en SQLite se requiere reconstrucción manual de tablas o recrear la base de pruebas. En motores como MySQL, el método de reversión elimina las restricciones y columnas añadidas; los índices globales antiguos no se recrean automáticamente porque podrían existir valores duplicados entre workspaces.
+
+## Auditoría
+
+Se registran la creación, actualización y eliminación de membresías; creación, aceptación y revocación de invitaciones; y cambios de workspace activo. La creación del workspace queda reflejada además por la membresía inicial de propietario. Las operaciones sensibles de cuentas sociales se incorporarán cuando se implemente su administración.
+
+## Validación de la Fase 1
+
+Última ejecución CI: [GitHub Actions #42891446569](https://github.com/renedroyd/SocialPublicator/actions/runs/42891446569).
+
+- Migraciones: correctas.
+- PHPUnit: **78 pruebas y 263 aserciones aprobadas**.
+- Laravel Pint: **61 archivos aprobados**.
+- Incluye pruebas de acceso, permisos, invitaciones, aislamiento por workspace y rechazo de relaciones cruzadas entre productos y publicaciones.
