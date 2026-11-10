@@ -563,6 +563,7 @@ class BotPublicationApiTest extends TestCase
             'created_by_user_id' => $user->id,
             'date' => '2026-10-07',
             'time' => '12:00',
+            'image' => 'publications/test.jpg',
             'text' => 'Publicación con permisos granulares',
             'destination' => 'whatsapp',
             'active' => true,
