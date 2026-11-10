@@ -97,6 +97,7 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
             'campaign_id' => $campaign->id,
             'external_catalog_item_id' => $itemA->id,
             'available_quantity' => 5,
+            'warehouse_external_ids' => json_encode([$warehouseA->external_id]),
             'status' => 'planned',
         ]);
     }
