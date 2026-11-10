@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\Storage;
 
 class BotPublicationController extends Controller
 {
-    public function index(Request $request): JsonResponse
+    public function index(?Request $request = null): JsonResponse
     {
+        $request ??= request();
         $validated = $request->validate([
             'instance_id' => ['nullable', 'string', 'max:191'],
         ]);
