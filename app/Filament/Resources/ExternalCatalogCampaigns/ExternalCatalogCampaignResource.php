@@ -108,50 +108,6 @@ class ExternalCatalogCampaignResource extends Resource
         return $query;
     }
 
-    private static function authorizedDestinations(Builder $query, string $destinationType): Builder
-    {
-        $membership = auth()->user()?->activeWorkspaceMemberships()
-            ->where('workspace_id', app(WorkspaceContext::class)->id())
-            ->first();
-
-        if ($membership === null) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        if ($membership->isOwner()) {
-            return $query;
-        }
-
-        if (
-            ! $membership->hasPermission('destinations.view')
-            || ! $membership->hasPermission('publications.publish')
-        ) {
-            return $query->whereRaw('1 = 0');
-        }
-
-        if (! $membership->hasPermission('destinations.manage')) {
-            $destinationIds = $membership->destinationPermissions()
-                ->where('destination_type', $destinationType)
-                ->whereJsonContains('permissions', 'publish')
-                ->select('destination_id');
-
-            $query->whereIn('id', $destinationIds);
-        }
-
-        if (! $membership->hasPermission('accounts.manage')) {
-            $accountIds = $membership->socialAccountPermissions()
-                ->whereJsonContains('permissions', 'publish')
-                ->select('social_account_id');
-
-            $query->where(function (Builder $query) use ($accountIds): void {
-                $query->whereNull('social_account_id')
-                    ->orWhereIn('social_account_id', $accountIds);
-            });
-        }
-
-        return $query;
-    }
-
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
