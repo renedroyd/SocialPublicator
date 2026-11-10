@@ -74,15 +74,16 @@ class Product extends Model
     {
         return $this->belongsToMany(
             Publication::class,
-            'publicacion_producto'
+            'publication_product'
         )
         ->withPivot([
-            'cantidad',
-            'precio_publicado',
-            'orden',
+            'quantity',
+            'published_price',
+            'sort_order',
         ])
-        ->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps()
-        ->orderByPivot('orden');
+        ->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())
+        ->withTimestamps()
+        ->orderByPivot('sort_order');
     }
 
     /*

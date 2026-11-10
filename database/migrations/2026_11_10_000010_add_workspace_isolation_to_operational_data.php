@@ -241,6 +241,15 @@ return new class extends Migration
             'integration_event_inbox' => [
                 ['drop' => 'integration_event_inbox_event_id_unique', 'columns' => ['workspace_id', 'event_id'], 'name' => 'integration_event_inbox_workspace_event_id_unique'],
             ],
+            'bot_statuses' => [
+                ['drop' => 'bot_statuses_name_unique', 'columns' => ['workspace_id', 'name'], 'name' => 'bot_statuses_workspace_name_unique'],
+            ],
+            'bot_commands' => [
+                ['drop' => 'bot_commands_idempotency_key_unique', 'columns' => ['workspace_id', 'idempotency_key'], 'name' => 'bot_commands_workspace_idempotency_unique'],
+            ],
+            'publication_executions' => [
+                ['drop' => 'publication_executions_occurrence_id_target_key_unique', 'columns' => ['workspace_id', 'occurrence_id', 'target_key'], 'name' => 'publication_executions_workspace_occurrence_target_unique'],
+            ],
         ];
 
         foreach ($indexes as $tableName => $definitions) {
