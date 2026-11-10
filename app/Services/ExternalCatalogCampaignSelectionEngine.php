@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ExternalCatalogCampaign;
 use App\Models\ExternalCatalogCampaignSelection;
 use App\Models\ExternalCatalogItem;
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -34,7 +35,7 @@ class ExternalCatalogCampaignSelectionEngine
 
             $timezone = $campaign->timezone ?: config('app.timezone', 'UTC');
             $localNow = $at
-                ? $at->copy()->setTimezone($timezone)
+                ? Carbon::instance($at->toDateTime())->setTimezone($timezone)
                 : now($timezone);
 
             if (! $this->isInsidePostingWindow($campaign, $localNow)) {
@@ -63,9 +64,31 @@ class ExternalCatalogCampaignSelectionEngine
             }
 
             $warehouseIds = $campaign->warehouses->pluck('external_id')->all();
-            $eligibleItems = $campaign->items
-                ->filter(fn (ExternalCatalogItem $item): bool => $item->active && $item->visible)
-                ->map(function (ExternalCatalogItem $item) use ($warehouseIds): array {
+            $items = $campaign->selection_mode === 'automatic'
+                ? ExternalCatalogItem::query()
+                    ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
+                    ->where('active', true)
+                    ->where('visible', true)
+                    ->orderBy('name')
+                    ->get()
+                : $campaign->items->filter(
+                    fn (ExternalCatalogItem $item): bool => $item->active && $item->visible
+                )->values();
+
+            if ($items->isEmpty()) {
+                return collect();
+            }
+
+            $lastSelectedByItem = ExternalCatalogCampaignSelection::query()
+                ->where('campaign_id', $campaign->id)
+                ->whereIn('external_catalog_item_id', $items->modelKeys())
+                ->selectRaw('external_catalog_item_id, MAX(selected_at) as last_selected_at')
+                ->groupBy('external_catalog_item_id')
+                ->get()
+                ->keyBy('external_catalog_item_id');
+
+            $eligibleItems = $items
+                ->map(function (ExternalCatalogItem $item) use ($warehouseIds, $lastSelectedByItem): array {
                     $availability = $item->availability['warehouses'] ?? [];
                     $available = collect($availability)
                         ->filter(fn (array $warehouse): bool => in_array(
@@ -75,7 +98,12 @@ class ExternalCatalogCampaignSelectionEngine
                         ))
                         ->sum(fn (array $warehouse): int => max(0, (int) ($warehouse['available_quantity'] ?? 0)));
 
-                    return ['item' => $item, 'available' => $available];
+                    return [
+                        'item' => $item,
+                        'available' => $available,
+                        'last_selected_at' => $lastSelectedByItem->get($item->id)?->last_selected_at,
+                        'sort_order' => (int) ($item->pivot?->sort_order ?? $item->id),
+                    ];
                 })
                 ->filter(fn (array $entry): bool => $entry['available'] > 0)
                 ->values();
@@ -102,14 +130,16 @@ class ExternalCatalogCampaignSelectionEngine
                     'status' => 'planned',
                 ]));
 
-                DB::table('external_catalog_campaign_item')
-                    ->where('campaign_id', $campaign->id)
-                    ->where('external_catalog_item_id', $item->id)
-                    ->update([
-                        'last_selected_at' => $now,
-                        'selection_count' => DB::raw('selection_count + 1'),
-                        'updated_at' => now(),
-                    ]);
+                if ($campaign->selection_mode === 'manual') {
+                    DB::table('external_catalog_campaign_item')
+                        ->where('campaign_id', $campaign->id)
+                        ->where('external_catalog_item_id', $item->id)
+                        ->update([
+                            'last_selected_at' => $now,
+                            'selection_count' => DB::raw('selection_count + 1'),
+                            'updated_at' => now(),
+                        ]);
+                }
             }
 
             $campaign->forceFill(['last_selected_at' => $now])->save();
@@ -140,8 +170,8 @@ class ExternalCatalogCampaignSelectionEngine
         }
 
         return $items->sort(function (array $left, array $right) use ($strategy): int {
-            $leftAt = $left['item']->pivot->last_selected_at;
-            $rightAt = $right['item']->pivot->last_selected_at;
+            $leftAt = $left['last_selected_at'] ? Carbon::parse($left['last_selected_at']) : null;
+            $rightAt = $right['last_selected_at'] ? Carbon::parse($right['last_selected_at']) : null;
 
             if ($leftAt === null && $rightAt !== null) {
                 return -1;
@@ -151,12 +181,12 @@ class ExternalCatalogCampaignSelectionEngine
                 return 1;
             }
 
-            if ($leftAt !== null && $rightAt !== null && $leftAt != $rightAt) {
+            if ($leftAt !== null && $rightAt !== null && ! $leftAt->equalTo($rightAt)) {
                 return $leftAt <=> $rightAt;
             }
 
             if ($strategy === 'round_robin') {
-                return ((int) $left['item']->pivot->sort_order) <=> ((int) $right['item']->pivot->sort_order);
+                return $left['sort_order'] <=> $right['sort_order'];
             }
 
             return $left['item']->id <=> $right['item']->id;
