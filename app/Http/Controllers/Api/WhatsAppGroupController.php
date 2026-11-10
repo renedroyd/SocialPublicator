@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\WhatsAppGroup;
+use App\Models\SocialAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,13 @@ class WhatsAppGroupController extends Controller
 {
     public function sync(Request $request): JsonResponse
     {
+        $accountId = $request->input('social_account_id');
+        $account = $accountId !== null ? SocialAccount::query()->findOrFail($accountId) : null;
+
+        if ($account !== null) {
+            abort_unless($account->platform === SocialAccount::PLATFORM_WHATSAPP && $account->account_type === SocialAccount::TYPE_WHATSAPP, 422);
+        }
+
         $groups = collect($request->input('groups', []))
             ->map(static fn (array $group): array => [
                 'whatsapp_id' => $group['whatsapp_id'] ?? $group['id'] ?? null,
@@ -33,7 +41,7 @@ class WhatsAppGroupController extends Controller
         $synchronizedAt = now();
         $receivedIds = [];
 
-        DB::transaction(function () use ($data, $synchronizedAt, &$receivedIds): void {
+        DB::transaction(function () use ($data, $synchronizedAt, $account, &$receivedIds): void {
             foreach ($data['groups'] as $group) {
                 $name = trim(preg_replace('/\s+/u', ' ', $group['name']) ?? $group['name']);
 
@@ -42,7 +50,10 @@ class WhatsAppGroupController extends Controller
                 }
 
                 $record = WhatsAppGroup::updateOrCreate(
-                    ['whatsapp_id' => $group['whatsapp_id']],
+                    [
+                        'social_account_id' => $account?->id,
+                        'whatsapp_id' => $group['whatsapp_id'],
+                    ],
                     [
                         'name' => $name,
                         'active' => true,
