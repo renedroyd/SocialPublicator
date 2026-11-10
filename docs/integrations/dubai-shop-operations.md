@@ -45,3 +45,15 @@ The existing `publications:mark-stale-executions` command remains scheduled ever
 ## Data ownership
 
 External Dubai Shop items are stored in `external_catalog_items` and warehouses in `external_catalog_warehouses`. They are not copied into the local `products` table and never change local stock or local costs. Dubai Shop remains authoritative for sale prices and availability.
+
+
+## Campaign configuration (phase 4)
+
+Manage campaigns in Filament under **Integraciones → Campañas sociales**. Each campaign stores:
+
+- An explicit list of Dubai Shop products and variants selected from the external catalog mirror. Only active and visible mirrored items can be selected.
+- One or more eligible warehouses. Availability rules for the campaign must use only these selected warehouses.
+- Publication format (grouped or individual), daily publication cap, and minimum interval.
+- Out-of-stock, replenishment, and price-change preferences. Defaults preserve the approved integration decisions: grouped publications, publish replenishment notices, and publish price changes immediately.
+
+Campaign configuration is intentionally separate from the local SocialPublicator products and inventory. It does not copy external stock into local stock or publish anything by itself. Automatic product selection, rotation, frequency enforcement, and actual social publication are implemented in later phases. Keep the campaign inactive until those phases are enabled and validated.
