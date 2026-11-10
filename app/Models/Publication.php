@@ -24,6 +24,9 @@ class Publication extends Model
         'recurrence_start_time',
         'recurrence_end_time',
         'end_date',
+        'external_campaign_id',
+        'external_selection_group_id',
+        'external_campaign_trigger_id',
     ];
 
     protected function casts(): array
