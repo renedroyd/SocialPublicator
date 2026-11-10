@@ -40,4 +40,12 @@ return [
         'command_bot_name' => env('BOT_COMMAND_BOT_NAME', 'WBot'),
     ],
 
+    'dubai_shop' => [
+        'api_base_url' => env('DUBAI_SHOP_API_BASE_URL'),
+        'api_token' => env('DUBAI_SHOP_API_TOKEN'),
+        'timeout' => (int) env('DUBAI_SHOP_TIMEOUT', 15),
+        'webhook_keys' => json_decode((string) env('DUBAI_SHOP_WEBHOOK_KEYS', '{}'), true) ?: [],
+        'webhook_tolerance_seconds' => (int) env('DUBAI_SHOP_WEBHOOK_TOLERANCE_SECONDS', 300),
+    ],
+
 ];
