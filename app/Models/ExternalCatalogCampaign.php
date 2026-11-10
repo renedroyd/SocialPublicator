@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExternalCatalogCampaign extends Model
 {
@@ -71,6 +72,11 @@ class ExternalCatalogCampaign extends Model
     public function selections(): HasMany
     {
         return $this->hasMany(ExternalCatalogCampaignSelection::class, 'campaign_id');
+    }
+
+    public function triggers(): HasMany
+    {
+        return $this->hasMany(ExternalCatalogCampaignTrigger::class, 'campaign_id');
     }
 
     public function scopeActive($query)
