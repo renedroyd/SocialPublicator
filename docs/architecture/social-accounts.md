@@ -76,3 +76,16 @@ Esta fase entrega el registro de cuentas, los vínculos con destinos, el almacen
 - No se recrean ni eliminan perfiles de navegador, tokens de WPPConnect o sesiones existentes.
 - No se permite eliminar una cuenta mientras tenga destinos vinculados; debe desconectarse o desasociarse de forma explícita.
 - La migración de esta fase bloquea down() en SQLite porque retirar claves foráneas mediante el schema builder no es seguro; el rollback requiere reconstrucción manual de tablas. En MySQL se puede revertir la migración.
+
+
+## Conexión WhatsApp mediante WBot
+
+- WBot conserva la sesión WPPConnect en su almacenamiento local actual. SocialPublicator no recibe ni guarda cookies, tokens de sesión ni rutas locales.
+- El agente informa el QR a un endpoint autenticado mediante el token de integración. El QR se conserva únicamente en Cache durante 60 segundos y se sirve solo a miembros con permiso de administración sobre esa cuenta.
+- La pantalla de conexión consulta el estado de forma periódica y deja de consultar al confirmar la conexión.
+- Los eventos de conexión actualizan el estado de la cuenta y una conexión WPPConnect con referencia opaca del agente.
+- La sincronización de grupos acepta el identificador de cuenta y vincula cada grupo a la cuenta WhatsApp que lo administra.
+- La tabla de grupos permite el mismo identificador externo en cuentas diferentes dentro del workspace; los grupos heredados sin cuenta siguen siendo compatibles.
+- Configuración del agente: SOCIAL_ACCOUNT_ID y BOT_INSTANCE_ID. SOCIAL_ACCOUNT_ID vacío mantiene el modo independiente/legacy de WBot.
+- La conexión actual no mueve, borra ni recrea el directorio de tokens ni el perfil de navegador. La asociación se realiza sobre la sesión WPPConnect existente.
+- El QR es temporal y no se registra en logs ni en tablas persistentes. Se elimina del caché al conectar, desconectar o informar un error.
