@@ -102,6 +102,12 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            // SQLite cannot drop foreign keys by name through the schema builder.
+            // Keep the workspace constraints in place rather than risk a partial rollback.
+            return;
+        }
+
         $dependentRelations = [
             'inventory_movements' => ['producto_id', 'products'],
             'publication_executions' => ['publication_id', 'publications'],
@@ -343,14 +349,16 @@ return new class extends Migration
             });
         }
 
-        $this->dropForeignKeysForColumns('products', ['categoria_id']);
+        if (DB::getDriverName() !== 'sqlite') {
+            $this->dropForeignKeysForColumns('products', ['categoria_id']);
 
-        Schema::table('products', function (Blueprint $table): void {
-            $table->foreign('categoria_id', 'products_categoria_id_foreign')
-                ->references('id')
-                ->on('categories')
-                ->nullOnDelete();
-        });
+            Schema::table('products', function (Blueprint $table): void {
+                $table->foreign('categoria_id', 'products_categoria_id_foreign')
+                    ->references('id')
+                    ->on('categories')
+                    ->nullOnDelete();
+            });
+        }
 
         $dependentRelations = [
             'inventory_movements' => [['producto_id', 'products']],
@@ -376,7 +384,9 @@ return new class extends Migration
                     continue;
                 }
 
-                $this->dropForeignKeysForColumns($childTable, [$foreignKey]);
+                if (DB::getDriverName() !== 'sqlite') {
+                    $this->dropForeignKeysForColumns($childTable, [$foreignKey]);
+                }
 
                 $constraint = 'ws_'.substr(hash('sha256', $childTable.'_'.$foreignKey), 0, 10).'_fk';
 
@@ -394,7 +404,9 @@ return new class extends Migration
                 continue;
             }
 
-            $this->dropForeignKeysForColumns($tableName, [$leftKey, $rightKey]);
+            if (DB::getDriverName() !== 'sqlite') {
+                $this->dropForeignKeysForColumns($tableName, [$leftKey, $rightKey]);
+            }
 
             Schema::table($tableName, function (Blueprint $table) use (
                 $tableName,
