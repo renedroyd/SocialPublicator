@@ -23,11 +23,11 @@ class CreateWorkspaceInvitation extends CreateRecord
             ->where('workspace_id', $workspaceId)
             ->first();
 
-        if (! $membership?->canManageMembers()) {
-            throw new AuthorizationException();
+        if ($membership?->canManageMembers() !== true) {
+            throw new AuthorizationException;
         }
 
-        if (($data['role'] ?? null) === WorkspaceMembership::ROLE_ADMIN && ! $membership->isOwner()) {
+        if (($data['role'] ?? null) === WorkspaceMembership::ROLE_ADMIN && $membership->isOwner() !== true) {
             throw new AuthorizationException('Solo el propietario puede invitar administradores.');
         }
 

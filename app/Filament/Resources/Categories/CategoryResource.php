@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Categories;
 
-use App\Filament\Resources\Concerns\AuthorizesWorkspaceResources;
 use App\Filament\Resources\Categories\Pages;
 use App\Models\Product;
 use BackedEnum;
@@ -23,13 +22,6 @@ use UnitEnum;
 
 class CategoryResource extends Resource
 {
-    use AuthorizesWorkspaceResources;
-
-    protected static function workspacePermissionPrefix(): string
-    {
-        return 'products';
-    }
-
     protected static ?string $model =
     Product::class;
 

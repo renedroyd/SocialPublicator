@@ -167,5 +167,4 @@ class WorkspaceAccessTest extends TestCase
 
         app(AcceptWorkspaceInvitation::class)->accept($user, $token);
     }
-
 }

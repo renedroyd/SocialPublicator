@@ -19,15 +19,15 @@ class CreateWorkspaceMembership extends CreateRecord
             ->where('workspace_id', $workspaceId)
             ->first();
 
-        if (! $currentMembership?->canManageMembers()) {
-            throw new AuthorizationException();
+        if ($currentMembership?->canManageMembers() !== true) {
+            throw new AuthorizationException;
         }
 
         if (($data['role'] ?? null) === WorkspaceMembership::ROLE_OWNER) {
             throw new AuthorizationException('No se puede asignar el rol de propietario desde esta pantalla.');
         }
 
-        if (($data['role'] ?? null) === WorkspaceMembership::ROLE_ADMIN && ! $currentMembership->isOwner()) {
+        if (($data['role'] ?? null) === WorkspaceMembership::ROLE_ADMIN && $currentMembership->isOwner() !== true) {
             throw new AuthorizationException('Solo el propietario puede asignar administradores.');
         }
 

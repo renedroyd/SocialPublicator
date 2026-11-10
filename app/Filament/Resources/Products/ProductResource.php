@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Products;
 
-use App\Filament\Resources\Concerns\AuthorizesWorkspaceResources;
 use App\Filament\Resources\Products\Pages;
 use App\Models\Product;
 use App\Models\Producto;
@@ -24,13 +23,6 @@ use UnitEnum;
 
 class ProductResource extends Resource
 {
-    use AuthorizesWorkspaceResources;
-
-    protected static function workspacePermissionPrefix(): string
-    {
-        return 'products';
-    }
-
     protected static ?string $model =
     Product::class;
 
