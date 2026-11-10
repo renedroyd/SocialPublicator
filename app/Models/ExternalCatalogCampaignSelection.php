@@ -15,6 +15,7 @@ class ExternalCatalogCampaignSelection extends Model
         'warehouse_external_ids',
         'selected_at',
         'status',
+        'last_error',
     ];
 
     protected function casts(): array
