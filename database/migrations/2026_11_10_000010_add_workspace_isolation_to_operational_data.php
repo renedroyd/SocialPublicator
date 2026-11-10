@@ -218,44 +218,54 @@ return new class extends Migration
     {
         $indexes = [
             'categories' => [
-                ['drop' => 'categories_nombre_unique', 'columns' => ['workspace_id', 'nombre'], 'name' => 'categories_workspace_nombre_unique'],
+                ['existing' => ['nombre'], 'columns' => ['workspace_id', 'nombre'], 'name' => 'categories_workspace_nombre_unique'],
             ],
             'products' => [
-                ['drop' => 'products_sku_unique', 'columns' => ['workspace_id', 'sku'], 'name' => 'products_workspace_sku_unique'],
+                ['existing' => ['sku'], 'columns' => ['workspace_id', 'sku'], 'name' => 'products_workspace_sku_unique'],
             ],
             'facebook_groups' => [
-                ['drop' => 'facebook_groups_facebook_id_unique', 'columns' => ['workspace_id', 'facebook_id'], 'name' => 'facebook_groups_workspace_facebook_id_unique'],
+                ['existing' => ['facebook_id'], 'columns' => ['workspace_id', 'facebook_id'], 'name' => 'facebook_groups_workspace_facebook_id_unique'],
             ],
             'whatsapp_groups' => [
-                ['drop' => 'whatsapp_groups_whatsapp_id_unique', 'columns' => ['workspace_id', 'whatsapp_id'], 'name' => 'whatsapp_groups_workspace_whatsapp_id_unique'],
+                ['existing' => ['whatsapp_id'], 'columns' => ['workspace_id', 'whatsapp_id'], 'name' => 'whatsapp_groups_workspace_whatsapp_id_unique'],
             ],
             'publication_destinations' => [
-                ['drop' => 'publication_destinations_platform_external_id_unique', 'columns' => ['workspace_id', 'platform', 'external_id'], 'name' => 'publication_destinations_workspace_platform_external_id_unique'],
+                ['existing' => ['platform', 'external_id'], 'columns' => ['workspace_id', 'platform', 'external_id'], 'name' => 'publication_destinations_workspace_platform_external_id_unique'],
             ],
             'external_catalog_items' => [
-                ['drop' => 'external_catalog_items_source_external_id_unique', 'columns' => ['workspace_id', 'source', 'external_id'], 'name' => 'external_catalog_items_workspace_source_external_id_unique'],
+                ['existing' => ['source', 'external_id'], 'columns' => ['workspace_id', 'source', 'external_id'], 'name' => 'external_catalog_items_workspace_source_external_id_unique'],
             ],
             'external_catalog_warehouses' => [
-                ['drop' => 'external_catalog_warehouses_source_external_id_unique', 'columns' => ['workspace_id', 'source', 'external_id'], 'name' => 'external_catalog_warehouses_workspace_source_external_id_unique'],
+                ['existing' => ['source', 'external_id'], 'columns' => ['workspace_id', 'source', 'external_id'], 'name' => 'external_catalog_warehouses_workspace_source_external_id_unique'],
             ],
             'integration_event_inbox' => [
-                ['drop' => 'integration_event_inbox_event_id_unique', 'columns' => ['workspace_id', 'event_id'], 'name' => 'integration_event_inbox_workspace_event_id_unique'],
+                ['existing' => ['event_id'], 'columns' => ['workspace_id', 'event_id'], 'name' => 'integration_event_inbox_workspace_event_id_unique'],
             ],
             'bot_statuses' => [
-                ['drop' => 'bot_statuses_name_unique', 'columns' => ['workspace_id', 'name'], 'name' => 'bot_statuses_workspace_name_unique'],
+                ['existing' => ['name'], 'columns' => ['workspace_id', 'name'], 'name' => 'bot_statuses_workspace_name_unique'],
             ],
             'bot_commands' => [
-                ['drop' => 'bot_commands_idempotency_key_unique', 'columns' => ['workspace_id', 'idempotency_key'], 'name' => 'bot_commands_workspace_idempotency_unique'],
+                ['existing' => ['idempotency_key'], 'columns' => ['workspace_id', 'idempotency_key'], 'name' => 'bot_commands_workspace_idempotency_unique'],
             ],
             'publication_executions' => [
-                ['drop' => 'publication_executions_occurrence_id_target_key_unique', 'columns' => ['workspace_id', 'occurrence_id', 'target_key'], 'name' => 'publication_executions_workspace_occurrence_target_unique'],
+                ['existing' => ['occurrence_id', 'target_key'], 'columns' => ['workspace_id', 'occurrence_id', 'target_key'], 'name' => 'publication_executions_workspace_occurrence_target_unique'],
             ],
         ];
 
         foreach ($indexes as $tableName => $definitions) {
             foreach ($definitions as $definition) {
+                $existing = collect(Schema::getIndexes($tableName))->first(
+                    fn (array $index): bool => ($index['unique'] ?? false)
+                        && $index['columns'] === $definition['existing'],
+                );
+
+                if ($existing) {
+                    Schema::table($tableName, function (Blueprint $table) use ($existing): void {
+                        $table->dropUnique($existing['name']);
+                    });
+                }
+
                 Schema::table($tableName, function (Blueprint $table) use ($definition): void {
-                    $table->dropUnique($definition['drop']);
                     $table->unique($definition['columns'], $definition['name']);
                 });
             }
