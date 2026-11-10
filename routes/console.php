@@ -45,7 +45,7 @@ Schedule::command('social-publicator:dispatch-campaign-publications')
     ->withoutOverlapping()
     ->when(fn (): bool => (bool) config('services.dubai_shop.campaign_dispatch_enabled')
         && filled(config('services.dubai_shop.api_base_url'))
-        && filled(config('services.dubai_shop.api_token'));
+        && filled(config('services.dubai_shop.api_token')));
 
 Schedule::command('social-publicator:sync-dubai-catalog')
     ->hourly()
