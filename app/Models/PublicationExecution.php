@@ -15,6 +15,7 @@ class PublicationExecution extends Model
         'occurrence_id',
         'channel',
         'target_key',
+        'agent_instance_id',
         'facebook_group_id',
         'status',
         'attempts',

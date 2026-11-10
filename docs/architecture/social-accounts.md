@@ -121,3 +121,13 @@ Esta fase entrega el registro de cuentas, los vínculos con destinos, el almacen
 - Las confirmaciones y fallos verifican también la identidad de la instancia que reclamó el comando.
 - Los comandos históricos sin agente asignado siguen disponibles para la instancia legacy cuyo instance_id coincide con el nombre del bot (por defecto WBot). Las nuevas instancias no consumen esos comandos sin asignación.
 - Si un destino no está asociado a una cuenta conectada, el comando permanece sin asignación y conserva el comportamiento legacy.
+
+
+## Aislamiento del feed y de las ejecuciones por agente
+
+- WBot consulta el feed con instance_id; SocialPublicator devuelve únicamente los grupos vinculados a cuentas conectadas con ese agente.
+- Los grupos heredados sin cuenta asociada se conservan para la instancia legacy WBot. Las publicaciones sin instance_id siguen el contrato antiguo durante la transición.
+- La sincronización de grupos Facebook acepta social_account_id y los vincula al perfil de navegador que los descubrió. La misma identidad de grupo puede existir en cuentas distintas.
+- Al iniciar una ejecución, Laravel valida que el grupo pertenece a la cuenta y que la conexión activa corresponde al agente que solicita publicar.
+- Las ejecuciones guardan agent_instance_id. Las confirmaciones y fallos solo son aceptados desde la misma instancia que inició la ejecución.
+- Los agentes nuevos no pueden iniciar publicaciones en destinos heredados sin asociación; esos destinos permanecen bajo la instancia legacy hasta que se vinculen expresamente.
