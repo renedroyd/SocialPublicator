@@ -1,0 +1,45 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\SocialAccount;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class SocialAccountFacebookSessionController extends Controller
+{
+    public function show(Request $request, SocialAccount $socialAccount)
+    {
+        $this->authorizeAccount($request, $socialAccount);
+        abort_unless($socialAccount->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE, 404);
+
+        return view('social-accounts.facebook-session', [
+            'account' => $socialAccount,
+            'statusUrl' => route('social-accounts.facebook.session.data', $socialAccount),
+        ]);
+    }
+
+    public function data(Request $request, SocialAccount $socialAccount): JsonResponse
+    {
+        $this->authorizeAccount($request, $socialAccount);
+        abort_unless($socialAccount->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE, 404);
+
+        $fresh = $socialAccount->fresh();
+
+        return response()->json([
+            'status' => $fresh->status,
+            'display_name' => $fresh->display_name,
+            'last_error_message' => $fresh->last_error_message,
+            'last_verified_at' => $fresh->last_verified_at?->toIso8601String(),
+        ]);
+    }
+
+    private function authorizeAccount(Request $request, SocialAccount $account): void
+    {
+        $membership = $request->user()->activeWorkspaceMemberships()
+            ->where('workspace_id', $account->workspace_id)
+            ->first();
+
+        abort_unless($membership && $membership->canUseSocialAccount($account, 'manage'), 403);
+    }
+}

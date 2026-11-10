@@ -89,3 +89,14 @@ Esta fase entrega el registro de cuentas, los vínculos con destinos, el almacen
 - Configuración del agente: SOCIAL_ACCOUNT_ID y BOT_INSTANCE_ID. SOCIAL_ACCOUNT_ID vacío mantiene el modo independiente/legacy de WBot.
 - La conexión actual no mueve, borra ni recrea el directorio de tokens ni el perfil de navegador. La asociación se realiza sobre la sesión WPPConnect existente.
 - El QR es temporal y no se registra en logs ni en tablas persistentes. Se elimina del caché al conectar, desconectar o informar un error.
+
+
+## Sesión persistente de Facebook para grupos
+
+- El agente WBot informa a SocialPublicator el estado pending/connected/disconnected/error de la sesión de navegador asociada al perfil de Facebook del workspace.
+- El perfil Chromium, las cookies y el almacenamiento local permanecen exclusivamente en el equipo del agente. Laravel conserva solo una referencia opaca y el identificador de instancia.
+- La autenticación se completa manualmente en la ventana de navegador del equipo WBot cuando Facebook la solicita. No se automatizan CAPTCHA ni verificaciones de seguridad.
+- La pantalla de Filament muestra el estado de la sesión sin exponer datos del navegador.
+- La conexión de navegador es independiente del OAuth oficial del perfil/páginas; ambas vías pueden coexistir para la misma identidad de Facebook.
+- Configuración del agente: FACEBOOK_SOCIAL_ACCOUNT_ID. Si está vacío, WBot mantiene su operación actual sin sincronizar el estado de sesión de Facebook con un registro de SocialPublicator.
+- No se copian ni se migran cookies, tokens o perfiles Chromium al servidor, ni se recrean sesiones existentes.

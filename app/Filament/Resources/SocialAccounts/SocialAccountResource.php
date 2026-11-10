@@ -142,6 +142,11 @@ class SocialAccountResource extends Resource
                 TextColumn::make('connections_count')->counts('connections')->label('Conexiones'),
             ])
             ->actions([
+                Action::make('facebookBrowserSession')
+                    ->label('Sesión Facebook')
+                    ->icon('heroicon-o-globe-alt')
+                    ->url(fn (SocialAccount $record): string => route('social-accounts.facebook.session', $record))
+                    ->visible(fn (SocialAccount $record): bool => $record->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE),
                 Action::make('connectWhatsApp')
                     ->label('Conectar WhatsApp')
                     ->icon('heroicon-o-qr-code')
