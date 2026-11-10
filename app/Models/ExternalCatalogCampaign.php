@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class ExternalCatalogCampaign extends Model
 {
     public const SELECTION_MANUAL = 'manual';
+
     public const SELECTION_AUTOMATIC = 'automatic';
+
     public const PUBLICATION_GROUPED = 'grouped';
+
     public const PUBLICATION_INDIVIDUAL = 'individual';
 
     protected $fillable = [
