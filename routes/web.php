@@ -1,8 +1,8 @@
 <?php
 
 use App\Http\Controllers\MetaOAuthController;
-use App\Http\Controllers\WorkspaceInvitationController;
 use App\Http\Controllers\SocialAccountWhatsAppQrController;
+use App\Http\Controllers\WorkspaceInvitationController;
 use App\Http\Controllers\WorkspaceSwitchController;
 use App\Http\Middleware\ResolveWorkspaceContext;
 use Illuminate\Support\Facades\Route;
