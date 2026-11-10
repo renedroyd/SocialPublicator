@@ -173,6 +173,11 @@ class MetaOAuthController extends Controller
             return $this->back()->with('danger', 'No se pudo completar la conexión con Meta.');
         } catch (\Throwable $exception) {
             report($exception);
+
+            if (app()->runningUnitTests()) {
+                throw $exception;
+            }
+
             $account->update([
                 'status' => SocialAccount::STATUS_ERROR,
                 'last_error_at' => now(),
