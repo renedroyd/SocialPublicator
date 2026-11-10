@@ -151,4 +151,48 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
         $this->assertSame($item->id, $selected->first()->external_catalog_item_id);
     }
 
+
+    public function test_individual_publication_mode_creates_one_item_per_selection_group(): void
+    {
+        [$campaign, $warehouseA] = $this->createCampaign([
+            'publication_mode' => 'individual',
+            'group_size' => 5,
+        ]);
+        $itemA = $this->createItem('ed20b7e0-01a1-4e33-8a10-40abfa9b2a00', [
+            ['warehouse_external_id' => $warehouseA->external_id, 'available_quantity' => 4],
+        ]);
+        $itemB = $this->createItem('fd20b7e0-01a1-4e33-8a10-40abfa9b2a00', [
+            ['warehouse_external_id' => $warehouseA->external_id, 'available_quantity' => 4],
+        ]);
+        $campaign->items()->attach([$itemA->id, $itemB->id]);
+
+        $selected = app(ExternalCatalogCampaignSelectionEngine::class)
+            ->selectNextGroup($campaign, Carbon::parse('2026-11-10 12:00:00', 'UTC'));
+
+        $this->assertCount(1, $selected);
+    }
+
+    public function test_round_robin_prioritizes_items_with_fewer_previous_selections(): void
+    {
+        [$campaign, $warehouseA] = $this->createCampaign([
+            'rotation_strategy' => 'round_robin',
+            'group_size' => 1,
+            'max_publications_per_day' => 3,
+        ]);
+        $itemA = $this->createItem('0d20b7e0-01a1-4e33-8a10-40abfa9b2a00', [
+            ['warehouse_external_id' => $warehouseA->external_id, 'available_quantity' => 4],
+        ]);
+        $itemB = $this->createItem('1d20b7e0-01a1-4e33-8a10-40abfa9b2a00', [
+            ['warehouse_external_id' => $warehouseA->external_id, 'available_quantity' => 4],
+        ]);
+        $campaign->items()->attach([$itemA->id, $itemB->id]);
+
+        $engine = app(ExternalCatalogCampaignSelectionEngine::class);
+        $first = $engine->selectNextGroup($campaign, Carbon::parse('2026-11-10 12:00:00', 'UTC'));
+        $second = $engine->selectNextGroup($campaign, Carbon::parse('2026-11-10 14:00:00', 'UTC'));
+
+        $this->assertSame($itemA->id, $first->first()->external_catalog_item_id);
+        $this->assertSame($itemB->id, $second->first()->external_catalog_item_id);
+    }
+
 }
