@@ -1,18 +1,18 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\ExternalCatalogCampaign;
-use App\\Models\\ExternalCatalogCampaignSelection;
-use App\\Models\\ExternalCatalogItem;
-use App\\Models\\ExternalCatalogWarehouse;
-use App\\Models\\Publication;
-use App\\Models\\WhatsAppGroup;
-use App\\Services\\CampaignPublicationDispatcher;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Http;
-use Illuminate\\Support\\Str;
-use Tests\\TestCase;
+use App\Models\ExternalCatalogCampaign;
+use App\Models\ExternalCatalogCampaignSelection;
+use App\Models\ExternalCatalogItem;
+use App\Models\ExternalCatalogWarehouse;
+use App\Models\Publication;
+use App\Models\WhatsAppGroup;
+use App\Services\CampaignPublicationDispatcher;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use Tests\TestCase;
 
 class CampaignPublicationDispatcherTest extends TestCase
 {
