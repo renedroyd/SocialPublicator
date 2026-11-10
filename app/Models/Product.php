@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -75,14 +76,14 @@ class Product extends Model
             Publication::class,
             'publication_product'
         )
-        ->withPivot([
+            ->withPivot([
             'quantity',
             'published_price',
             'sort_order',
-        ])
-        ->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())
-        ->withTimestamps()
-        ->orderByPivot('sort_order');
+            ])
+            ->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())
+            ->withTimestamps()
+            ->orderByPivot('sort_order');
     }
 
     /*

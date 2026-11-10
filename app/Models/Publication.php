@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToWorkspace;
+use App\Services\Workspaces\WorkspaceContext;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -53,7 +54,7 @@ class Publication extends Model
     {
         $startDate = $this->date?->copy()->startOfDay();
 
-        if (! $startDate) {
+        if (!$startDate) {
             return null;
         }
 
@@ -88,7 +89,7 @@ class Publication extends Model
                 }
             }
 
-            return (! $endDate || $candidate->lte($endDate)) ? $candidate : null;
+            return (!$endDate || $candidate->lte($endDate)) ? $candidate : null;
         }
 
         if ($this->recurrence_type === 'weekly') {
@@ -104,7 +105,7 @@ class Publication extends Model
                     continue;
                 }
 
-                if (! in_array($candidate->dayOfWeekIso, $days, true)) {
+                if (!in_array($candidate->dayOfWeekIso, $days, true)) {
                     continue;
                 }
 
@@ -159,7 +160,7 @@ class Publication extends Model
                 'published_price',
                 'sort_order',
             ])
-            ->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps()
+            ->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps()
             ->orderByPivot('sort_order');
     }
 
@@ -168,7 +169,7 @@ class Publication extends Model
         return $this->belongsToMany(
             PublicationDestination::class,
             'publication_publication_destination'
-        )->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function executions(): HasMany
@@ -188,7 +189,7 @@ class Publication extends Model
             'whatsapp_group_publication',
             'publication_id',
             'whatsapp_group_id'
-        )->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     public function facebookGroups(): BelongsToMany
@@ -196,7 +197,7 @@ class Publication extends Model
         return $this->belongsToMany(
             FacebookGroup::class,
             'facebook_group_publication'
-        )->withPivotValue('workspace_id', app(\App\Services\Workspaces\WorkspaceContext::class)->id())->withTimestamps();
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
     protected static function booted(): void
