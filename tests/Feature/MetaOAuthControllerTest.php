@@ -9,6 +9,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceMembership;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
