@@ -48,6 +48,7 @@ return new class extends Migration
             $table->boolean('active')->default(true);
             $table->boolean('online_fulfillment_enabled')->default(true);
             $table->timestamp('synced_at')->nullable();
+            $table->uuid('sync_run_id')->nullable();
             $table->timestamps();
 
             $table->unique(['source', 'external_id']);
