@@ -7,6 +7,9 @@ use App\Filament\Resources\ExternalCatalogCampaigns\Pages\EditExternalCatalogCam
 use App\Filament\Resources\ExternalCatalogCampaigns\Pages\ListExternalCatalogCampaigns;
 use App\Models\ExternalCatalogCampaign;
 use App\Models\ExternalCatalogItem;
+use Filament\Actions\CreateAction;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -18,9 +21,6 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
-use Filament\Actions\CreateAction;
-use Filament\Actions\EditAction;
-use Filament\Actions\DeleteAction;
 
 class ExternalCatalogCampaignResource extends Resource
 {
