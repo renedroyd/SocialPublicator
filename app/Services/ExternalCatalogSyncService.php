@@ -7,6 +7,7 @@ use App\Models\ExternalCatalogWarehouse;
 use App\Models\IntegrationEventInbox;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class ExternalCatalogSyncService
@@ -15,8 +16,8 @@ class ExternalCatalogSyncService
 
     public function syncAll(): array
     {
-        $startedAt = now();
-        $warehouses = $this->syncWarehouses();
+        $syncRunId = (string) Str::uuid();
+        $warehouses = $this->syncWarehouses($syncRunId);
         $itemsSynced = 0;
         $cursor = null;
 
@@ -24,7 +25,7 @@ class ExternalCatalogSyncService
             $page = $this->client->items($cursor);
 
             foreach ($page['data'] ?? [] as $item) {
-                $this->upsertItem($item);
+                $this->upsertItem($item, $syncRunId);
                 $itemsSynced++;
             }
 
@@ -40,7 +41,7 @@ class ExternalCatalogSyncService
 
         ExternalCatalogItem::query()
             ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
-            ->where(fn ($query) => $query->whereNull('synced_at')->orWhere('synced_at', '<', $startedAt))
+            ->where(fn ($query) => $query->whereNull('sync_run_id')->orWhere('sync_run_id', '!=', $syncRunId))
             ->update(['active' => false, 'visible' => false, 'updated_at' => now()]);
 
         return [
@@ -49,9 +50,9 @@ class ExternalCatalogSyncService
         ];
     }
 
-    public function syncWarehouses(): int
+    public function syncWarehouses(?string $syncRunId = null): int
     {
-        $startedAt = now();
+        $syncRunId ??= (string) Str::uuid();
         $warehouses = $this->client->warehouses();
 
         foreach ($warehouses as $warehouse) {
@@ -66,13 +67,14 @@ class ExternalCatalogSyncService
                     'active' => true,
                     'online_fulfillment_enabled' => true,
                     'synced_at' => now(),
+                    'sync_run_id' => $syncRunId,
                 ],
             );
         }
 
         ExternalCatalogWarehouse::query()
             ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
-            ->where(fn ($query) => $query->whereNull('synced_at')->orWhere('synced_at', '<', $startedAt))
+            ->where(fn ($query) => $query->whereNull('sync_run_id')->orWhere('sync_run_id', '!=', $syncRunId))
             ->update([
                 'active' => false,
                 'online_fulfillment_enabled' => false,
@@ -82,7 +84,7 @@ class ExternalCatalogSyncService
         return count($warehouses);
     }
 
-    public function upsertItem(array $payload): ExternalCatalogItem
+    public function upsertItem(array $payload, ?string $syncRunId = null): ExternalCatalogItem
     {
         $price = $payload['price'] ?? [];
         $category = $payload['category'] ?? [];
@@ -107,6 +109,7 @@ class ExternalCatalogSyncService
             'revision' => (int) ($payload['revision'] ?? 0),
             'source_updated_at' => isset($payload['updated_at']) ? Carbon::parse($payload['updated_at']) : null,
             'synced_at' => now(),
+            'sync_run_id' => $syncRunId,
         ];
 
         return DB::transaction(function () use ($payload, $attributes): ExternalCatalogItem {
@@ -117,6 +120,11 @@ class ExternalCatalogSyncService
                 ->first();
 
             if ($item && $item->revision > $attributes['revision']) {
+                $item->update([
+                    'synced_at' => now(),
+                    'sync_run_id' => $attributes['sync_run_id'],
+                ]);
+
                 return $item;
             }
 
@@ -150,17 +158,7 @@ class ExternalCatalogSyncService
             ?? $event->aggregate_external_id;
 
         if ($event->event_type === 'catalog.item_unpublished') {
-            ExternalCatalogItem::query()
-                ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
-                ->where('external_id', $externalId)
-                ->where('revision', '<=', $event->revision)
-                ->update([
-                    'active' => false,
-                    'visible' => false,
-                    'revision' => $event->revision,
-                    'synced_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            $this->markItemUnavailable($externalId, $event->revision);
 
             return;
         }
@@ -168,21 +166,26 @@ class ExternalCatalogSyncService
         $item = $this->client->item($externalId);
 
         if ($item === null) {
-            ExternalCatalogItem::query()
-                ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
-                ->where('external_id', $externalId)
-                ->where('revision', '<=', $event->revision)
-                ->update([
-                    'active' => false,
-                    'visible' => false,
-                    'revision' => $event->revision,
-                    'synced_at' => now(),
-                    'updated_at' => now(),
-                ]);
+            $this->markItemUnavailable($externalId, $event->revision);
 
             return;
         }
 
         $this->upsertItem($item);
+    }
+
+    private function markItemUnavailable(string $externalId, int $revision): void
+    {
+        ExternalCatalogItem::query()
+            ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
+            ->where('external_id', $externalId)
+            ->where('revision', '<=', $revision)
+            ->update([
+                'active' => false,
+                'visible' => false,
+                'revision' => $revision,
+                'synced_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 }
