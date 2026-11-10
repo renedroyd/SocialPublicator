@@ -16,7 +16,7 @@ class DispatchCampaignPublications extends Command
         if (! config('services.dubai_shop.campaign_dispatch_enabled')
             || ! filled(config('services.dubai_shop.api_base_url'))
             || ! filled(config('services.dubai_shop.api_token'))) {
-            $this->warn('Dubai Shop API is not configured; campaign dispatch was skipped.');
+            $this->warn('Campaign dispatch is disabled or Dubai Shop API credentials are missing; no publications were queued.');
 
             return self::SUCCESS;
         }
