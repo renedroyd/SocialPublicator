@@ -2,14 +2,14 @@
 
 namespace App\Models\Concerns;
 
-use App\Models\Workspace;
-use App\Models\Product;
 use App\Models\Category;
-use App\Models\Publication;
-use App\Models\PublicationExecution;
 use App\Models\ExternalCatalogCampaign;
 use App\Models\ExternalCatalogCampaignTrigger;
 use App\Models\FacebookGroup;
+use App\Models\Product;
+use App\Models\Publication;
+use App\Models\PublicationExecution;
+use App\Models\Workspace;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
