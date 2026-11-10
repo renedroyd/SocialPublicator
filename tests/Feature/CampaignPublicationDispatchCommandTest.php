@@ -38,6 +38,6 @@ class CampaignPublicationDispatchCommandTest extends TestCase
 
         $this->artisan('social-publicator:dispatch-campaign-publications')
             ->assertSuccessful()
-            ->expectsOutput('Dubai Shop API is not configured; campaign dispatch was skipped.');
+            ->expectsOutput('Campaign dispatch is disabled or Dubai Shop API credentials are missing; no publications were queued.');
     }
 }
