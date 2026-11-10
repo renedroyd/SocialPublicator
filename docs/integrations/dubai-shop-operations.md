@@ -40,6 +40,8 @@ The command synchronizes all eligible warehouses and all cursor-paginated catalo
 
 The same command is scheduled hourly and does nothing until the Dubai Shop API URL and token are configured. Configure a persistent Laravel queue worker to process webhook events.
 
+The existing `publications:mark-stale-executions` command remains scheduled every five minutes. It marks interrupted publication attempts as having an unknown external result and deliberately does not retry them automatically; verify Facebook or WhatsApp before any manual retry.
+
 ## Data ownership
 
 External Dubai Shop items are stored in `external_catalog_items` and warehouses in `external_catalog_warehouses`. They are not copied into the local `products` table and never change local stock or local costs. Dubai Shop remains authoritative for sale prices and availability.
