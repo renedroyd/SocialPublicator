@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Publication;
-use App\Models\PublicationExecution;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
 use App\Models\WhatsAppGroup;
