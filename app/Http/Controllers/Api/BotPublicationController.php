@@ -100,7 +100,6 @@ class BotPublicationController extends Controller
                         SocialAccountConnection::TYPE_BROWSER_SESSION,
                     ))
                     ->values();
-            }
 
                 if ($eligibleWhatsAppGroups->isEmpty() && $eligibleFacebookGroups->isEmpty()) {
                     continue;
