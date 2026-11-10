@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\BotCommandController;
 use App\Http\Controllers\Api\BotExecutionController;
 use App\Http\Controllers\Api\BotPublicationController;
 use App\Http\Controllers\Api\BotStatusController;
-use App\Http\Controllers\Api\DubaiShopWebhookController;
+use App\Http\Controllers\Api\Integrations\DubaiShopWebhookController;
 use App\Http\Controllers\Api\FacebookGroupController;
 use App\Http\Controllers\Api\WhatsAppGroupController;
 use App\Http\Middleware\VerifyBotApiToken;
