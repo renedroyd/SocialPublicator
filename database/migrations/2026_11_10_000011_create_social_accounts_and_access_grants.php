@@ -13,6 +13,13 @@ return new class extends Migration
             $table->unique(['workspace_id', 'id'], 'workspace_memberships_workspace_id_id_unique');
         });
 
+        foreach (['publications', 'external_catalog_campaigns'] as $tableName) {
+            Schema::table($tableName, function (Blueprint $table) use ($tableName): void {
+                $table->foreignId('created_by_user_id')->nullable()->constrained('users')->restrictOnDelete();
+                $table->index(['workspace_id', 'created_by_user_id'], $tableName.'_workspace_creator_index');
+            });
+        }
+
         Schema::create('social_accounts', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('workspace_id')->constrained('workspaces')->cascadeOnDelete();
@@ -121,6 +128,14 @@ return new class extends Migration
                 'membership_destination_permissions_target_index',
             );
         });
+
+        foreach (['publications', 'external_catalog_campaigns'] as $tableName) {
+            Schema::table($tableName, function (Blueprint $table) use ($tableName): void {
+                $table->dropForeign($tableName.'_created_by_user_id_foreign');
+                $table->dropIndex($tableName.'_workspace_creator_index');
+                $table->dropColumn('created_by_user_id');
+            });
+        }
 
         foreach (['facebook_groups', 'whatsapp_groups', 'publication_destinations'] as $tableName) {
             Schema::table($tableName, function (Blueprint $table) use ($tableName): void {

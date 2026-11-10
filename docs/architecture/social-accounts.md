@@ -42,7 +42,9 @@ Los permisos globales del rol son la primera condición. Para editores y colabor
 - Para publicar en un destino vinculado a una cuenta, el miembro necesita permiso publish tanto sobre el destino como sobre la cuenta asociada.
 - El propietario y los miembros con permisos globales accounts.manage / destinations.manage conservan el acceso administrativo correspondiente.
 - El colaborador no obtiene permiso de publicación por recibir una concesión; también debe tener el permiso global publications.publish.
-- Las opciones de grupos de WhatsApp/Facebook en el formulario de publicaciones se filtran por estas concesiones.
+- Las opciones de grupos de WhatsApp/Facebook en los formularios de publicaciones y campañas se filtran por estas concesiones.
+- Las publicaciones y campañas nuevas registran a su creador. El endpoint de WBot vuelve a validar la membresía y las concesiones al entregar cada publicación; si se retira al creador o se revoca un permiso, el destino deja de entregarse al agente.
+- Los registros históricos sin creador conservan el comportamiento anterior para no interrumpir publicaciones ya existentes.
 
 Las concesiones se administran desde **Cuentas sociales → Permisos por cuenta** y **Permisos por destino**. El modelo impide asignar destinos de otro workspace; las claves foráneas compuestas protegen la relación de cuenta y membresía.
 

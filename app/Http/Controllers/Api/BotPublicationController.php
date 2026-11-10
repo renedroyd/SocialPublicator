@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Publication;
+use App\Models\WorkspaceMembership;
+use App\Models\WorkspaceMembershipDestinationPermission;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
@@ -42,13 +44,40 @@ class BotPublicationController extends Controller
         $result = [];
 
         foreach ($publications as $publication) {
+            $membership = null;
+
+            if ($publication->created_by_user_id !== null) {
+                $membership = WorkspaceMembership::query()
+                    ->where('workspace_id', $publication->workspace_id)
+                    ->where('user_id', $publication->created_by_user_id)
+                    ->where('status', 'active')
+                    ->first();
+
+                if ($membership === null) {
+                    continue;
+                }
+            }
+
+            $eligibleWhatsAppGroups = $membership === null
+                ? $publication->whatsappGroups
+                : $publication->whatsappGroups->filter(fn ($group): bool => $membership->canPublishToDestination(
+                    WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP,
+                    (int) $group->id,
+                ))->values();
+            $eligibleFacebookGroups = $membership === null
+                ? $publication->facebookGroups
+                : $publication->facebookGroups->filter(fn ($group): bool => $membership->canPublishToDestination(
+                    WorkspaceMembershipDestinationPermission::DESTINATION_FACEBOOK_GROUP,
+                    (int) $group->id,
+                ))->values();
+
             foreach ($this->generateDailyOccurrences($publication, $now) as $occurrence) {
                 $whatsappGroups = in_array(
                     $publication->destination,
                     ['whatsapp', 'both'],
                     true
                 )
-                    ? $publication->whatsappGroups
+                    ? $eligibleWhatsAppGroups
                         ->map(static fn ($group): array => [
                             'id' => $group->id,
                             'whatsapp_id' => $group->whatsapp_id,
@@ -63,7 +92,7 @@ class BotPublicationController extends Controller
                     ['facebook', 'both'],
                     true
                 )
-                    ? $publication->facebookGroups
+                    ? $eligibleFacebookGroups
                         ->map(static fn ($group): array => [
                             'id' => $group->id,
                             'facebook_id' => $group->facebook_id,

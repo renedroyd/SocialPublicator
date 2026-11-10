@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToWorkspace;
 use App\Services\Workspaces\WorkspaceContext;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -15,6 +16,7 @@ class Publication extends Model
     use BelongsToWorkspace;
 
     protected $fillable = [
+        'created_by_user_id',
         'date',
         'time',
         'image',
@@ -172,6 +174,11 @@ class Publication extends Model
         )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
+
     public function executions(): HasMany
     {
         return $this->hasMany(PublicationExecution::class);
@@ -202,6 +209,10 @@ class Publication extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (Publication $publication): void {
+            $publication->created_by_user_id ??= auth()->id();
+        });
+
         static::saving(function (Publication $publication): void {
             if (
                 $publication->recurrence_type === 'hourly' &&

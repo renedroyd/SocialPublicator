@@ -2,8 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\Api\BotPublicationController;
 use App\Models\FacebookGroup;
 use App\Models\Publication;
+use App\Models\SocialAccount;
+use App\Models\User;
+use App\Models\WhatsAppGroup;
+use App\Models\Workspace;
+use App\Models\WorkspaceMembership;
+use App\Models\WorkspaceMembershipDestinationPermission;
+use App\Models\WorkspaceMembershipSocialAccountPermission;
+use App\Services\Workspaces\WorkspaceContext;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -499,4 +508,76 @@ class BotPublicationApiTest extends TestCase
             collect($response->json('data'))->pluck('time')->all()
         );
     }
+
+    public function test_it_only_returns_destinations_the_publication_creator_can_still_use(): void
+    {
+        $workspace = Workspace::query()->create([
+            'name' => 'Workspace de publicaciones',
+            'slug' => 'workspace-publicaciones',
+        ]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        $user = User::factory()->create();
+        $membership = WorkspaceMembership::query()->create([
+            'workspace_id' => $workspace->id,
+            'user_id' => $user->id,
+            'role' => WorkspaceMembership::ROLE_EDITOR,
+            'status' => 'active',
+        ]);
+
+        $account = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_WHATSAPP,
+            'account_type' => SocialAccount::TYPE_WHATSAPP,
+            'external_account_id' => 'wa-profile-1',
+            'display_name' => 'WhatsApp principal',
+        ]);
+
+        $allowedGroup = WhatsAppGroup::query()->create([
+            'social_account_id' => $account->id,
+            'whatsapp_id' => 'allowed-group@g.us',
+            'name' => 'Grupo permitido',
+            'active' => true,
+        ]);
+
+        $revokedGroup = WhatsAppGroup::query()->create([
+            'social_account_id' => $account->id,
+            'whatsapp_id' => 'revoked-group@g.us',
+            'name' => 'Grupo sin permiso',
+            'active' => true,
+        ]);
+
+        WorkspaceMembershipSocialAccountPermission::query()->create([
+            'membership_id' => $membership->id,
+            'social_account_id' => $account->id,
+            'permissions' => ['publish'],
+        ]);
+
+        WorkspaceMembershipDestinationPermission::query()->create([
+            'membership_id' => $membership->id,
+            'destination_type' => WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP,
+            'destination_id' => $allowedGroup->id,
+            'permissions' => ['publish'],
+        ]);
+
+        $publication = Publication::query()->create([
+            'created_by_user_id' => $user->id,
+            'date' => '2026-10-07',
+            'time' => '12:00',
+            'text' => 'Publicación con permisos granulares',
+            'destination' => 'whatsapp',
+            'active' => true,
+            'recurrence_type' => 'none',
+        ]);
+
+        $publication->whatsappGroups()->attach([$allowedGroup->id, $revokedGroup->id]);
+
+        $payload = app(BotPublicationController::class)->index()->getData(true);
+
+        $this->assertCount(1, $payload['data']);
+        $this->assertSame(
+            [$allowedGroup->id],
+            collect($payload['data'][0]['whatsapp_groups'])->pluck('id')->all(),
+        );
+    }
+
 }

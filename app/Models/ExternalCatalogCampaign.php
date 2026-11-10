@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToWorkspace;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -51,6 +52,18 @@ class ExternalCatalogCampaign extends Model
             'posting_weekdays' => 'array',
             'last_selected_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (ExternalCatalogCampaign $campaign): void {
+            $campaign->created_by_user_id ??= auth()->id();
+        });
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
     }
 
     public function items(): BelongsToMany

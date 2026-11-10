@@ -8,6 +8,9 @@ use App\Filament\Resources\ExternalCatalogCampaigns\Pages\EditExternalCatalogCam
 use App\Filament\Resources\ExternalCatalogCampaigns\Pages\ListExternalCatalogCampaigns;
 use App\Models\ExternalCatalogCampaign;
 use App\Models\ExternalCatalogItem;
+use App\Models\WorkspaceMembershipDestinationPermission;
+use App\Services\Workspaces\WorkspaceContext;
+use Illuminate\Database\Eloquent\Builder;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -59,6 +62,94 @@ class ExternalCatalogCampaignResource extends Resource
     public static function getPluralModelLabel(): string
     {
         return __('campañas sociales');
+    }
+
+    private static function authorizedDestinations(Builder $query, string $destinationType): Builder
+    {
+        $membership = auth()->user()?->activeWorkspaceMemberships()
+            ->where('workspace_id', app(WorkspaceContext::class)->id())
+            ->first();
+
+        if ($membership === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($membership->isOwner()) {
+            return $query;
+        }
+
+        if (
+            ! $membership->hasPermission('destinations.view')
+            || ! $membership->hasPermission('publications.publish')
+        ) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if (! $membership->hasPermission('destinations.manage')) {
+            $destinationIds = $membership->destinationPermissions()
+                ->where('destination_type', $destinationType)
+                ->whereJsonContains('permissions', 'publish')
+                ->select('destination_id');
+
+            $query->whereIn('id', $destinationIds);
+        }
+
+        if (! $membership->hasPermission('accounts.manage')) {
+            $accountIds = $membership->socialAccountPermissions()
+                ->whereJsonContains('permissions', 'publish')
+                ->select('social_account_id');
+
+            $query->where(function (Builder $query) use ($accountIds): void {
+                $query->whereNull('social_account_id')
+                    ->orWhereIn('social_account_id', $accountIds);
+            });
+        }
+
+        return $query;
+    }
+
+    private static function authorizedDestinations(Builder $query, string $destinationType): Builder
+    {
+        $membership = auth()->user()?->activeWorkspaceMemberships()
+            ->where('workspace_id', app(WorkspaceContext::class)->id())
+            ->first();
+
+        if ($membership === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($membership->isOwner()) {
+            return $query;
+        }
+
+        if (
+            ! $membership->hasPermission('destinations.view')
+            || ! $membership->hasPermission('publications.publish')
+        ) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if (! $membership->hasPermission('destinations.manage')) {
+            $destinationIds = $membership->destinationPermissions()
+                ->where('destination_type', $destinationType)
+                ->whereJsonContains('permissions', 'publish')
+                ->select('destination_id');
+
+            $query->whereIn('id', $destinationIds);
+        }
+
+        if (! $membership->hasPermission('accounts.manage')) {
+            $accountIds = $membership->socialAccountPermissions()
+                ->whereJsonContains('permissions', 'publish')
+                ->select('social_account_id');
+
+            $query->where(function (Builder $query) use ($accountIds): void {
+                $query->whereNull('social_account_id')
+                    ->orWhereIn('social_account_id', $accountIds);
+            });
+        }
+
+        return $query;
     }
 
     public static function form(Schema $schema): Schema
@@ -159,7 +250,10 @@ class ExternalCatalogCampaignResource extends Resource
                     ->relationship(
                         name: 'whatsappGroups',
                         titleAttribute: 'name',
-                        modifyQueryUsing: fn ($query) => $query->where('active', true)->orderBy('name'),
+                        modifyQueryUsing: fn (Builder $query): Builder => static::authorizedDestinations(
+                            $query->where('active', true),
+                            WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP,
+                        )->orderBy('name'),
                     )
                     ->multiple()
                     ->searchable()
@@ -172,7 +266,10 @@ class ExternalCatalogCampaignResource extends Resource
                     ->relationship(
                         name: 'facebookGroups',
                         titleAttribute: 'name',
-                        modifyQueryUsing: fn ($query) => $query->where('active', true)->orderBy('name'),
+                        modifyQueryUsing: fn (Builder $query): Builder => static::authorizedDestinations(
+                            $query->where('active', true),
+                            WorkspaceMembershipDestinationPermission::DESTINATION_FACEBOOK_GROUP,
+                        )->orderBy('name'),
                     )
                     ->multiple()
                     ->searchable()

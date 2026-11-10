@@ -7,6 +7,10 @@ use App\Models\ExternalCatalogCampaignSelection;
 use App\Models\ExternalCatalogCampaignTrigger;
 use App\Models\ExternalCatalogItem;
 use App\Models\Publication;
+use App\Models\WorkspaceMembership;
+use App\Models\WorkspaceMembershipDestinationPermission;
+use App\Services\Workspaces\WorkspaceContext;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -273,6 +277,7 @@ class CampaignPublicationDispatcher
                 $uniqueOrigin,
                 [
                     'external_campaign_id' => $campaign->id,
+                    'created_by_user_id' => $campaign->created_by_user_id,
                     'date' => $scheduledAt->toDateString(),
                     'time' => $scheduledAt->format('H:i'),
                     'image' => $this->safeImageUrl($imageUrl),
@@ -283,11 +288,12 @@ class CampaignPublicationDispatcher
                 ],
             );
 
+            [$authorizedWhatsAppGroups, $authorizedFacebookGroups] = $this->authorizedGroups($campaign);
             $whatsappGroupIds = in_array($campaign->destination, ['whatsapp', 'both'], true)
-                ? $campaign->whatsappGroups->where('active', true)->modelKeys()
+                ? $authorizedWhatsAppGroups->modelKeys()
                 : [];
             $facebookGroupIds = in_array($campaign->destination, ['facebook', 'both'], true)
-                ? $campaign->facebookGroups->where('active', true)->modelKeys()
+                ? $authorizedFacebookGroups->modelKeys()
                 : [];
 
             $publication->whatsappGroups()->sync($whatsappGroupIds);
@@ -299,12 +305,65 @@ class CampaignPublicationDispatcher
 
     private function hasDestinations(ExternalCatalogCampaign $campaign): bool
     {
+        [$whatsappGroups, $facebookGroups] = $this->authorizedGroups($campaign);
+
         $hasWhatsApp = ! in_array($campaign->destination, ['whatsapp', 'both'], true)
-            || $campaign->whatsappGroups->where('active', true)->isNotEmpty();
+            || $whatsappGroups->isNotEmpty();
         $hasFacebook = ! in_array($campaign->destination, ['facebook', 'both'], true)
-            || $campaign->facebookGroups->where('active', true)->isNotEmpty();
+            || $facebookGroups->isNotEmpty();
 
         return $hasWhatsApp && $hasFacebook;
+    }
+
+    /**
+     * @return array{0: \Illuminate\Support\Collection, 1: \Illuminate\Support\Collection}
+     */
+    private function authorizedGroups(ExternalCatalogCampaign $campaign): array
+    {
+        $whatsappGroups = $campaign->whatsappGroups->where('active', true);
+        $facebookGroups = $campaign->facebookGroups->where('active', true);
+
+        if ($campaign->created_by_user_id === null) {
+            return [$whatsappGroups, $facebookGroups];
+        }
+
+        $membership = WorkspaceMembership::query()
+            ->where('workspace_id', $campaign->workspace_id)
+            ->where('user_id', $campaign->created_by_user_id)
+            ->where('status', 'active')
+            ->first();
+
+        if ($membership === null) {
+            return [collect(), collect()];
+        }
+
+        $context = app(WorkspaceContext::class);
+        $previousWorkspaceId = $context->id();
+        $context->set((int) $campaign->workspace_id);
+
+        try {
+            $whatsappGroups = $whatsappGroups
+                ->filter(fn ($group): bool => $membership->canPublishToDestination(
+                    WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP,
+                    (int) $group->id,
+                ))
+                ->values();
+
+            $facebookGroups = $facebookGroups
+                ->filter(fn ($group): bool => $membership->canPublishToDestination(
+                    WorkspaceMembershipDestinationPermission::DESTINATION_FACEBOOK_GROUP,
+                    (int) $group->id,
+                ))
+                ->values();
+        } finally {
+            if ($previousWorkspaceId !== null) {
+                $context->set($previousWorkspaceId);
+            } else {
+                $context->clear();
+            }
+        }
+
+        return [$whatsappGroups, $facebookGroups];
     }
 
     private function availableInCampaignWarehouses(ExternalCatalogCampaign $campaign, ExternalCatalogItem $item): ?int
