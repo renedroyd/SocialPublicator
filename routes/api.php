@@ -4,10 +4,19 @@ use App\Http\Controllers\Api\BotCommandController;
 use App\Http\Controllers\Api\BotExecutionController;
 use App\Http\Controllers\Api\BotPublicationController;
 use App\Http\Controllers\Api\BotStatusController;
+use App\Http\Controllers\Api\DubaiShopWebhookController;
 use App\Http\Controllers\Api\FacebookGroupController;
 use App\Http\Controllers\Api\WhatsAppGroupController;
 use App\Http\Middleware\VerifyBotApiToken;
+use App\Http\Middleware\VerifyDubaiShopWebhookSignature;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/integrations/dubai-shop/v1/events', [DubaiShopWebhookController::class, 'store'])
+    ->middleware([
+        'throttle:120,1',
+        VerifyDubaiShopWebhookSignature::class,
+    ])
+    ->name('api.integrations.dubai-shop.events');
 
 Route::middleware(VerifyBotApiToken::class)
     ->prefix('bot')
