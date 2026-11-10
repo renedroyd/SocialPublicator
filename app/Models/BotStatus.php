@@ -11,6 +11,7 @@ class BotStatus extends Model
 
     protected $fillable = [
         'name',
+        'instance_id',
         'platform',
         'status',
         'last_seen_at',
