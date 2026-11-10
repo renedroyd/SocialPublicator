@@ -140,6 +140,39 @@ class ExternalCatalogCampaignResource extends Resource
                     'ignore' => __('No publicar actualización'),
                 ])->default('immediate')->required()->native(false),
             ]),
+            Section::make(__('Destinos sociales'))->description(__('Las publicaciones automáticas utilizarán estos grupos activos y los bots ya configurados.'))->schema([
+                Select::make('destination')->label(__('Canales'))->options([
+                    'whatsapp' => 'WhatsApp',
+                    'facebook' => 'Facebook',
+                    'both' => 'WhatsApp + Facebook',
+                ])->default('whatsapp')->required()->native(false)->live(),
+                Select::make('whatsappGroups')
+                    ->label(__('Grupos de WhatsApp'))
+                    ->relationship(
+                        name: 'whatsappGroups',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn ($query) => $query->where('active', true)->orderBy('name'),
+                    )
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->required(fn (Get $get): bool => in_array($get('destination'), ['whatsapp', 'both'], true))
+                    ->visible(fn (Get $get): bool => in_array($get('destination'), ['whatsapp', 'both'], true)),
+                Select::make('facebookGroups')
+                    ->label(__('Grupos de Facebook'))
+                    ->relationship(
+                        name: 'facebookGroups',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn ($query) => $query->where('active', true)->orderBy('name'),
+                    )
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
+                    ->visible(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true)),
+            ]),
         ]);
     }
 
@@ -151,6 +184,8 @@ class ExternalCatalogCampaignResource extends Resource
             TextColumn::make('publication_mode')->label(__('Formato'))->badge(),
             TextColumn::make('items_count')->counts('items')->label(__('Artículos')),
             TextColumn::make('warehouses_count')->counts('warehouses')->label(__('Almacenes')),
+            TextColumn::make('destination')->label(__('Canales'))->badge(),
+            TextColumn::make('triggers_count')->counts('triggers')->label(__('Avisos pendientes')),
             IconColumn::make('is_active')->label(__('Activa'))->boolean(),
         ])->filters([
             TernaryFilter::make('is_active')->label(__('Estado')),

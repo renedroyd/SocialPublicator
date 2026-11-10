@@ -34,6 +34,7 @@ class ExternalCatalogCampaign extends Model
         'posting_window_end',
         'timezone',
         'last_selected_at',
+        'destination',
     ];
 
     protected function casts(): array
@@ -65,6 +66,26 @@ class ExternalCatalogCampaign extends Model
             'external_catalog_campaign_warehouse',
             'campaign_id',
             'external_catalog_warehouse_id',
+        )->withTimestamps();
+    }
+
+    public function whatsappGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            WhatsAppGroup::class,
+            'external_catalog_campaign_whatsapp_group',
+            'campaign_id',
+            'whatsapp_group_id',
+        )->withTimestamps();
+    }
+
+    public function facebookGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            FacebookGroup::class,
+            'external_catalog_campaign_facebook_group',
+            'campaign_id',
+            'facebook_group_id',
         )->withTimestamps();
     }
 

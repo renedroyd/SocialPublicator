@@ -75,15 +75,18 @@ class BotPublicationController extends Controller
                     : [];
 
                 $occurrenceId = $publication->id.'_'.$occurrence->format('Y-m-d_H-i');
+                $imageUrl = $publication->image
+                    ? (str_starts_with($publication->image, 'https://') || str_starts_with($publication->image, 'http://')
+                        ? $publication->image
+                        : url(Storage::url($publication->image)))
+                    : null;
 
                 $result[] = [
                     'id' => $publication->id,
                     'occurrence_id' => $occurrenceId,
                     'date' => $occurrence->format('Y-m-d'),
                     'time' => $occurrence->format('H:i'),
-                    'image' => $publication->image
-                        ? url(Storage::url($publication->image))
-                        : null,
+                    'image' => $imageUrl,
                     'text' => $publication->text,
                     'destination' => $publication->destination,
                     'recurrence_type' => $publication->recurrence_type,
@@ -101,9 +104,7 @@ class BotPublicationController extends Controller
                     'ocurrencia_id' => $occurrenceId,
                     'fecha' => $occurrence->format('Y-m-d'),
                     'hora' => $occurrence->format('H:i'),
-                    'imagen' => $publication->image
-                        ? url(Storage::url($publication->image))
-                        : null,
+                    'imagen' => $imageUrl,
                     'texto' => $publication->text,
                     'destino' => $publication->destination === 'both'
                         ? 'ambos'

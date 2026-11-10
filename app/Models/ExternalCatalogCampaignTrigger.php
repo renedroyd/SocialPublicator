@@ -15,6 +15,7 @@ class ExternalCatalogCampaignTrigger extends Model
         'payload',
         'status',
         'triggered_at',
+        'last_error',
     ];
 
     protected function casts(): array
