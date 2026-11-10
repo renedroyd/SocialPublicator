@@ -37,7 +37,7 @@ class CampaignPublicationDispatchCommandTest extends TestCase
         $this->app->instance(CampaignPublicationDispatcher::class, $dispatcher);
 
         $this->artisan('social-publicator:dispatch-campaign-publications')
-            ->assertSuccessful()
-            ->expectsOutput('Campaign dispatch is disabled or Dubai Shop API credentials are missing; no publications were queued.');
+            ->expectsOutput('Campaign dispatch is disabled or Dubai Shop API credentials are missing; no publications were queued.')
+            ->assertSuccessful();
     }
 }
