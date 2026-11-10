@@ -80,6 +80,7 @@ return new class extends Migration
 
         $this->backfillDependentRows();
         $this->backfillPivotTables();
+        $this->enforceWorkspaceOwnership();
         $this->replaceGlobalUniqueIndexes();
 
         foreach ($this->tenantTables as $tableName) {
@@ -101,6 +102,83 @@ return new class extends Migration
 
     public function down(): void
     {
+        $dependentRelations = [
+            'products' => ['categoria_id'],
+            'inventory_movements' => ['producto_id'],
+            'publication_executions' => ['publication_id'],
+            'publication_schedules' => ['publication_id'],
+            'external_catalog_campaign_selections' => ['campaign_id', 'external_catalog_item_id'],
+            'external_catalog_campaign_triggers' => ['campaign_id', 'external_catalog_item_id'],
+        ];
+
+        foreach ($dependentRelations as $childTable => $foreignKeys) {
+            if (! Schema::hasTable($childTable)) {
+                continue;
+            }
+
+            foreach ($foreignKeys as $foreignKey) {
+                if (! Schema::hasColumn($childTable, $foreignKey)) {
+                    continue;
+                }
+
+                $constraint = 'ws_'.substr(hash('sha256', $childTable.'_'.$foreignKey), 0, 10).'_fk';
+
+                Schema::table($childTable, function (Blueprint $table) use ($constraint): void {
+                    $table->dropForeign($constraint);
+                });
+            }
+        }
+
+        foreach ($this->pivotTables as $tableName => $columns) {
+            if (! Schema::hasTable($tableName) || ! Schema::hasColumn($tableName, 'workspace_id')) {
+                continue;
+            }
+
+            $leftConstraint = 'ws_'.substr(hash('sha256', $tableName.'_left'), 0, 10).'_fk';
+            $rightConstraint = 'ws_'.substr(hash('sha256', $tableName.'_right'), 0, 10).'_fk';
+
+            Schema::table($tableName, function (Blueprint $table) use ($leftConstraint, $rightConstraint): void {
+                $table->dropForeign($leftConstraint);
+                $table->dropForeign($rightConstraint);
+            });
+        }
+
+        $workspaceUniqueIndexes = [
+            'categories' => ['categories_workspace_nombre_unique'],
+            'products' => ['products_workspace_sku_unique'],
+            'facebook_groups' => ['facebook_groups_workspace_facebook_id_unique'],
+            'whatsapp_groups' => ['whatsapp_groups_workspace_whatsapp_id_unique'],
+            'publication_destinations' => ['publication_destinations_workspace_platform_external_id_unique'],
+            'external_catalog_items' => ['external_catalog_items_workspace_source_external_id_unique'],
+            'external_catalog_warehouses' => ['external_catalog_warehouses_workspace_source_external_id_unique'],
+            'integration_event_inbox' => ['integration_event_inbox_workspace_event_id_unique'],
+            'bot_statuses' => ['bot_statuses_workspace_name_unique'],
+            'bot_commands' => ['bot_commands_workspace_idempotency_unique'],
+            'publication_executions' => ['publication_executions_workspace_occurrence_target_unique'],
+        ];
+
+        foreach ($workspaceUniqueIndexes as $tableName => $indexes) {
+            if (! Schema::hasTable($tableName)) {
+                continue;
+            }
+
+            foreach ($indexes as $indexName) {
+                Schema::table($tableName, function (Blueprint $table) use ($indexName): void {
+                    $table->dropUnique($indexName);
+                });
+            }
+        }
+
+        foreach ($this->tenantTables as $tableName) {
+            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'workspace_id')) {
+                $indexName = 'ws_'.substr(hash('sha256', $tableName), 0, 10).'_id_uq';
+
+                Schema::table($tableName, function (Blueprint $table) use ($indexName): void {
+                    $table->dropUnique($indexName);
+                });
+            }
+        }
+
         foreach (array_keys($this->pivotTables) as $tableName) {
             if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'workspace_id')) {
                 Schema::table($tableName, function (Blueprint $table) use ($tableName): void {
@@ -119,8 +197,8 @@ return new class extends Migration
             }
         }
 
-        // Per-workspace unique indexes intentionally remain in place. Restoring
-        // global uniqueness could fail after tenants have created duplicate values.
+        // Global unique indexes are not restored automatically because different
+        // workspaces may now contain the same business identifiers.
     }
 
     private function ensurePrimaryWorkspace(): int
@@ -211,6 +289,90 @@ return new class extends Migration
                     'workspace_id' => $leftWorkspace,
                 ]);
             }
+        }
+    }
+
+    private function enforceWorkspaceOwnership(): void
+    {
+        foreach ($this->tenantTables as $tableName) {
+            if (! Schema::hasTable($tableName) || ! Schema::hasColumn($tableName, 'workspace_id')) {
+                continue;
+            }
+
+            Schema::table($tableName, function (Blueprint $table): void {
+                $table->unsignedBigInteger('workspace_id')->nullable(false)->change();
+            });
+
+            $indexName = 'ws_'.substr(hash('sha256', $tableName), 0, 10).'_id_uq';
+
+            Schema::table($tableName, function (Blueprint $table) use ($indexName): void {
+                $table->unique(['workspace_id', 'id'], $indexName);
+            });
+        }
+
+        $dependentRelations = [
+            'products' => [['categoria_id', 'categories']],
+            'inventory_movements' => [['producto_id', 'products']],
+            'publication_executions' => [['publication_id', 'publications']],
+            'publication_schedules' => [['publication_id', 'publications']],
+            'external_catalog_campaign_selections' => [
+                ['campaign_id', 'external_catalog_campaigns'],
+                ['external_catalog_item_id', 'external_catalog_items'],
+            ],
+            'external_catalog_campaign_triggers' => [
+                ['campaign_id', 'external_catalog_campaigns'],
+                ['external_catalog_item_id', 'external_catalog_items'],
+            ],
+        ];
+
+        foreach ($dependentRelations as $childTable => $relations) {
+            if (! Schema::hasTable($childTable) || ! Schema::hasColumn($childTable, 'workspace_id')) {
+                continue;
+            }
+
+            foreach ($relations as [$foreignKey, $parentTable]) {
+                if (! Schema::hasColumn($childTable, $foreignKey) || ! Schema::hasTable($parentTable)) {
+                    continue;
+                }
+
+                $constraint = 'ws_'.substr(hash('sha256', $childTable.'_'.$foreignKey), 0, 10).'_fk';
+
+                Schema::table($childTable, function (Blueprint $table) use ($foreignKey, $parentTable, $constraint): void {
+                    $table->foreign(['workspace_id', $foreignKey], $constraint)
+                        ->references(['workspace_id', 'id'])
+                        ->on($parentTable)
+                        ->cascadeOnDelete();
+                });
+            }
+        }
+
+        foreach ($this->pivotTables as $tableName => [$leftKey, $leftTable, $rightKey, $rightTable]) {
+            if (! Schema::hasTable($tableName) || ! Schema::hasColumn($tableName, 'workspace_id')) {
+                continue;
+            }
+
+            Schema::table($tableName, function (Blueprint $table) use (
+                $tableName,
+                $leftKey,
+                $leftTable,
+                $rightKey,
+                $rightTable,
+            ): void {
+                $table->unsignedBigInteger('workspace_id')->nullable(false)->change();
+
+                $leftConstraint = 'ws_'.substr(hash('sha256', $tableName.'_left'), 0, 10).'_fk';
+                $rightConstraint = 'ws_'.substr(hash('sha256', $tableName.'_right'), 0, 10).'_fk';
+
+                $table->foreign(['workspace_id', $leftKey], $leftConstraint)
+                    ->references(['workspace_id', 'id'])
+                    ->on($leftTable)
+                    ->cascadeOnDelete();
+
+                $table->foreign(['workspace_id', $rightKey], $rightConstraint)
+                    ->references(['workspace_id', 'id'])
+                    ->on($rightTable)
+                    ->cascadeOnDelete();
+            });
         }
     }
 

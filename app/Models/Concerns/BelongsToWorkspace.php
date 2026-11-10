@@ -3,6 +3,11 @@
 namespace App\Models\Concerns;
 
 use App\Models\Workspace;
+use App\Models\Publication;
+use App\Models\PublicationExecution;
+use App\Models\ExternalCatalogCampaign;
+use App\Models\ExternalCatalogCampaignTrigger;
+use App\Models\FacebookGroup;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +30,36 @@ trait BelongsToWorkspace
                 $builder->getModel()->qualifyColumn('workspace_id'),
                 $workspaceId,
             );
+        });
+
+        static::saving(function (Model $model): void {
+            $workspaceId = app(WorkspaceContext::class)->id();
+            $relations = match ($model::class) {
+                Publication::class => [
+                    ['external_campaign_id', ExternalCatalogCampaign::class],
+                    ['external_campaign_trigger_id', ExternalCatalogCampaignTrigger::class],
+                ],
+                PublicationExecution::class => [
+                    ['facebook_group_id', FacebookGroup::class],
+                ],
+                default => [],
+            };
+
+            foreach ($relations as [$foreignKey, $relatedClass]) {
+                $relatedId = $model->getAttribute($foreignKey);
+
+                if ($relatedId === null) {
+                    continue;
+                }
+
+                $related = (new $relatedClass)->newQuery()
+                    ->withoutGlobalScope('workspace')
+                    ->find($relatedId);
+
+                if (! $related || (int) $related->workspace_id !== (int) $workspaceId) {
+                    throw new LogicException('Cross-workspace relation is not allowed for '.class_basename($model).'.');
+                }
+            }
         });
 
         static::creating(function (Model $model): void {

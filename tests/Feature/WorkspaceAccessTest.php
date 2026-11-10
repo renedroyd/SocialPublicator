@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Product;
+use App\Models\Publication;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
@@ -11,6 +13,7 @@ use App\Services\Workspaces\AcceptWorkspaceInvitation;
 use App\Services\Workspaces\WorkspaceContext;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use LogicException;
 use Tests\TestCase;
@@ -167,4 +170,64 @@ class WorkspaceAccessTest extends TestCase
 
         app(AcceptWorkspaceInvitation::class)->accept($user, $token);
     }
+
+    public function test_workspace_database_constraints_reject_cross_workspace_publication_products(): void
+    {
+        $first = Workspace::query()->create(['name' => 'Workspace Uno', 'slug' => 'workspace-uno']);
+        $second = Workspace::query()->create(['name' => 'Workspace Dos', 'slug' => 'workspace-dos']);
+        $context = app(WorkspaceContext::class);
+
+        $context->set((int) $first->id);
+        $category = Category::query()->create(['nombre' => 'Bebidas', 'activo' => true]);
+        $localProduct = Product::query()->create([
+            'categoria_id' => $category->id,
+            'sku' => 'LOCAL-001',
+            'nombre' => 'Producto propio',
+            'unidad' => 'unidad',
+            'precio_costo' => 1,
+            'precio_mayorista' => 2,
+            'precio_minorista' => 3,
+            'stock' => 10,
+            'stock_minimo' => 0,
+            'stock_maximo' => 20,
+            'activo' => true,
+        ]);
+        $publication = Publication::query()->create([
+            'date' => now()->toDateString(),
+            'time' => '12:00:00',
+            'image' => 'publication.jpg',
+            'text' => 'Publicación del primer espacio',
+            'destination' => 'whatsapp',
+            'active' => true,
+        ]);
+
+        $context->set((int) $second->id);
+        $otherCategory = Category::query()->create(['nombre' => 'Alimentos', 'activo' => true]);
+        $foreignProduct = Product::query()->create([
+            'categoria_id' => $otherCategory->id,
+            'sku' => 'OTHER-001',
+            'nombre' => 'Producto ajeno',
+            'unidad' => 'unidad',
+            'precio_costo' => 1,
+            'precio_mayorista' => 2,
+            'precio_minorista' => 3,
+            'stock' => 10,
+            'stock_minimo' => 0,
+            'stock_maximo' => 20,
+            'activo' => true,
+        ]);
+
+        $context->set((int) $first->id);
+        $publication->products()->attach($localProduct->id);
+
+        $this->assertSame(
+            [$localProduct->id],
+            $publication->products()->pluck('products.id')->all(),
+        );
+
+        $this->expectException(QueryException::class);
+
+        $publication->products()->attach($foreignProduct->id);
+    }
+
 }
