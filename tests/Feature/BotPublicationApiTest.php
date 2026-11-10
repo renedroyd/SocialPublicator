@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BotPublicationController;
 use App\Models\FacebookGroup;
 use App\Models\Publication;
 use App\Models\SocialAccount;
+use App\Models\SocialAccountConnection;
 use App\Models\User;
 use App\Models\WhatsAppGroup;
 use App\Models\Workspace;
@@ -530,6 +531,16 @@ class BotPublicationApiTest extends TestCase
             'account_type' => SocialAccount::TYPE_WHATSAPP,
             'external_account_id' => 'wa-profile-1',
             'display_name' => 'WhatsApp principal',
+        ]);
+
+        SocialAccountConnection::query()->create([
+            'social_account_id' => $account->id,
+            'connection_type' => SocialAccountConnection::TYPE_WPP_CONNECT_QR,
+            'provider' => 'wppconnect',
+            'status' => 'connected',
+            'agent_instance_id' => 'WBot',
+            'session_reference' => 'wppconnect:legacy-agent',
+            'provider_connection_id' => 'whatsapp-bot',
         ]);
 
         $allowedGroup = WhatsAppGroup::query()->create([
