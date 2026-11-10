@@ -104,8 +104,9 @@ return new class extends Migration
     {
         if (DB::getDriverName() === 'sqlite') {
             // SQLite cannot drop foreign keys by name through the schema builder.
-            // Keep the workspace constraints in place rather than risk a partial rollback.
-            return;
+            // Refuse the rollback rather than mark the migration as reverted while
+            // its workspace constraints and columns are still present.
+            throw new RuntimeException('Workspace isolation rollback on SQLite requires a manual table rebuild.');
         }
 
         $dependentRelations = [
