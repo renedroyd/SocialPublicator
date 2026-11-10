@@ -48,6 +48,24 @@ Los permisos globales del rol son la primera condición. Para editores y colabor
 
 Las concesiones se administran desde **Cuentas sociales → Permisos por cuenta** y **Permisos por destino**. El modelo impide asignar destinos de otro workspace; las claves foráneas compuestas protegen la relación de cuenta y membresía.
 
+
+## Autenticación oficial de Meta
+
+La conexión de perfiles y páginas de Facebook utiliza el flujo OAuth Authorization Code del lado del servidor:
+
+- El propietario o un miembro con permiso de administración inicia la conexión desde la fila del perfil en Filament.
+- Se genera un estado aleatorio de un solo uso, ligado a usuario, workspace y cuenta, con expiración de diez minutos.
+- El callback valida el estado, usuario y workspace antes de intercambiar el código.
+- Laravel intercambia el código y solicita un token de usuario de larga duración; los secretos de Meta nunca se envían al navegador.
+- Se consulta la identidad del perfil y sus páginas autorizadas. Cada página se registra como cuenta hija y su Page access token se cifra en su propia conexión.
+- Las credenciales se excluyen de serialización y no se escriben en logs ni auditoría.
+- Variables requeridas: META_APP_ID y META_APP_SECRET. META_REDIRECT_URI y META_GRAPH_VERSION son opcionales. El callback configurado en Meta debe coincidir exactamente con el URI generado por la aplicación.
+- Permisos solicitados: pages_show_list, pages_read_engagement y pages_manage_posts. La disponibilidad depende del modo de la aplicación, los roles de prueba y la revisión de Meta.
+
+El callback de conexión requiere una sesión autenticada y una membresía activa con capacidad de administrar cuentas. La revocación de permisos o tokens en Meta exige reconectar; el estado de conexión se conserva para diagnóstico.
+
+La conexión QR de WhatsApp y la asociación de sesiones persistentes de Facebook se coordinan con WBot en la etapa siguiente. No se recrean ni migran perfiles existentes durante este flujo.
+
 ## Alcance de esta fase
 
 Esta fase entrega el registro de cuentas, los vínculos con destinos, el almacenamiento seguro y la administración de permisos. Todavía no inicia OAuth, genera QR ni controla perfiles WBot desde el panel. Esos flujos se implementan en la fase de autenticación, utilizando estos modelos y sin mover las sesiones actuales de WBot.
