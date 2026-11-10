@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Jobs\ProcessDubaiShopEvent;
-use App\Models\IntegrationEventInbox;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
