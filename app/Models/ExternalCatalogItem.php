@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class ExternalCatalogItem extends Model
 {
-    use \App\Models\Concerns\BelongsToWorkspace;
+    use BelongsToWorkspace;
 
     public const SOURCE_DUBAI_SHOP = 'dubai_shop';
 

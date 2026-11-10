@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class ExternalCatalogWarehouse extends Model
 {
-    use \App\Models\Concerns\BelongsToWorkspace;
+    use BelongsToWorkspace;
 
     protected $fillable = [
         'source',

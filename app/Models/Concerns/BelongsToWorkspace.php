@@ -6,7 +6,6 @@ use App\Models\Workspace;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Scope;
 use LogicException;
 
 trait BelongsToWorkspace

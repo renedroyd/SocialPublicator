@@ -7,8 +7,8 @@ use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\FacebookGroupController;
 use App\Http\Controllers\Api\Integrations\DubaiShopWebhookController;
 use App\Http\Controllers\Api\WhatsAppGroupController;
-use App\Http\Middleware\VerifyBotApiToken;
 use App\Http\Middleware\ResolveWorkspaceContext;
+use App\Http\Middleware\VerifyBotApiToken;
 use App\Http\Middleware\VerifyDubaiShopWebhookSignature;
 use Illuminate\Support\Facades\Route;
 

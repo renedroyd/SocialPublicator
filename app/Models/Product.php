@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,9 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
-    use \App\Models\Concerns\BelongsToWorkspace;
-
-    use HasFactory;
+    use BelongsToWorkspace, HasFactory;
 
     protected $fillable = [
         'categoria_id',
@@ -94,10 +93,7 @@ class Product extends Model
 
     public function getStockBajoAttribute(): bool
     {
-        return (
-            $this->stock > 0 &&
-            $this->stock <= $this->stock_minimo
-        );
+        return $this->stock > 0 && $this->stock <= $this->stock_minimo;
     }
 
     public function getAgotadoAttribute(): bool

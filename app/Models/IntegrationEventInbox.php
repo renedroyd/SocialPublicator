@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 
 class IntegrationEventInbox extends Model
 {
-    use \App\Models\Concerns\BelongsToWorkspace;
+    use BelongsToWorkspace;
 
     protected $table = 'integration_event_inbox';
 

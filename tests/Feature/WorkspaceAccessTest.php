@@ -10,7 +10,6 @@ use App\Models\WorkspaceMembership;
 use App\Services\Workspaces\WorkspaceContext;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Database\Eloquent\Model;
 use LogicException;
 use Tests\TestCase;
 

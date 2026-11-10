@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\IntegrationEventInbox;
-use App\Services\Workspaces\WorkspaceContext;
 use App\Services\ExternalCatalogSyncService;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -21,10 +21,7 @@ class ProcessDubaiShopEvent implements ShouldQueue
 
     public array $backoff = [30, 120, 300, 600];
 
-    public function __construct(
-        public readonly int $eventId,
-        public readonly ?int $workspaceId = null,
-    ) {}
+    public function __construct(public readonly int $eventId, public readonly ?int $workspaceId = null) {}
 
     public function handle(ExternalCatalogSyncService $syncService): void
     {

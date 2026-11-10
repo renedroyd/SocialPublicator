@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class WhatsAppGroup extends Model
 {
-    use \App\Models\Concerns\BelongsToWorkspace;
+    use BelongsToWorkspace;
 
     protected $table = 'whatsapp_groups';
 
