@@ -64,3 +64,10 @@ Campaign configuration is intentionally separate from the local SocialPublicator
 The `social-publicator:select-campaign-items` command runs every five minutes. It records planned selection groups only; it does not send content to social networks. The engine supports manual campaign lists or automatic selection from the active/visible Dubai Shop mirror, warehouse-scoped availability, least-recent/round-robin/random rotation, grouped or individual mode, daily caps, minimum intervals, weekday and local-time windows, and a configured timezone.
 
 Each selection stores the selected item, quantity available in the campaign's selected warehouses, the warehouse IDs contributing stock, the selection group, and its planned status. Warehouse eligibility is rechecked at selection time. The later publishing phase must still revalidate current availability with Dubai Shop before sending.
+
+
+## Campaign event triggers (phase 6)
+
+When an `inventory.changed` or `price.changed` webhook is processed, SocialPublicator refreshes the external catalog item and evaluates active campaigns. Inventory transitions are calculated independently for each campaign's currently active, online-eligible selected warehouses, so stock in an unselected warehouse cannot suppress an out-of-stock trigger or create a false restock. Campaign settings determine whether an out-of-stock, replenishment, or immediate price-change trigger is recorded.
+
+Triggers are stored in `external_catalog_campaign_triggers` with the source event ID and a unique campaign/type key. Reprocessing the same source event cannot create duplicate triggers. These records are pending work for the later publishing phase; this phase does not send to Facebook or WhatsApp.
