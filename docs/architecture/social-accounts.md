@@ -100,3 +100,14 @@ Esta fase entrega el registro de cuentas, los vínculos con destinos, el almacen
 - La conexión de navegador es independiente del OAuth oficial del perfil/páginas; ambas vías pueden coexistir para la misma identidad de Facebook.
 - Configuración del agente: FACEBOOK_SOCIAL_ACCOUNT_ID. Si está vacío, WBot mantiene su operación actual sin sincronizar el estado de sesión de Facebook con un registro de SocialPublicator.
 - No se copian ni se migran cookies, tokens o perfiles Chromium al servidor, ni se recrean sesiones existentes.
+
+
+## Identidad de agentes y despliegue multinstancia
+
+- Cada proceso WBot informa un instance_id estable en el heartbeat. SocialPublicator mantiene una fila independiente por instancia dentro del workspace, aunque varias compartan el nombre visible WBot.
+- Los heartbeats antiguos sin instance_id usan name como identidad, manteniendo compatibilidad y actualizando el mismo registro.
+- WBot permite configurar por proceso el nombre de sesión WPPConnect, directorio de sesión, directorio de tokens, perfil Chromium, directorio de sesión Facebook y archivo de bloqueo.
+- Los valores predeterminados conservan exactamente las rutas y el nombre de sesión existentes. No se cambia la sesión actual al desplegar esta capacidad.
+- Para añadir una instancia, debe asignarse un BOT_INSTANCE_ID único y directorios/nombre de sesión nuevos. No se debe apuntar dos instancias al mismo perfil Chromium o directorio de tokens.
+- Cada conexión social conserva el agent_instance_id y una referencia opaca de su sesión. El servidor no almacena archivos de perfil ni credenciales locales.
+- La asignación de comandos y publicaciones a agentes específicos se completará en el siguiente bloque de la fase multinstancia; esta entrega prepara la identidad y el aislamiento del almacenamiento.
