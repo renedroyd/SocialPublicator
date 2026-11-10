@@ -45,7 +45,7 @@ class WhatsAppGroupController extends Controller
             foreach ($data['groups'] as $group) {
                 $name = trim(preg_replace('/\s+/u', ' ', $group['name']) ?? $group['name']);
 
-                if ($name === '' || !str_contains($group['whatsapp_id'], '@g.us')) {
+                if ($name === '' || str_contains($group['whatsapp_id'], '@g.us') === false) {
                     continue;
                 }
 
