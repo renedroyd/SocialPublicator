@@ -33,6 +33,10 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('social-publicator:select-campaign-items')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
+
 Schedule::command('social-publicator:sync-dubai-catalog')
     ->hourly()
     ->withoutOverlapping()
