@@ -11,6 +11,7 @@ class BotCommand extends Model
 
     protected $fillable = [
         'bot_name',
+        'agent_instance_id',
         'type',
         'payload',
         'idempotency_key',
