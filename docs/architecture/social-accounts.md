@@ -131,3 +131,14 @@ Esta fase entrega el registro de cuentas, los vínculos con destinos, el almacen
 - Al iniciar una ejecución, Laravel valida que el grupo pertenece a la cuenta y que la conexión activa corresponde al agente que solicita publicar.
 - Las ejecuciones guardan agent_instance_id. Las confirmaciones y fallos solo son aceptados desde la misma instancia que inició la ejecución.
 - Los agentes nuevos no pueden iniciar publicaciones en destinos heredados sin asociación; esos destinos permanecen bajo la instancia legacy hasta que se vinculen expresamente.
+
+
+## Tokens individuales para agentes WBot
+
+- Cada agente se registra en **Cuentas sociales → Agentes WBot**, con instance_id y las cuentas sociales que puede utilizar.
+- El token se emite una sola vez mediante `php artisan bot-agent:issue-token {workspace_id} {instance_id}`. El valor en claro se muestra en consola una sola vez; la base de datos conserva únicamente SHA-256 del token.
+- El token se configura como LARAVEL_API_TOKEN en el .env del proceso WBot. BOT_INSTANCE_ID debe coincidir exactamente con el registro.
+- Cada solicitud autenticada se vincula a una instancia, workspace y lista explícita de cuentas autorizadas. Una instancia no puede informar estado ni sincronizar grupos para cuentas no asignadas.
+- Desactivar el agente revoca inmediatamente su token. Ejecutar nuevamente el comando rota el token e invalida el anterior.
+- BOT_API_TOKEN permanece como compatibilidad legacy, limitado a la instancia predeterminada configurada en BOT_COMMAND_BOT_NAME. No debe compartirse con nuevas instancias.
+- El agente actualiza last_seen_at al utilizar la API. No se almacena el token en texto plano ni se muestra de nuevo desde Filament.
