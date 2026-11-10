@@ -136,4 +136,19 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
         $this->assertCount(0, $second);
         $this->assertCount(0, $outsideWindow);
     }
+
+    public function test_automatic_mode_selects_all_eligible_catalog_items_without_manual_attachments(): void
+    {
+        [$campaign, $warehouseA] = $this->createCampaign(['selection_mode' => 'automatic']);
+        $item = $this->createItem('dd20b7e0-01a1-4e33-8a10-40abfa9b2a00', [
+            ['warehouse_external_id' => $warehouseA->external_id, 'available_quantity' => 6],
+        ]);
+
+        $selected = app(ExternalCatalogCampaignSelectionEngine::class)
+            ->selectNextGroup($campaign, Carbon::parse('2026-11-10 12:00:00', 'UTC'));
+
+        $this->assertCount(1, $selected);
+        $this->assertSame($item->id, $selected->first()->external_catalog_item_id);
+    }
+
 }
