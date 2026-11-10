@@ -70,6 +70,8 @@ class CampaignPublicationDispatcher
                     $counts['selections']++;
                 } elseif ($result === 'skipped') {
                     $counts['skipped']++;
+                } elseif ($result === 'blocked') {
+                    $counts['blocked']++;
                 }
             } catch (Throwable $exception) {
                 ExternalCatalogCampaignSelection::query()
