@@ -79,7 +79,7 @@ class ExternalCatalogCampaignResource extends Resource
                 ])->default('least_recent')->required()->native(false),
                 TextInput::make('group_size')->label(__('Artículos por publicación agrupada'))->numeric()->integer()->minValue(1)->maxValue(20)->default(4)->required(),
                 TimePicker::make('posting_window_start')->label(__('Hora inicial'))->seconds(false)->format('H:i')->default('09:00')->required(),
-                TimePicker::make('posting_window_end')->label(__('Hora final'))->seconds(false)->format('H:i')->default('21:00')->required(),
+                TimePicker::make('posting_window_end')->label(__('Hora final'))->seconds(false)->format('H:i')->default('21:00')->after('posting_window_start')->required(),
                 Select::make('timezone')->label(__('Zona horaria'))->options(collect(timezone_identifiers_list())->mapWithKeys(fn (string $zone): array => [$zone => $zone])->all())->searchable()->native(false)->default(config('app.timezone', 'UTC'))->required(),
                 CheckboxList::make('posting_weekdays')->label(__('Días permitidos'))->options([
                     1 => __('Lunes'),
