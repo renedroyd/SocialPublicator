@@ -41,6 +41,7 @@ return [
     ],
 
     'dubai_shop' => [
+        'campaign_dispatch_enabled' => (bool) env('DUBAI_SHOP_CAMPAIGN_DISPATCH_ENABLED', false),
         'api_base_url' => env('DUBAI_SHOP_API_BASE_URL'),
         'api_token' => env('DUBAI_SHOP_API_TOKEN'),
         'timeout' => (int) env('DUBAI_SHOP_TIMEOUT', 15),
