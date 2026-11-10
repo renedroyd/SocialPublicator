@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToWorkspace;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class WhatsAppGroup extends Model
@@ -14,6 +15,7 @@ class WhatsAppGroup extends Model
     protected $table = 'whatsapp_groups';
 
     protected $fillable = [
+        'social_account_id',
         'whatsapp_id',
         'name',
         'active',
@@ -26,6 +28,23 @@ class WhatsAppGroup extends Model
             'active' => 'boolean',
             'last_synchronized_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (WhatsAppGroup $group): void {
+            WorkspaceMembershipDestinationPermission::query()
+                ->withoutGlobalScope('workspace')
+                ->where('workspace_id', $group->workspace_id)
+                ->where('destination_type', WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP)
+                ->where('destination_id', $group->id)
+                ->delete();
+        });
+    }
+
+    public function socialAccount(): BelongsTo
+    {
+        return $this->belongsTo(SocialAccount::class);
     }
 
     public function publications(): BelongsToMany

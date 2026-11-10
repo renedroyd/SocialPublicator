@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Publications\Schemas;
 
+use App\Models\WorkspaceMembershipDestinationPermission;
+use App\Services\Workspaces\WorkspaceContext;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
@@ -15,9 +17,54 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class PublicationForm
 {
+    private static function authorizedDestinations(Builder $query, string $destinationType): Builder
+    {
+        $membership = auth()->user()?->activeWorkspaceMemberships()
+            ->where('workspace_id', app(WorkspaceContext::class)->id())
+            ->first();
+
+        if (! $membership) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($membership->isOwner()) {
+            return $query;
+        }
+
+        if (
+            ! $membership->hasPermission('destinations.view')
+            || ! $membership->hasPermission('publications.publish')
+        ) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if (! $membership->hasPermission('destinations.manage')) {
+            $destinationIds = $membership->destinationPermissions()
+                ->where('destination_type', $destinationType)
+                ->whereJsonContains('permissions', 'publish')
+                ->select('destination_id');
+
+            $query->whereIn('id', $destinationIds);
+        }
+
+        if (! $membership->hasPermission('accounts.manage')) {
+            $accountIds = $membership->socialAccountPermissions()
+                ->whereJsonContains('permissions', 'publish')
+                ->select('social_account_id');
+
+            $query->where(function (Builder $query) use ($accountIds): void {
+                $query->whereNull('social_account_id')
+                    ->orWhereIn('social_account_id', $accountIds);
+            });
+        }
+
+        return $query;
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -279,7 +326,11 @@ class PublicationForm
                             ->label('Grupos de WhatsApp')
                             ->relationship(
                                 name: 'whatsappGroups',
-                                titleAttribute: 'name'
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query): Builder => static::authorizedDestinations(
+                                    $query,
+                                    WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP,
+                                ),
                             )
                             ->multiple()
                             ->searchable()
@@ -302,7 +353,11 @@ class PublicationForm
                             ->label('Grupos de Facebook')
                             ->relationship(
                                 name: 'facebookGroups',
-                                titleAttribute: 'name'
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query): Builder => static::authorizedDestinations(
+                                    $query,
+                                    WorkspaceMembershipDestinationPermission::DESTINATION_FACEBOOK_GROUP,
+                                ),
                             )
                             ->multiple()
                             ->searchable()

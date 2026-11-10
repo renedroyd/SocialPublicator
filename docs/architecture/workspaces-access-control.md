@@ -27,7 +27,7 @@ Un arreglo de permisos explícitos en la membresía reemplaza los permisos prede
 
 La autorización se aplica en los recursos Filament y en las políticas de productos, publicaciones y campañas. Las categorías comparten el permiso del catálogo de productos. Los recursos de miembros e invitaciones requieren el permiso de administración del equipo.
 
-**Permisos por cuenta social o por destino:** la base de permisos admite ampliación, pero la asignación granular por cuenta/destino se completará junto con el registro de cuentas sociales en la siguiente fase. No se debe interpretar el rol Editor como autorización universal para cualquier cuenta social futura.
+**Permisos por cuenta social o por destino:** implementados en la Fase 2. Editores y colaboradores necesitan concesiones explícitas por cuenta/destino; para publicar en un destino vinculado se requieren ambas concesiones. Los roles globales no se convierten en acceso universal salvo propietario o permisos administrativos explícitos.
 
 ## Experiencia de administración
 
@@ -63,6 +63,8 @@ La migración de aislamiento bloquea explícitamente `down()` en SQLite porque e
 ## Auditoría
 
 Se registran la creación, actualización y eliminación de membresías; creación, aceptación y revocación de invitaciones; y cambios de workspace activo. La creación del workspace queda reflejada además por la membresía inicial de propietario. Las operaciones sensibles de cuentas sociales se incorporarán cuando se implemente su administración.
+
+La administración de cuentas, conexiones y permisos granulares se describe en [Cuentas sociales y conexiones seguras](./social-accounts.md).
 
 ## Validación de la Fase 1
 
