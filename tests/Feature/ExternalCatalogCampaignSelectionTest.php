@@ -152,7 +152,6 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
         $this->assertSame($item->id, $selected->first()->external_catalog_item_id);
     }
 
-
     public function test_individual_publication_mode_creates_one_item_per_selection_group(): void
     {
         [$campaign, $warehouseA] = $this->createCampaign([
@@ -196,7 +195,6 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
         $this->assertSame($itemB->id, $second->first()->external_catalog_item_id);
     }
 
-
     public function test_selection_rechecks_that_campaign_warehouses_remain_online_eligible(): void
     {
         [$campaign, $warehouseA] = $this->createCampaign();
@@ -211,5 +209,4 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
 
         $this->assertCount(0, $selected);
     }
-
 }
