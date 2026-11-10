@@ -14,9 +14,10 @@ class BotCommandController extends Controller
     {
         $validated = $request->validate([
             'bot_name' => ['required', 'string', 'max:100'],
+            'instance_id' => ['nullable', 'string', 'max:191'],
         ]);
 
-        $command = $service->claim($validated['bot_name']);
+        $command = $service->claim($validated['bot_name'], $validated['instance_id'] ?? null);
 
         return response()->json([
             'data' => $command,
@@ -30,6 +31,7 @@ class BotCommandController extends Controller
     ): JsonResponse {
         $validated = $request->validate([
             'bot_name' => ['required', 'string', 'max:100'],
+            'instance_id' => ['nullable', 'string', 'max:191'],
             'result' => ['nullable', 'array'],
         ]);
 
@@ -37,6 +39,7 @@ class BotCommandController extends Controller
             $command,
             $validated['bot_name'],
             $validated['result'] ?? [],
+            $validated['instance_id'] ?? null,
         );
 
         return response()->json(['data' => $command]);
@@ -49,6 +52,7 @@ class BotCommandController extends Controller
     ): JsonResponse {
         $validated = $request->validate([
             'bot_name' => ['required', 'string', 'max:100'],
+            'instance_id' => ['nullable', 'string', 'max:191'],
             'error' => ['required', 'string', 'max:2000'],
             'retry' => ['nullable', 'boolean'],
         ]);
@@ -58,6 +62,7 @@ class BotCommandController extends Controller
             $validated['bot_name'],
             $validated['error'],
             $validated['retry'] ?? true,
+            $validated['instance_id'] ?? null,
         );
 
         return response()->json(['data' => $command]);

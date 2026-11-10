@@ -3,7 +3,10 @@
 namespace App\Services;
 
 use App\Models\BotCommand;
+use App\Models\FacebookGroup;
 use App\Models\PublicationExecution;
+use App\Models\SocialAccountConnection;
+use App\Models\WhatsAppGroup;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use LogicException;
@@ -25,15 +28,21 @@ class BotCommandService
                 );
             }
 
-            // Reuse an outstanding retry command instead of queueing duplicates
-            // when an operator double-clicks or repeats the action.
-            $activeCommand = BotCommand::query()
+            $agentInstanceId = $this->resolveAgentInstanceId($execution);
+
+            $activeCommandQuery = BotCommand::query()
                 ->where('bot_name', $botName)
                 ->where('type', 'retry_publication')
                 ->whereIn('status', ['pending', 'claimed'])
-                ->where('payload->execution_id', $execution->id)
-                ->latest('id')
-                ->first();
+                ->where('payload->execution_id', $execution->id);
+
+            if ($agentInstanceId === null) {
+                $activeCommandQuery->whereNull('agent_instance_id');
+            } else {
+                $activeCommandQuery->where('agent_instance_id', $agentInstanceId);
+            }
+
+            $activeCommand = $activeCommandQuery->latest('id')->first();
 
             if ($activeCommand !== null) {
                 return $activeCommand;
@@ -41,34 +50,48 @@ class BotCommandService
 
             return BotCommand::query()->create([
                 'bot_name' => $botName,
-            'type' => 'retry_publication',
-            'payload' => [
-                'execution_id' => $execution->id,
-                'publication_id' => $execution->publication_id,
-                'occurrence_id' => $execution->occurrence_id,
-                'channel' => $execution->channel,
-                'target_key' => $execution->target_key,
-                'facebook_group_id' => $execution->facebook_group_id,
-            ],
-            'idempotency_key' => 'retry_'.$execution->id.'_'.Str::uuid(),
-            'status' => 'pending',
-            'available_at' => now(),
+                'agent_instance_id' => $agentInstanceId,
+                'type' => 'retry_publication',
+                'payload' => [
+                    'execution_id' => $execution->id,
+                    'publication_id' => $execution->publication_id,
+                    'occurrence_id' => $execution->occurrence_id,
+                    'channel' => $execution->channel,
+                    'target_key' => $execution->target_key,
+                    'facebook_group_id' => $execution->facebook_group_id,
+                ],
+                'idempotency_key' => 'retry_'.$execution->id.'_'.Str::uuid(),
+                'status' => 'pending',
+                'available_at' => now(),
                 'max_attempts' => 3,
             ]);
         });
     }
 
-    public function claim(string $botName): ?BotCommand
+    public function claim(string $botName, ?string $instanceId = null): ?BotCommand
     {
-        return DB::transaction(function () use ($botName): ?BotCommand {
-            $command = BotCommand::query()
+        return DB::transaction(function () use ($botName, $instanceId): ?BotCommand {
+            $query = BotCommand::query()
                 ->where('bot_name', $botName)
                 ->where('status', 'pending')
                 ->where(function ($query): void {
                     $query
                         ->whereNull('available_at')
                         ->orWhere('available_at', '<=', now());
-                })
+                });
+
+            if ($instanceId === null) {
+                $query->whereNull('agent_instance_id');
+            } elseif ($instanceId === $botName) {
+                $query->where(function ($query) use ($instanceId): void {
+                    $query->whereNull('agent_instance_id')
+                        ->orWhere('agent_instance_id', $instanceId);
+                });
+            } else {
+                $query->where('agent_instance_id', $instanceId);
+            }
+
+            $command = $query
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->first();
@@ -91,14 +114,15 @@ class BotCommandService
     public function complete(
         BotCommand $command,
         string $botName,
-        array $result = []
+        array $result = [],
+        ?string $instanceId = null,
     ): BotCommand {
-        return DB::transaction(function () use ($command, $botName, $result): BotCommand {
+        return DB::transaction(function () use ($command, $botName, $result, $instanceId): BotCommand {
             $command = BotCommand::query()
                 ->lockForUpdate()
                 ->findOrFail($command->id);
 
-            $this->assertClaimedByBot($command, $botName);
+            $this->assertClaimedByAgent($command, $botName, $instanceId);
 
             $command->update([
                 'status' => 'succeeded',
@@ -115,14 +139,15 @@ class BotCommandService
         BotCommand $command,
         string $botName,
         string $error,
-        bool $retry = true
+        bool $retry = true,
+        ?string $instanceId = null,
     ): BotCommand {
-        return DB::transaction(function () use ($command, $botName, $error, $retry): BotCommand {
+        return DB::transaction(function () use ($command, $botName, $error, $retry, $instanceId): BotCommand {
             $command = BotCommand::query()
                 ->lockForUpdate()
                 ->findOrFail($command->id);
 
-            $this->assertClaimedByBot($command, $botName);
+            $this->assertClaimedByAgent($command, $botName, $instanceId);
 
             $canRetry = $retry && $command->attempts < $command->max_attempts;
 
@@ -138,11 +163,50 @@ class BotCommandService
         });
     }
 
-    private function assertClaimedByBot(BotCommand $command, string $botName): void
+    private function resolveAgentInstanceId(PublicationExecution $execution): ?string
     {
+        $group = null;
+        $connectionType = null;
+
+        if ($execution->channel === 'whatsapp') {
+            $group = WhatsAppGroup::query()
+                ->where(function ($query) use ($execution): void {
+                    $query->where('whatsapp_id', $execution->target_key)
+                        ->orWhere('name', $execution->target_key);
+                })
+                ->first();
+            $connectionType = SocialAccountConnection::TYPE_WPP_CONNECT_QR;
+        } elseif ($execution->channel === 'facebook') {
+            $group = $execution->facebookGroup
+                ?? FacebookGroup::query()->find($execution->facebook_group_id);
+            $connectionType = SocialAccountConnection::TYPE_BROWSER_SESSION;
+        }
+
+        if (! $group?->social_account_id || ! $connectionType) {
+            return null;
+        }
+
+        return SocialAccountConnection::query()
+            ->where('social_account_id', $group->social_account_id)
+            ->where('connection_type', $connectionType)
+            ->where('status', 'connected')
+            ->value('agent_instance_id');
+    }
+
+    private function assertClaimedByAgent(
+        BotCommand $command,
+        string $botName,
+        ?string $instanceId,
+    ): void {
         if ($command->bot_name !== $botName || $command->status !== 'claimed') {
             throw new LogicException(
                 "El comando {$command->id} no está reclamado por {$botName}."
+            );
+        }
+
+        if ($command->agent_instance_id !== null && $command->agent_instance_id !== $instanceId) {
+            throw new LogicException(
+                "El comando {$command->id} está asignado a otra instancia de WBot."
             );
         }
     }

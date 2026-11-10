@@ -111,3 +111,13 @@ Esta fase entrega el registro de cuentas, los vínculos con destinos, el almacen
 - Para añadir una instancia, debe asignarse un BOT_INSTANCE_ID único y directorios/nombre de sesión nuevos. No se debe apuntar dos instancias al mismo perfil Chromium o directorio de tokens.
 - Cada conexión social conserva el agent_instance_id y una referencia opaca de su sesión. El servidor no almacena archivos de perfil ni credenciales locales.
 - La asignación de comandos y publicaciones a agentes específicos se completará en el siguiente bloque de la fase multinstancia; esta entrega prepara la identidad y el aislamiento del almacenamiento.
+
+
+## Enrutamiento de comandos por agente
+
+- Los comandos de reintento se asignan al agent_instance_id de la conexión activa que administra el grupo/destino.
+- WhatsApp resuelve el agente a partir del grupo y su cuenta vinculada; Facebook resuelve el agente a partir del grupo y la sesión de navegador de su perfil.
+- El endpoint claim filtra por bot_name e instance_id. Una instancia no puede reclamar comandos asignados a otra.
+- Las confirmaciones y fallos verifican también la identidad de la instancia que reclamó el comando.
+- Los comandos históricos sin agente asignado siguen disponibles para la instancia legacy cuyo instance_id coincide con el nombre del bot (por defecto WBot). Las nuevas instancias no consumen esos comandos sin asignación.
+- Si un destino no está asociado a una cuenta conectada, el comando permanece sin asignación y conserva el comportamiento legacy.
