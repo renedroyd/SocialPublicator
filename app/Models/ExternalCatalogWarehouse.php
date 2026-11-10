@@ -14,6 +14,7 @@ class ExternalCatalogWarehouse extends Model
         'active',
         'online_fulfillment_enabled',
         'synced_at',
+        'sync_run_id',
     ];
 
     protected function casts(): array
