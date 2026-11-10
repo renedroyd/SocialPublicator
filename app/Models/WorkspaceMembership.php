@@ -75,7 +75,7 @@ class WorkspaceMembership extends Model
 
     public function hasPermission(string $permission): bool
     {
-        if (!$this->isActive()) {
+        if (! $this->isActive()) {
             return false;
         }
 
