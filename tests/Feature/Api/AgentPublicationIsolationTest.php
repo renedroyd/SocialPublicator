@@ -99,6 +99,10 @@ class AgentPublicationIsolationTest extends TestCase
         ];
 
         $this->withToken('test-bot-token')
+            ->postJson('/api/bot/executions/start', $payload)
+            ->assertForbidden();
+
+        $this->withToken('test-bot-token')
             ->postJson('/api/bot/executions/start', [...$payload, 'instance_id' => 'agent-wa-other'])
             ->assertForbidden();
 
