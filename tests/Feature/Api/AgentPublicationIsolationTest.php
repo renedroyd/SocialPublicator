@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\BotAgent;
 use App\Models\Publication;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
@@ -30,6 +31,14 @@ class AgentPublicationIsolationTest extends TestCase
 
         $accountA = $this->createWhatsAppAccount($workspace, 'agent-wa-a');
         $accountB = $this->createWhatsAppAccount($workspace, 'agent-wa-b');
+        $tokenA = 'token-agent-wa-a';
+        BotAgent::query()->create([
+            'name' => 'Agent A',
+            'instance_id' => 'agent-wa-a',
+            'token_hash' => hash('sha256', $tokenA),
+            'social_account_ids' => [$accountA->id],
+            'is_active' => true,
+        ]);
 
         $groupA = WhatsAppGroup::query()->create([
             'social_account_id' => $accountA->id,
@@ -56,7 +65,7 @@ class AgentPublicationIsolationTest extends TestCase
         $publication->whatsappGroups()->attach([$groupA->id, $groupB->id]);
         app(WorkspaceContext::class)->clear();
 
-        $response = $this->withToken('test-bot-token')
+        $response = $this->withToken($tokenA)
             ->getJson('/api/bot/publications?instance_id=agent-wa-a');
 
         $response->assertOk()->assertJsonCount(1, 'data');
@@ -73,6 +82,22 @@ class AgentPublicationIsolationTest extends TestCase
         app(WorkspaceContext::class)->set((int) $workspace->id);
 
         $account = $this->createWhatsAppAccount($workspace, 'agent-wa-owner');
+        $ownerToken = 'token-agent-wa-owner';
+        $otherToken = 'token-agent-wa-other';
+        BotAgent::query()->create([
+            'name' => 'Owner agent',
+            'instance_id' => 'agent-wa-owner',
+            'token_hash' => hash('sha256', $ownerToken),
+            'social_account_ids' => [$account->id],
+            'is_active' => true,
+        ]);
+        BotAgent::query()->create([
+            'name' => 'Other agent',
+            'instance_id' => 'agent-wa-other',
+            'token_hash' => hash('sha256', $otherToken),
+            'social_account_ids' => [$account->id],
+            'is_active' => true,
+        ]);
         $group = WhatsAppGroup::query()->create([
             'social_account_id' => $account->id,
             'whatsapp_id' => 'owned-group@g.us',
@@ -97,29 +122,29 @@ class AgentPublicationIsolationTest extends TestCase
             'target_key' => $group->whatsapp_id,
         ];
 
-        $this->withToken('test-bot-token')
+        $this->withToken($ownerToken)
             ->postJson('/api/bot/executions/start', $payload)
             ->assertForbidden();
 
-        $this->withToken('test-bot-token')
+        $this->withToken($otherToken)
             ->postJson('/api/bot/executions/start', [...$payload, 'instance_id' => 'agent-wa-other'])
             ->assertForbidden();
 
-        $started = $this->withToken('test-bot-token')
+        $started = $this->withToken($ownerToken)
             ->postJson('/api/bot/executions/start', [...$payload, 'instance_id' => 'agent-wa-owner'])
             ->assertOk()
             ->assertJsonPath('data.agent_instance_id', 'agent-wa-owner');
 
         $executionId = $started->json('data.id');
 
-        $this->withToken('test-bot-token')
+        $this->withToken($otherToken)
             ->postJson("/api/bot/executions/{$executionId}/complete", [
                 'instance_id' => 'agent-wa-other',
                 'external_id' => 'wrong-agent-message',
             ])
             ->assertForbidden();
 
-        $this->withToken('test-bot-token')
+        $this->withToken($ownerToken)
             ->postJson("/api/bot/executions/{$executionId}/complete", [
                 'instance_id' => 'agent-wa-owner',
                 'external_id' => 'owned-message',
