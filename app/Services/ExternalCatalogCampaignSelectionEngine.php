@@ -35,7 +35,7 @@ class ExternalCatalogCampaignSelectionEngine
 
             $timezone = $campaign->timezone ?: config('app.timezone', 'UTC');
             $localNow = $at
-                ? Carbon::instance($at->toDateTime())->setTimezone($timezone)
+                ? Carbon::instance($at)->setTimezone($timezone)
                 : now($timezone);
 
             if (! $this->isInsidePostingWindow($campaign, $localNow)) {
