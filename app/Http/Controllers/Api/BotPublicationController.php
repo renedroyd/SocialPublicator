@@ -102,6 +102,11 @@ class BotPublicationController extends Controller
                     ->values();
             }
 
+                if ($eligibleWhatsAppGroups->isEmpty() && $eligibleFacebookGroups->isEmpty()) {
+                    continue;
+                }
+            }
+
             foreach ($this->generateDailyOccurrences($publication, $now) as $occurrence) {
                 $whatsappGroups = in_array(
                     $publication->destination,
