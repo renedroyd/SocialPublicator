@@ -104,12 +104,12 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
 
     public function test_campaign_does_not_select_items_with_stock_only_in_unselected_warehouses(): void
     {
-        [$campaign, $warehouseA] = $this->createCampaign();
+        [$campaign, $warehouseA, $warehouseB] = $this->createCampaign();
         $item = $this->createItem('bd20b7e0-01a1-4e33-8a10-40abfa9b2a00', [
-            ['warehouse_external_id' => 'not-selected-warehouse', 'available_quantity' => 10],
+            ['warehouse_external_id' => $warehouseB->external_id, 'available_quantity' => 10],
         ]);
         $campaign->items()->attach($item->id);
-        $campaign->warehouses()->detach();
+        $campaign->warehouses()->detach($warehouseB->id);
 
         $selected = app(ExternalCatalogCampaignSelectionEngine::class)
             ->selectNextGroup($campaign, Carbon::parse('2026-11-10 12:00:00', 'UTC'));
@@ -190,7 +190,7 @@ class ExternalCatalogCampaignSelectionTest extends TestCase
 
         $engine = app(ExternalCatalogCampaignSelectionEngine::class);
         $first = $engine->selectNextGroup($campaign, Carbon::parse('2026-11-10 12:00:00', 'UTC'));
-        $second = $engine->selectNextGroup($campaign, Carbon::parse('2026-11-10 14:00:00', 'UTC'));
+        $second = $engine->selectNextGroup($campaign, Carbon::parse('2026-11-11 12:00:00', 'UTC'));
 
         $this->assertSame($itemA->id, $first->first()->external_catalog_item_id);
         $this->assertSame($itemB->id, $second->first()->external_catalog_item_id);
