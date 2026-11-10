@@ -7,6 +7,7 @@ use App\Models\SocialAccountConnection;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceMembership;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -18,6 +19,7 @@ class MetaOAuthControllerTest extends TestCase
     public function test_it_connects_a_facebook_profile_and_stores_page_tokens_encrypted(): void
     {
         $workspace = Workspace::query()->create(['name' => 'Meta workspace', 'slug' => 'meta-workspace']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
         $user = User::factory()->create();
         WorkspaceMembership::query()->create([
             'workspace_id' => $workspace->id,
@@ -85,6 +87,7 @@ class MetaOAuthControllerTest extends TestCase
     public function test_oauth_state_is_single_use(): void
     {
         $workspace = Workspace::query()->create(['name' => 'Meta state', 'slug' => 'meta-state']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
         $user = User::factory()->create();
         WorkspaceMembership::query()->create([
             'workspace_id' => $workspace->id,
