@@ -10,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('workspaces', function (Blueprint $table) {
+        Schema::create('workspaces', function (Blueprint $table): void {
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('workspace_memberships', function (Blueprint $table) {
+        Schema::create('workspace_memberships', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -33,7 +33,7 @@ return new class extends Migration
             $table->index(['user_id', 'status']);
         });
 
-        Schema::create('workspace_invitations', function (Blueprint $table) {
+        Schema::create('workspace_invitations', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
             $table->string('email');
@@ -48,7 +48,7 @@ return new class extends Migration
             $table->index(['workspace_id', 'email']);
         });
 
-        Schema::create('workspace_audit_logs', function (Blueprint $table) {
+        Schema::create('workspace_audit_logs', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
             $table->foreignId('actor_user_id')->nullable()->constrained('users')->nullOnDelete();
@@ -68,7 +68,7 @@ return new class extends Migration
         if ($firstUser) {
             $workspaceId = DB::table('workspaces')->insertGetId([
                 'name' => 'Espacio de trabajo principal',
-                'slug' => 'principal-' . Str::lower(Str::random(8)),
+                'slug' => 'principal-'.Str::lower(Str::random(8)),
                 'created_by_user_id' => $firstUser->id,
                 'settings' => json_encode(['legacy_migration' => true]),
                 'created_at' => now(),

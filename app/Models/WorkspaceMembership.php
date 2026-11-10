@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class WorkspaceMembership extends Model
 {
     public const ROLE_OWNER = 'owner';
+
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_EDITOR = 'editor';
+
     public const ROLE_COLLABORATOR = 'collaborator';
 
     public const ROLES = [
@@ -72,7 +75,7 @@ class WorkspaceMembership extends Model
 
     public function hasPermission(string $permission): bool
     {
-        if (! $this->isActive()) {
+        if (!$this->isActive()) {
             return false;
         }
 

@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use App\Models\WorkspaceMembership;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -81,6 +82,6 @@ class WorkspaceAccessTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $this->assertFalse($user->canAccessPanel(\Filament\Facades\Filament::getPanel('admin')));
+        $this->assertFalse($user->canAccessPanel(Filament::getPanel('admin')));
     }
 }
