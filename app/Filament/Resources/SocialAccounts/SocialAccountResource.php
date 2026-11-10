@@ -142,6 +142,11 @@ class SocialAccountResource extends Resource
                 TextColumn::make('connections_count')->counts('connections')->label('Conexiones'),
             ])
             ->actions([
+                Action::make('connectWhatsApp')
+                    ->label('Conectar WhatsApp')
+                    ->icon('heroicon-o-qr-code')
+                    ->url(fn (SocialAccount $record): string => route('social-accounts.whatsapp.qr', $record))
+                    ->visible(fn (SocialAccount $record): bool => $record->account_type === SocialAccount::TYPE_WHATSAPP),
                 Action::make('connectMeta')
                     ->label('Conectar con Meta')
                     ->icon('heroicon-o-link')

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BotPublicationController;
 use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\FacebookGroupController;
 use App\Http\Controllers\Api\Integrations\DubaiShopWebhookController;
+use App\Http\Controllers\Api\WhatsAppConnectionController;
 use App\Http\Controllers\Api\WhatsAppGroupController;
 use App\Http\Middleware\ResolveWorkspaceContext;
 use App\Http\Middleware\VerifyBotApiToken;
@@ -55,6 +56,10 @@ Route::middleware([VerifyBotApiToken::class, ResolveWorkspaceContext::class.':bo
             BotStatusController::class,
             'store',
         ])->name('api.bot.status');
+
+        Route::post('/whatsapp/connection/state', [WhatsAppConnectionController::class, 'state'])
+            ->middleware('throttle:120,1')
+            ->name('api.bot.whatsapp.connection.state');
 
         Route::post('/whatsapp/groups/sync', [
             WhatsAppGroupController::class,
