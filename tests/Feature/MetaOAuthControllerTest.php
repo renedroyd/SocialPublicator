@@ -40,23 +40,32 @@ class MetaOAuthControllerTest extends TestCase
             'services.meta.graph_version' => 'v26.0',
         ]);
 
-        Http::fake([
-            'https://graph.facebook.com/v26.0/oauth/access_token' => Http::sequence()
-                ->push(['access_token' => 'short-user-token', 'expires_in' => 3600])
-                ->push(['access_token' => 'long-user-token', 'expires_in' => 5184000]),
-            'https://graph.facebook.com/v26.0/me?*' => Http::response([
-                'id' => 'profile-42',
-                'name' => 'Perfil de prueba',
-            ]),
-            'https://graph.facebook.com/v26.0/me/accounts?*' => Http::response([
-                'data' => [[
-                    'id' => 'page-42',
-                    'name' => 'Página de prueba',
-                    'access_token' => 'page-secret-token',
-                    'tasks' => ['CREATE_CONTENT'],
-                ]],
-            ]),
-        ]);
+        Http::fake(function (HttpRequest $request) {
+            $url = $request->url();
+
+            if (str_contains($url, '/oauth/access_token')) {
+                return str_contains($url, 'code=one-time-code')
+                    ? Http::response(['access_token' => 'short-user-token', 'expires_in' => 3600])
+                    : Http::response(['access_token' => 'long-user-token', 'expires_in' => 5184000]);
+            }
+
+            if (str_contains($url, '/me/accounts')) {
+                return Http::response([
+                    'data' => [[
+                        'id' => 'page-42',
+                        'name' => 'Página de prueba',
+                        'access_token' => 'page-secret-token',
+                        'tasks' => ['CREATE_CONTENT'],
+                    ]],
+                ]);
+            }
+
+            if (str_contains($url, '/me')) {
+                return Http::response(['id' => 'profile-42', 'name' => 'Perfil de prueba']);
+            }
+
+            return Http::response([], 404);
+        });
 
         $this->actingAs($user)->withSession(['active_workspace_id' => $workspace->id]);
         $start = $this->get(route('social-accounts.meta.connect', $account));
