@@ -54,6 +54,12 @@ class VerifyBotApiToken
 
         $accountId = $request->input('social_account_id');
         $allowedAccountIds = array_map('intval', $agent->social_account_ids ?? []);
+        $isGroupSync = $request->is('api/bot/whatsapp/groups/sync')
+            || $request->is('api/bot/facebook/groups/sync');
+
+        if ($isGroupSync && ! filled($accountId)) {
+            return response()->json(['message' => 'A social_account_id is required for agent group synchronization.'], 422);
+        }
 
         if (filled($accountId) && ! in_array((int) $accountId, $allowedAccountIds, true)) {
             return response()->json(['message' => 'This agent is not authorized for the requested social account.'], 403);
