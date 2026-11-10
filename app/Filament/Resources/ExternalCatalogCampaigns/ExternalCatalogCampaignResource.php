@@ -26,11 +26,11 @@ class ExternalCatalogCampaignResource extends Resource
 {
     protected static ?string $model = ExternalCatalogCampaign::class;
 
-    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-megaphone';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';
 
     protected static ?int $navigationSort = 35;
 
-    public static function getNavigationGroup(): string | \UnitEnum | null
+    public static function getNavigationGroup(): string|\UnitEnum|null
     {
         return __('Integraciones');
     }
