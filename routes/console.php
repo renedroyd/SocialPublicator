@@ -1,9 +1,9 @@
 <?php
 
-use App\\Models\\PublicationExecution;
-use Illuminate\\Foundation\\Inspiring;
-use Illuminate\\Support\\Facades\\Artisan;
-use Illuminate\\Support\\Facades\\Schedule;
+use App\Models\PublicationExecution;
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('publications:mark-stale-executions', function (): int {
     $cutoff = now()->subMinutes(15);
