@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkspaceMembership extends Model
 {
@@ -87,6 +88,113 @@ class WorkspaceMembership extends Model
         });
     }
 
+    public function socialAccountPermissions(): HasMany
+    {
+        return $this->hasMany(WorkspaceMembershipSocialAccountPermission::class, 'membership_id');
+    }
+
+    public function destinationPermissions(): HasMany
+    {
+        return $this->hasMany(WorkspaceMembershipDestinationPermission::class, 'membership_id');
+    }
+
+    public function canUseSocialAccount(SocialAccount $account, string $permission = 'view'): bool
+    {
+        if (! $this->isActive() || (int) $this->workspace_id !== (int) $account->workspace_id) {
+            return false;
+        }
+
+        if ($permission === 'publish' && ! $this->hasPermission('publications.publish')) {
+            return false;
+        }
+
+        if ($this->isOwner() || $this->hasPermission('accounts.manage')) {
+            return true;
+        }
+
+        if (! $this->hasPermission('accounts.view')) {
+            return false;
+        }
+
+        if ($permission === 'manage') {
+            return false;
+        }
+
+        $grant = $this->socialAccountPermissions()
+            ->where('social_account_id', $account->id)
+            ->first();
+
+        return $grant !== null && (
+            in_array('*', $grant->permissions ?? [], true)
+            || in_array($permission, $grant->permissions ?? [], true)
+        );
+    }
+
+    public function canPublishToDestination(string $destinationType, int $destinationId): bool
+    {
+        if (! $this->canUseDestination($destinationType, $destinationId, 'publish')) {
+            return false;
+        }
+
+        $destinationClass = match ($destinationType) {
+            WorkspaceMembershipDestinationPermission::DESTINATION_FACEBOOK_GROUP => FacebookGroup::class,
+            WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP => WhatsAppGroup::class,
+            WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION => PublicationDestination::class,
+            default => null,
+        };
+
+        if (! $destinationClass) {
+            return false;
+        }
+
+        $destination = (new $destinationClass)->newQuery()->find($destinationId);
+
+        if (! $destination) {
+            return false;
+        }
+
+        if ($destination->social_account_id === null) {
+            return true;
+        }
+
+        $account = SocialAccount::query()->find($destination->social_account_id);
+
+        return $account !== null && $this->canUseSocialAccount($account, 'publish');
+    }
+
+    public function canUseDestination(string $destinationType, int $destinationId, string $permission = 'view'): bool
+    {
+        if (! $this->isActive()) {
+            return false;
+        }
+
+        if ($permission === 'publish' && ! $this->hasPermission('publications.publish')) {
+            return false;
+        }
+
+        if ($this->isOwner() || $this->hasPermission('destinations.manage')) {
+            return true;
+        }
+
+        if (! $this->hasPermission('destinations.view')) {
+            return false;
+        }
+
+        if ($permission === 'manage') {
+            return false;
+        }
+
+        $grant = $this->destinationPermissions()
+            ->where('destination_type', $destinationType)
+            ->where('destination_id', $destinationId)
+            ->first();
+
+        return $grant !== null && (
+            in_array('*', $grant->permissions ?? [], true)
+            || in_array($permission, $grant->permissions ?? [], true)
+        );
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'active';
@@ -113,6 +221,20 @@ class WorkspaceMembership extends Model
         }
 
         if (is_array($this->permissions) && $this->permissions !== []) {
+            if (
+                in_array('accounts.manage', $this->permissions, true)
+                && in_array($permission, ['accounts.view', 'accounts.create', 'accounts.update', 'accounts.delete'], true)
+            ) {
+                return true;
+            }
+
+            if (
+                in_array('destinations.manage', $this->permissions, true)
+                && in_array($permission, ['destinations.view', 'destinations.create', 'destinations.update', 'destinations.delete'], true)
+            ) {
+                return true;
+            }
+
             return in_array($permission, $this->permissions, true);
         }
 
@@ -127,12 +249,15 @@ class WorkspaceMembership extends Model
                 'campaigns.create',
                 'campaigns.update',
                 'products.view',
+                'accounts.view',
                 'destinations.view',
                 'executions.view',
                 'analytics.view',
             ],
             self::ROLE_COLLABORATOR => [
                 'publications.view',
+                'accounts.view',
+                'destinations.view',
                 'executions.view',
                 'analytics.view',
             ],

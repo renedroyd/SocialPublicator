@@ -5,16 +5,22 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Publication;
+use App\Models\PublicationDestination;
+use App\Models\SocialAccount;
+use App\Models\SocialAccountConnection;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceInvitation;
 use App\Models\WorkspaceMembership;
+use App\Models\WorkspaceMembershipDestinationPermission;
+use App\Models\WorkspaceMembershipSocialAccountPermission;
 use App\Services\Workspaces\AcceptWorkspaceInvitation;
 use App\Services\Workspaces\WorkspaceContext;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use LogicException;
 use Tests\TestCase;
 
@@ -42,6 +48,8 @@ class WorkspaceAccessTest extends TestCase
         $editor->update(['permissions' => ['accounts.manage']]);
 
         $this->assertTrue($editor->fresh()->hasPermission('accounts.manage'));
+        $this->assertTrue($editor->fresh()->hasPermission('accounts.view'));
+        $this->assertTrue($editor->fresh()->hasPermission('accounts.create'));
         $this->assertFalse($editor->fresh()->hasPermission('publications.publish'));
     }
 
@@ -228,5 +236,179 @@ class WorkspaceAccessTest extends TestCase
         $this->expectException(QueryException::class);
 
         $publication->products()->attach($foreignProduct->id);
+    }
+
+    public function test_social_account_credentials_are_encrypted_and_browser_sessions_are_referenced_only(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Cuentas seguras', 'slug' => 'cuentas-seguras']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        $account = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
+            'external_account_id' => 'profile-100',
+            'display_name' => 'Perfil de prueba',
+            'status' => SocialAccount::STATUS_PENDING,
+        ]);
+
+        $oauth = SocialAccountConnection::query()->create([
+            'social_account_id' => $account->id,
+            'connection_type' => SocialAccountConnection::TYPE_META_OAUTH,
+            'provider' => 'meta',
+            'status' => 'connected',
+            'credentials' => [
+                'access_token' => 'sensitive-access-token',
+                'refresh_token' => 'sensitive-refresh-token',
+            ],
+        ]);
+
+        $storedCredentials = DB::table('social_account_connections')
+            ->where('id', $oauth->id)
+            ->value('credentials');
+
+        $this->assertIsString($storedCredentials);
+        $this->assertStringNotContainsString('sensitive-access-token', $storedCredentials);
+        $this->assertSame('sensitive-access-token', $oauth->fresh()->credentials['access_token']);
+        $this->assertArrayNotHasKey('credentials', $oauth->toArray());
+
+        $browserSession = SocialAccountConnection::query()->create([
+            'social_account_id' => $account->id,
+            'connection_type' => SocialAccountConnection::TYPE_BROWSER_SESSION,
+            'provider' => 'puppeteer',
+            'status' => 'connected',
+            'agent_instance_id' => 'wbot-agent-01',
+            'session_reference' => 'opaque-facebook-session-01',
+        ]);
+
+        $this->assertArrayNotHasKey('session_reference', $browserSession->toArray());
+        $this->assertNull($browserSession->fresh()->credentials);
+    }
+
+    public function test_editor_needs_both_account_and_destination_grants_to_publish(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Permisos sociales', 'slug' => 'permisos-sociales']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        $membership = WorkspaceMembership::query()->create([
+            'workspace_id' => $workspace->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => WorkspaceMembership::ROLE_EDITOR,
+            'status' => 'active',
+        ]);
+
+        $account = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PAGE,
+            'parent_account_id' => SocialAccount::query()->create([
+                'platform' => SocialAccount::PLATFORM_FACEBOOK,
+                'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
+                'external_account_id' => 'profile-200',
+                'display_name' => 'Perfil principal',
+            ])->id,
+            'external_account_id' => 'page-200',
+            'display_name' => 'Página autorizada',
+        ]);
+
+        $destination = PublicationDestination::query()->create([
+            'social_account_id' => $account->id,
+            'platform' => 'facebook',
+            'external_id' => 'page-200',
+            'name' => 'Página autorizada',
+            'active' => true,
+        ]);
+
+        WorkspaceMembershipDestinationPermission::query()->create([
+            'membership_id' => $membership->id,
+            'destination_type' => WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
+            'destination_id' => $destination->id,
+            'permissions' => ['publish'],
+        ]);
+
+        $this->assertTrue($membership->fresh()->canUseDestination(
+            WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
+            $destination->id,
+            'publish',
+        ));
+        $this->assertFalse($membership->fresh()->canPublishToDestination(
+            WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
+            $destination->id,
+        ));
+
+        WorkspaceMembershipSocialAccountPermission::query()->create([
+            'membership_id' => $membership->id,
+            'social_account_id' => $account->id,
+            'permissions' => ['publish'],
+        ]);
+
+        $freshMembership = $membership->fresh();
+
+        $this->assertTrue($freshMembership->canUseSocialAccount($account, 'publish'));
+        $this->assertTrue($freshMembership->canPublishToDestination(
+            WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
+            $destination->id,
+        ));
+    }
+
+    public function test_account_permissions_cannot_cross_workspace_boundaries(): void
+    {
+        $first = Workspace::query()->create(['name' => 'Cuenta A', 'slug' => 'cuenta-a']);
+        $second = Workspace::query()->create(['name' => 'Cuenta B', 'slug' => 'cuenta-b']);
+
+        $membership = WorkspaceMembership::query()->create([
+            'workspace_id' => $first->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => WorkspaceMembership::ROLE_EDITOR,
+            'status' => 'active',
+        ]);
+
+        app(WorkspaceContext::class)->set((int) $second->id);
+        $account = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_WHATSAPP,
+            'account_type' => SocialAccount::TYPE_WHATSAPP,
+            'external_account_id' => 'wa-300',
+            'display_name' => 'WhatsApp externo',
+        ]);
+
+        app(WorkspaceContext::class)->set((int) $first->id);
+
+        $this->expectException(QueryException::class);
+
+        WorkspaceMembershipSocialAccountPermission::query()->create([
+            'membership_id' => $membership->id,
+            'social_account_id' => $account->id,
+            'permissions' => ['view'],
+        ]);
+    }
+
+    public function test_destination_grants_reject_destinations_from_another_workspace(): void
+    {
+        $first = Workspace::query()->create(['name' => 'Destino A', 'slug' => 'destino-a']);
+        $second = Workspace::query()->create(['name' => 'Destino B', 'slug' => 'destino-b']);
+
+        $membership = WorkspaceMembership::query()->create([
+            'workspace_id' => $first->id,
+            'user_id' => User::factory()->create()->id,
+            'role' => WorkspaceMembership::ROLE_EDITOR,
+            'status' => 'active',
+        ]);
+
+        app(WorkspaceContext::class)->set((int) $second->id);
+        $destination = PublicationDestination::query()->create([
+            'platform' => 'facebook',
+            'external_id' => 'foreign-page-1',
+            'name' => 'Página ajena',
+            'active' => true,
+        ]);
+
+        app(WorkspaceContext::class)->set((int) $first->id);
+
+        $this->expectException(LogicException::class);
+
+        WorkspaceMembershipDestinationPermission::query()->create([
+            'membership_id' => $membership->id,
+            'destination_type' => WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
+            'destination_id' => $destination->id,
+            'permissions' => ['view'],
+        ]);
     }
 }
