@@ -5,6 +5,7 @@ namespace App\Filament\Resources\SocialAccounts;
 use App\Filament\Resources\Concerns\AuthorizesWorkspaceResources;
 use App\Filament\Resources\SocialAccounts\Pages\ListSocialAccounts;
 use App\Models\SocialAccount;
+use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -141,6 +142,11 @@ class SocialAccountResource extends Resource
                 TextColumn::make('connections_count')->counts('connections')->label('Conexiones'),
             ])
             ->actions([
+                Action::make('connectMeta')
+                    ->label('Conectar con Meta')
+                    ->icon('heroicon-o-link')
+                    ->url(fn (SocialAccount $record): string => route('social-accounts.meta.connect', $record))
+                    ->visible(fn (SocialAccount $record): bool => $record->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE),
                 EditAction::make(),
             ])
             ->headerActions([
