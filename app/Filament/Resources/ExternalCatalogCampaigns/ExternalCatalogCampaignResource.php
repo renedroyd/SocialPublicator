@@ -74,7 +74,7 @@ class ExternalCatalogCampaignResource extends Resource
                         name: 'items',
                         titleAttribute: 'name',
                         modifyQueryUsing: fn ($query) => $query
-                            ->where('source', ExternalCatalogCampaign::query()->getModel()->items()->getRelated()::SOURCE_DUBAI_SHOP)
+                            ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
                             ->where('active', true)
                             ->where('visible', true)
                             ->orderBy('name'),
