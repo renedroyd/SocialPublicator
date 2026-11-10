@@ -30,6 +30,7 @@ return new class extends Migration
             $table->unsignedBigInteger('revision')->default(1);
             $table->timestamp('source_updated_at')->nullable();
             $table->timestamp('synced_at')->nullable();
+            $table->uuid('sync_run_id')->nullable();
             $table->timestamps();
 
             $table->unique(['source', 'external_id']);
