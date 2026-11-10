@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FacebookGroup;
+use App\Models\SocialAccount;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,10 +16,19 @@ class FacebookGroupController extends Controller
     {
         $rawGroups = $request->input('groups');
 
-        // Keep compatibility with the current stable bot while the API contract
-        // is migrated to English.
         if (! is_array($rawGroups)) {
             $rawGroups = $request->input('grupos', []);
+        }
+
+        $accountId = $request->input('social_account_id');
+        $account = $accountId !== null ? SocialAccount::query()->findOrFail($accountId) : null;
+
+        if ($account !== null) {
+            abort_unless(
+                $account->platform === SocialAccount::PLATFORM_FACEBOOK
+                    && $account->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE,
+                422,
+            );
         }
 
         $groups = collect($rawGroups)
@@ -46,15 +56,23 @@ class FacebookGroupController extends Controller
         $receivedIds = [];
         $ignoredGenericNames = 0;
 
-        DB::transaction(function () use ($data, $synchronizedAt, &$receivedIds, &$ignoredGenericNames): void {
+        DB::transaction(function () use ($data, $synchronizedAt, $account, &$receivedIds, &$ignoredGenericNames): void {
             foreach ($data['groups'] as $group) {
-                $existing = FacebookGroup::query()
-                    ->where('facebook_id', $group['facebook_id'])
-                    ->first();
+                $existingQuery = FacebookGroup::query()
+                    ->where('facebook_id', $group['facebook_id']);
+
+                if ($account !== null) {
+                    $existingQuery->where(function ($query) use ($account): void {
+                        $query->where('social_account_id', $account->id)
+                            ->orWhereNull('social_account_id');
+                    });
+                } else {
+                    $existingQuery->whereNull('social_account_id');
+                }
+
+                $existing = $existingQuery->first();
 
                 if ($this->isGenericGroupName($group['name'])) {
-                    // Never create placeholder records, and never overwrite a
-                    // real name already known by Laravel with "Grupo Facebook 123".
                     if (! $existing) {
                         $ignoredGenericNames++;
 
@@ -62,6 +80,7 @@ class FacebookGroupController extends Controller
                     }
 
                     $existing->forceFill([
+                        'social_account_id' => $account?->id ?? $existing->social_account_id,
                         'url' => $group['url'] ?: $existing->url,
                         'active' => true,
                         'last_synchronized_at' => $synchronizedAt,
@@ -73,15 +92,16 @@ class FacebookGroupController extends Controller
                     continue;
                 }
 
-                $record = FacebookGroup::updateOrCreate(
-                    ['facebook_id' => $group['facebook_id']],
-                    [
-                        'name' => $group['name'],
-                        'url' => $group['url'],
-                        'active' => true,
-                        'last_synchronized_at' => $synchronizedAt,
-                    ],
-                );
+                $record = $existing ?? new FacebookGroup;
+                $record->fill([
+                    'social_account_id' => $account?->id,
+                    'facebook_id' => $group['facebook_id'],
+                    'name' => $group['name'],
+                    'url' => $group['url'],
+                    'active' => true,
+                    'last_synchronized_at' => $synchronizedAt,
+                ]);
+                $record->save();
 
                 $receivedIds[] = $record->id;
             }
