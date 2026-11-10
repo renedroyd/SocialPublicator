@@ -13,7 +13,9 @@ class DispatchCampaignPublications extends Command
 
     public function handle(CampaignPublicationDispatcher $dispatcher): int
     {
-        if (! filled(config('services.dubai_shop.api_base_url')) || ! filled(config('services.dubai_shop.api_token'))) {
+        if (! config('services.dubai_shop.campaign_dispatch_enabled')
+            || ! filled(config('services.dubai_shop.api_base_url'))
+            || ! filled(config('services.dubai_shop.api_token'))) {
             $this->warn('Dubai Shop API is not configured; campaign dispatch was skipped.');
 
             return self::SUCCESS;
