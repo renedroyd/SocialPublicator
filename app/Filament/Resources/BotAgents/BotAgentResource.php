@@ -101,7 +101,7 @@ class BotAgentResource extends Resource
                         ->maxLength(120),
                     TextInput::make('instance_id')
                         ->label('Identificador de instancia')
-                        ->helperText('Debe coincidir exactamente con BOT_INSTANCE_ID en el .env de WBot.')
+                        ->helperText('Debe coincidir exactamente con BOT_INSTANCE_ID en el .env de WBot. Tras guardar, emite el token con php artisan bot-agent:issue-token {workspace_id} {instance_id}; se mostrará una sola vez.')
                         ->required()
                         ->maxLength(191)
                         ->disabledOn('edit'),
