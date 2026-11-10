@@ -393,3 +393,8 @@ El proyecto utiliza la licencia MIT.
 - Laravel: https://laravel.com/docs
 - Filament: https://filamentphp.com/docs
 - Laravel Boost: https://laravel.com/docs/ai
+
+
+## Integración con Clásico Dubai
+
+El contrato técnico de integración con Dubai Shop está documentado en [docs/integrations/dubai-shop-contract.md](docs/integrations/dubai-shop-contract.md). Define a Dubai Shop como fuente de verdad del catálogo, precios y disponibilidad, y a SocialPublicator como consumidor y motor de publicación. El contrato contempla sincronización por API, eventos firmados, almacenes configurables por campaña, notificaciones de agotamiento y reposición, actualizaciones inmediatas de precio y publicaciones agrupadas. La implementación se realiza de forma gradual; la documentación no implica que la integración esté activa.
