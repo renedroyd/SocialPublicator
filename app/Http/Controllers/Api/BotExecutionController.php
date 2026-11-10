@@ -47,11 +47,13 @@ class BotExecutionController extends Controller
 
     public function complete(
         Request $request,
-        PublicationExecution $execution,
+        int $execution,
         PublicationExecutionService $service
     ): JsonResponse {
+        $execution = PublicationExecution::query()->findOrFail($execution);
+
         $validated = $request->validate([
-            'external_id' => ['nullable', 'string', 'max:255'],
+            'external_id => ['nullable', 'string', 'max:255'],
             'instance_id' => ['nullable', 'string', 'max:191'],
         ]);
 
@@ -67,9 +69,11 @@ class BotExecutionController extends Controller
 
     public function fail(
         Request $request,
-        PublicationExecution $execution,
+        int $execution,
         PublicationExecutionService $service
     ): JsonResponse {
+        $execution = PublicationExecution::query()->findOrFail($execution);
+
         $validated = $request->validate([
             'error' => ['required', 'string', 'max:2000'],
             'instance_id' => ['nullable', 'string', 'max:191'],
