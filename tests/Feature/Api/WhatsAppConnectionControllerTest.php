@@ -77,6 +77,14 @@ class WhatsAppConnectionControllerTest extends TestCase
             'display_name' => 'WhatsApp principal',
         ]);
         Cache::put('social-account-whatsapp-qr:'.$workspace->id.':'.$account->id, 'expired-qr', now()->addMinute());
+        $token = 'whatsapp-agent-token-2';
+        BotAgent::query()->create([
+            'name' => 'WBot WhatsApp',
+            'instance_id' => 'wbot-local-01',
+            'token_hash' => hash('sha256', $token),
+            'social_account_ids' => [$account->id],
+            'is_active' => true,
+        ]);
         app(WorkspaceContext::class)->clear();
 
         $this->withToken($token)->postJson('/api/bot/whatsapp/connection/state', [
