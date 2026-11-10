@@ -38,6 +38,7 @@ class WhatsAppConnectionControllerTest extends TestCase
         $response = $this->withToken('test-bot-token')->postJson('/api/bot/whatsapp/connection/state', [
             'social_account_id' => $account->id,
             'agent_instance_id' => 'wbot-local-01',
+            'session_name' => 'whatsapp-main',
             'status' => 'qr',
             'qr' => 'data:image/png;base64,temporary-qr',
         ]);
@@ -47,6 +48,7 @@ class WhatsAppConnectionControllerTest extends TestCase
         app(WorkspaceContext::class)->set((int) $workspace->id);
         $connection = $account->connections()->firstOrFail();
         $this->assertSame('pending', $connection->status);
+        $this->assertSame('whatsapp-main', $connection->provider_connection_id);
         $this->assertNull($connection->credentials);
         $this->assertStringStartsWith('wppconnect:', $connection->session_reference);
         $this->assertSame('data:image/png;base64,temporary-qr', Cache::get(
