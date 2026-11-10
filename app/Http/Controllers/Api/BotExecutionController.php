@@ -28,10 +28,11 @@ class BotExecutionController extends Controller
 
         $this->assertAgentOwnsTarget($validated);
 
-        $execution = $service->getOrCreate([
-            ...$validated,
-            'agent_instance_id' => $validated['instance_id'] ?? null,
-        ]);
+        $executionAttributes = $validated;
+        unset($executionAttributes['instance_id']);
+        $executionAttributes['agent_instance_id'] = $validated['instance_id'] ?? null;
+
+        $execution = $service->getOrCreate($executionAttributes);
 
         $this->assertExecutionAgent($execution, $validated['instance_id'] ?? null);
 
@@ -88,10 +89,6 @@ class BotExecutionController extends Controller
     {
         $instanceId = $data['instance_id'] ?? null;
 
-        if ($instanceId === null) {
-            return;
-        }
-
         $legacyInstanceId = (string) config('services.bot_api.command_bot_name', 'WBot');
 
         if ($data['channel'] === 'whatsapp') {
@@ -110,10 +107,16 @@ class BotExecutionController extends Controller
         }
 
         if (! $group || ! $group->social_account_id) {
-            abort_unless($instanceId === $legacyInstanceId, 403, 'El destino no está asignado a esta instancia WBot.');
+            abort_unless(
+                $instanceId === null || $instanceId === $legacyInstanceId,
+                403,
+                'El destino no está asignado a esta instancia WBot.',
+            );
 
             return;
         }
+
+        abort_unless($instanceId !== null, 403, 'La cuenta de destino requiere una identidad de agente.');
 
         $connection = SocialAccountConnection::query()
             ->where('social_account_id', $group->social_account_id)
