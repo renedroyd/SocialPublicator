@@ -103,33 +103,45 @@ return new class extends Migration
     public function down(): void
     {
         $dependentRelations = [
-            'products' => ['categoria_id'],
-            'inventory_movements' => ['producto_id'],
-            'publication_executions' => ['publication_id'],
-            'publication_schedules' => ['publication_id'],
-            'external_catalog_campaign_selections' => ['campaign_id', 'external_catalog_item_id'],
-            'external_catalog_campaign_triggers' => ['campaign_id', 'external_catalog_item_id'],
+            'inventory_movements' => ['producto_id', 'products'],
+            'publication_executions' => ['publication_id', 'publications'],
+            'publication_schedules' => ['publication_id', 'publications'],
+            'external_catalog_campaign_selections' => [
+                'campaign_id' => 'external_catalog_campaigns',
+                'external_catalog_item_id' => 'external_catalog_items',
+            ],
+            'external_catalog_campaign_triggers' => [
+                'campaign_id' => 'external_catalog_campaigns',
+                'external_catalog_item_id' => 'external_catalog_items',
+            ],
         ];
 
-        foreach ($dependentRelations as $childTable => $foreignKeys) {
+        foreach ($dependentRelations as $childTable => $relations) {
             if (! Schema::hasTable($childTable)) {
                 continue;
             }
 
-            foreach ($foreignKeys as $foreignKey) {
-                if (! Schema::hasColumn($childTable, $foreignKey)) {
-                    continue;
-                }
+            $foreignKeys = is_array($relations) && array_is_list($relations)
+                ? [$relations[0] => $relations[1]]
+                : $relations;
 
+            foreach ($foreignKeys as $foreignKey => $parentTable) {
                 $constraint = 'ws_'.substr(hash('sha256', $childTable.'_'.$foreignKey), 0, 10).'_fk';
 
                 Schema::table($childTable, function (Blueprint $table) use ($constraint): void {
                     $table->dropForeign($constraint);
                 });
+
+                Schema::table($childTable, function (Blueprint $table) use ($foreignKey, $parentTable): void {
+                    $table->foreign($foreignKey)
+                        ->references('id')
+                        ->on($parentTable)
+                        ->cascadeOnDelete();
+                });
             }
         }
 
-        foreach ($this->pivotTables as $tableName => $columns) {
+        foreach ($this->pivotTables as $tableName => [$leftKey, $leftTable, $rightKey, $rightTable]) {
             if (! Schema::hasTable($tableName) || ! Schema::hasColumn($tableName, 'workspace_id')) {
                 continue;
             }
@@ -140,6 +152,16 @@ return new class extends Migration
             Schema::table($tableName, function (Blueprint $table) use ($leftConstraint, $rightConstraint): void {
                 $table->dropForeign($leftConstraint);
                 $table->dropForeign($rightConstraint);
+            });
+
+            Schema::table($tableName, function (Blueprint $table) use ($tableName, $leftKey, $leftTable, $rightKey, $rightTable): void {
+                $table->foreign($leftKey)->references('id')->on($leftTable)->cascadeOnDelete();
+
+                if ($tableName === 'publication_product') {
+                    $table->foreign($rightKey)->references('id')->on($rightTable)->restrictOnDelete();
+                } else {
+                    $table->foreign($rightKey)->references('id')->on($rightTable)->cascadeOnDelete();
+                }
             });
         }
 
@@ -196,6 +218,17 @@ return new class extends Migration
                 });
             }
         }
+
+        Schema::table('products', function (Blueprint $table): void {
+            $table->dropForeign('products_categoria_id_foreign');
+        });
+
+        Schema::table('products', function (Blueprint $table): void {
+            $table->foreign('categoria_id')
+                ->references('id')
+                ->on('categories')
+                ->nullOnDelete();
+        });
 
         // Global unique indexes are not restored automatically because different
         // workspaces may now contain the same business identifiers.
@@ -310,8 +343,16 @@ return new class extends Migration
             });
         }
 
+        $this->dropForeignKeysForColumns('products', ['categoria_id']);
+
+        Schema::table('products', function (Blueprint $table): void {
+            $table->foreign('categoria_id', 'products_categoria_id_foreign')
+                ->references('id')
+                ->on('categories')
+                ->nullOnDelete();
+        });
+
         $dependentRelations = [
-            'products' => [['categoria_id', 'categories']],
             'inventory_movements' => [['producto_id', 'products']],
             'publication_executions' => [['publication_id', 'publications']],
             'publication_schedules' => [['publication_id', 'publications']],
@@ -335,6 +376,8 @@ return new class extends Migration
                     continue;
                 }
 
+                $this->dropForeignKeysForColumns($childTable, [$foreignKey]);
+
                 $constraint = 'ws_'.substr(hash('sha256', $childTable.'_'.$foreignKey), 0, 10).'_fk';
 
                 Schema::table($childTable, function (Blueprint $table) use ($foreignKey, $parentTable, $constraint): void {
@@ -350,6 +393,8 @@ return new class extends Migration
             if (! Schema::hasTable($tableName) || ! Schema::hasColumn($tableName, 'workspace_id')) {
                 continue;
             }
+
+            $this->dropForeignKeysForColumns($tableName, [$leftKey, $rightKey]);
 
             Schema::table($tableName, function (Blueprint $table) use (
                 $tableName,
@@ -368,11 +413,31 @@ return new class extends Migration
                     ->on($leftTable)
                     ->cascadeOnDelete();
 
-                $table->foreign(['workspace_id', $rightKey], $rightConstraint)
+                $rightForeignKey = $table->foreign(['workspace_id', $rightKey], $rightConstraint)
                     ->references(['workspace_id', 'id'])
-                    ->on($rightTable)
-                    ->cascadeOnDelete();
+                    ->on($rightTable);
+
+                if ($tableName === 'publication_product') {
+                    $rightForeignKey->restrictOnDelete();
+                } else {
+                    $rightForeignKey->cascadeOnDelete();
+                }
             });
+        }
+    }
+
+    private function dropForeignKeysForColumns(string $tableName, array $columns): void
+    {
+        if (! Schema::hasTable($tableName)) {
+            return;
+        }
+
+        foreach (Schema::getForeignKeys($tableName) as $foreignKey) {
+            if (array_intersect($columns, $foreignKey['columns'] ?? [])) {
+                Schema::table($tableName, function (Blueprint $table) use ($foreignKey): void {
+                    $table->dropForeign($foreignKey['name']);
+                });
+            }
         }
     }
 

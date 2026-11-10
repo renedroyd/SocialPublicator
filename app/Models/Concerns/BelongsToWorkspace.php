@@ -3,6 +3,8 @@
 namespace App\Models\Concerns;
 
 use App\Models\Workspace;
+use App\Models\Product;
+use App\Models\Category;
 use App\Models\Publication;
 use App\Models\PublicationExecution;
 use App\Models\ExternalCatalogCampaign;
@@ -35,6 +37,9 @@ trait BelongsToWorkspace
         static::saving(function (Model $model): void {
             $workspaceId = app(WorkspaceContext::class)->id();
             $relations = match ($model::class) {
+                Product::class => [
+                    ['categoria_id', Category::class],
+                ],
                 Publication::class => [
                     ['external_campaign_id', ExternalCatalogCampaign::class],
                     ['external_campaign_trigger_id', ExternalCatalogCampaignTrigger::class],

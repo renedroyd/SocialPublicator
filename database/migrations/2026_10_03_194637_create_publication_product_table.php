@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('publication_product', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('publicacion_id')
-                ->constrained('publicaciones')
+            $table->foreignId('publication_id')
+                ->constrained('publications')
                 ->cascadeOnDelete();
 
-            $table->foreignId('producto_id')
-                ->constrained('productos')
+            $table->foreignId('product_id')
+                ->constrained('products')
                 ->restrictOnDelete();
 
             /*
