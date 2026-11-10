@@ -4,21 +4,29 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Publication;
+use App\Models\SocialAccountConnection;
 use App\Models\WorkspaceMembership;
 use App\Models\WorkspaceMembershipDestinationPermission;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class BotPublicationController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'instance_id' => ['nullable', 'string', 'max:191'],
+        ]);
+        $instanceId = filled($validated['instance_id'] ?? null) ? $validated['instance_id'] : null;
         $now = now();
         $currentDate = $now->toDateString();
 
         $publications = Publication::query()
             ->with([
+                'whatsappGroups.socialAccount.connections',
+                'facebookGroups.socialAccount.connections',
                 'whatsappGroups' => function ($query): void {
                     $query
                         ->where('active', true)
@@ -70,6 +78,26 @@ class BotPublicationController extends Controller
                     WorkspaceMembershipDestinationPermission::DESTINATION_FACEBOOK_GROUP,
                     (int) $group->id,
                 ))->values();
+
+            if ($instanceId !== null) {
+                $legacyInstanceId = (string) config('services.bot_api.command_bot_name', 'WBot');
+                $eligibleWhatsAppGroups = $eligibleWhatsAppGroups
+                    ->filter(fn ($group): bool => $this->groupBelongsToAgent(
+                        $group,
+                        $instanceId,
+                        $legacyInstanceId,
+                        SocialAccountConnection::TYPE_WPP_CONNECT_QR,
+                    ))
+                    ->values();
+                $eligibleFacebookGroups = $eligibleFacebookGroups
+                    ->filter(fn ($group): bool => $this->groupBelongsToAgent(
+                        $group,
+                        $instanceId,
+                        $legacyInstanceId,
+                        SocialAccountConnection::TYPE_BROWSER_SESSION,
+                    ))
+                    ->values();
+            }
 
             foreach ($this->generateDailyOccurrences($publication, $now) as $occurrence) {
                 $whatsappGroups = in_array(
@@ -172,6 +200,23 @@ class BotPublicationController extends Controller
         );
 
         return response()->json(['data' => $result]);
+    }
+
+    private function groupBelongsToAgent(
+        $group,
+        string $instanceId,
+        string $legacyInstanceId,
+        string $connectionType,
+    ): bool {
+        if (! $group->social_account_id) {
+            return $instanceId === $legacyInstanceId;
+        }
+
+        return $group->socialAccount?->connections?->contains(
+            fn (SocialAccountConnection $connection): bool => $connection->connection_type === $connectionType
+                && $connection->status === 'connected'
+                && $connection->agent_instance_id === $instanceId,
+        ) ?? false;
     }
 
     private function generateDailyOccurrences(
