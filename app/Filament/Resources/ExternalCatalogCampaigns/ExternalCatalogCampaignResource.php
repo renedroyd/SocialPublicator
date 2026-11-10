@@ -17,6 +17,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
@@ -106,7 +107,8 @@ class ExternalCatalogCampaignResource extends Resource
                     ->searchable()
                     ->preload()
                     ->native(false)
-                    ->helperText(__('Selecciona los artículos que esta campaña podrá publicar.')),
+                    ->helperText(__('Selecciona los artículos que esta campaña podrá publicar.'))
+                    ->visible(fn (Get $get): bool => $get('selection_mode') === 'manual'),
                 Select::make('warehouses')
                     ->label(__('Almacenes habilitados'))
                     ->relationship(
