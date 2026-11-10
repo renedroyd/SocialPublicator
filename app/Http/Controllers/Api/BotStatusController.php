@@ -13,6 +13,7 @@ class BotStatusController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:100'],
+            'instance_id' => ['nullable', 'string', 'max:191'],
             'platform' => ['required', 'string', 'max:30'],
             'status' => ['required', 'string', 'in:online,offline,error,starting,stopping'],
             'version' => ['nullable', 'string', 'max:100'],
@@ -21,10 +22,13 @@ class BotStatusController extends Controller
             'metadata' => ['nullable', 'array'],
         ]);
 
+        $instanceId = $validated['instance_id'] ?? $validated['name'];
+
         $botStatus = BotStatus::query()->updateOrCreate(
-            ['name' => $validated['name']],
+            ['instance_id' => $instanceId],
             [
                 ...$validated,
+                'instance_id' => $instanceId,
                 'last_seen_at' => now(),
             ],
         );
