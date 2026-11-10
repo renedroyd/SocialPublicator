@@ -6,6 +6,7 @@ use App\Filament\Resources\ExternalCatalogCampaigns\Pages\CreateExternalCatalogC
 use App\Filament\Resources\ExternalCatalogCampaigns\Pages\EditExternalCatalogCampaign;
 use App\Filament\Resources\ExternalCatalogCampaigns\Pages\ListExternalCatalogCampaigns;
 use App\Models\ExternalCatalogCampaign;
+use App\Models\ExternalCatalogItem;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
