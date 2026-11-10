@@ -73,6 +73,11 @@ class ExternalCatalogCampaign extends Model
         return $this->hasMany(ExternalCatalogCampaignSelection::class, 'campaign_id');
     }
 
+    public function triggers(): HasMany
+    {
+        return $this->hasMany(ExternalCatalogCampaignTrigger::class, 'campaign_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
