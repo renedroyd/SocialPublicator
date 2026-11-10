@@ -21,7 +21,7 @@ return new class extends Migration
     {
         Schema::table('whatsapp_groups', function (Blueprint $table): void {
             $table->dropUnique('whatsapp_groups_workspace_account_external_unique');
-            $table->unique('whatsapp_id', 'whatsapp_groups_whatsapp_id_unique');
+            $table->unique(['workspace_id', 'whatsapp_id'], 'whatsapp_groups_workspace_whatsapp_id_unique');
         });
     }
 };
