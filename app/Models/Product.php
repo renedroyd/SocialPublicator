@@ -77,9 +77,9 @@ class Product extends Model
             'publication_product'
         )
             ->withPivot([
-            'quantity',
-            'published_price',
-            'sort_order',
+                'quantity',
+                'published_price',
+                'sort_order',
             ])
             ->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())
             ->withTimestamps()

@@ -54,7 +54,7 @@ class Publication extends Model
     {
         $startDate = $this->date?->copy()->startOfDay();
 
-        if (!$startDate) {
+        if (! $startDate) {
             return null;
         }
 
@@ -89,7 +89,7 @@ class Publication extends Model
                 }
             }
 
-            return (!$endDate || $candidate->lte($endDate)) ? $candidate : null;
+            return (! $endDate || $candidate->lte($endDate)) ? $candidate : null;
         }
 
         if ($this->recurrence_type === 'weekly') {
@@ -105,7 +105,7 @@ class Publication extends Model
                     continue;
                 }
 
-                if (!in_array($candidate->dayOfWeekIso, $days, true)) {
+                if (! in_array($candidate->dayOfWeekIso, $days, true)) {
                     continue;
                 }
 
