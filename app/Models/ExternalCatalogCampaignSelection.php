@@ -12,6 +12,7 @@ class ExternalCatalogCampaignSelection extends Model
         'external_catalog_item_id',
         'selection_group_id',
         'available_quantity',
+        'warehouse_external_ids',
         'selected_at',
         'status',
     ];
@@ -20,6 +21,7 @@ class ExternalCatalogCampaignSelection extends Model
     {
         return [
             'available_quantity' => 'integer',
+            'warehouse_external_ids' => 'array',
             'selected_at' => 'datetime',
         ];
     }
