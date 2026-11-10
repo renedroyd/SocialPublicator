@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\MetaOAuthController;
 use App\Http\Controllers\SocialAccountWhatsAppQrController;
+use App\Http\Controllers\SocialAccountFacebookSessionController;
 use App\Http\Controllers\WorkspaceInvitationController;
 use App\Http\Controllers\WorkspaceSwitchController;
 use App\Http\Middleware\ResolveWorkspaceContext;
@@ -19,6 +20,12 @@ Route::post('/workspace/switch', [WorkspaceSwitchController::class, 'store'])
     ->name('workspace.switch');
 
 Route::middleware(['auth', ResolveWorkspaceContext::class])->group(function (): void {
+    Route::get('/social-accounts/{socialAccount}/facebook/session', [SocialAccountFacebookSessionController::class, 'show'])
+        ->name('social-accounts.facebook.session');
+
+    Route::get('/social-accounts/{socialAccount}/facebook/session/data', [SocialAccountFacebookSessionController::class, 'data'])
+        ->name('social-accounts.facebook.session.data');
+
     Route::get('/social-accounts/{socialAccount}/whatsapp/qr', [SocialAccountWhatsAppQrController::class, 'show'])
         ->name('social-accounts.whatsapp.qr');
 
