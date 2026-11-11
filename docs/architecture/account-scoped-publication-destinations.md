@@ -35,7 +35,9 @@ autorizadas para el BotAgent que realiza la petición:
 - El worker A recibe solo los grupos asociados a las cuentas asignadas a A.
 - El worker B recibe solo los grupos asociados a las cuentas asignadas a B.
 - Los grupos de WhatsApp solo se entregan a agentes cuando su administración está
-  verificada.
+  verificada y la cuenta asociada es de tipo WhatsApp. Los grupos de Facebook deben
+  pertenecer a una cuenta de perfil Facebook con conexión de navegador; las páginas
+  oficiales siguen el flujo Meta OAuth/API.
 - Cada grupo conserva su clave de destino y su ejecución idempotente independiente.
 
 Así, una campaña puede publicar el mismo contenido a destinos de varias cuentas sin
