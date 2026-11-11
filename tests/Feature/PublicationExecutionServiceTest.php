@@ -158,7 +158,6 @@ class PublicationExecutionServiceTest extends TestCase
         $this->assertSame('external-post-123', $execution->external_id);
     }
 
-
     public function test_it_requires_verified_absence_before_retrying_an_unknown_execution(): void
     {
         $execution = $this->createExecution();
