@@ -17,8 +17,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class MetaOAuthController extends Controller
 {
-    public function connect(Request $request, SocialAccount $socialAccount): Response
+    public function connect(Request $request, int $socialAccount): Response
     {
+        $socialAccount = SocialAccount::query()->findOrFail($socialAccount);
         $membership = $this->authorizeAccount($request, $socialAccount);
         abort_unless($socialAccount->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE, 422);
 
