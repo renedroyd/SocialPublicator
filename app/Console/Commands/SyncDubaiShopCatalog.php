@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Services\ExternalCatalogSyncService;
 use App\Services\DubaiShopIntegrationManager;
+use App\Services\ExternalCatalogSyncService;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Console\Command;
 use Throwable;
