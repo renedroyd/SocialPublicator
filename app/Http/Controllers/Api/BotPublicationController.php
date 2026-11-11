@@ -85,6 +85,12 @@ class BotPublicationController extends Controller
                     (int) $group->id,
                 ))->values();
 
+            if ($isAgentScopedRequest) {
+                $eligibleWhatsAppGroups = $eligibleWhatsAppGroups
+                    ->filter(static fn ($group): bool => $group->is_admin === true)
+                    ->values();
+            }
+
             if ($instanceId !== null) {
                 $legacyInstanceId = (string) config('services.bot_api.command_bot_name', 'WBot');
                 $eligibleWhatsAppGroups = $eligibleWhatsAppGroups
