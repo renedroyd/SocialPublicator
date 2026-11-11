@@ -92,6 +92,8 @@ class MetaOAuthControllerTest extends TestCase
         $this->assertSame($account->id, $page->parent_account_id);
         $this->assertSame('page-secret-token', $page->connections()->firstOrFail()->credentials['access_token']);
         $this->assertSame('long-user-token', $account->connections()->firstOrFail()->credentials['access_token']);
+        $this->assertNotNull($account->connections()->firstOrFail()->expires_at);
+        $this->assertNotNull($page->connections()->firstOrFail()->expires_at);
         $this->assertArrayNotHasKey('credentials', $account->connections()->firstOrFail()->toArray());
         $this->assertSame(2, SocialAccountConnection::query()->count());
     }
