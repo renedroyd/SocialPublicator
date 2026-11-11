@@ -55,6 +55,13 @@ class AgentPublicationIsolationTest extends TestCase
             'active' => true,
             'is_admin' => true,
         ]);
+        $nonAdminGroup = WhatsAppGroup::query()->create([
+            'social_account_id' => $accountA->id,
+            'whatsapp_id' => 'group-a-member@g.us',
+            'name' => 'Grupo A sin administración',
+            'active' => true,
+            'is_admin' => false,
+        ]);
 
         $publication = Publication::query()->create([
             'date' => now()->toDateString(),
@@ -65,7 +72,7 @@ class AgentPublicationIsolationTest extends TestCase
             'active' => true,
             'recurrence_type' => 'none',
         ]);
-        $publication->whatsappGroups()->attach([$groupA->id, $groupB->id]);
+        $publication->whatsappGroups()->attach([$groupA->id, $groupB->id, $nonAdminGroup->id]);
         app(WorkspaceContext::class)->clear();
 
         $response = $this->withToken($tokenA)
