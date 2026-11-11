@@ -58,6 +58,28 @@ class BotAgentHealthTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_legacy_health_is_rejected_when_workspace_has_social_accounts(): void
+    {
+        $workspace = Workspace::query()->create([
+            'name' => 'Managed health workspace',
+            'slug' => 'managed-health-workspace',
+        ]);
+        config(['services.bot_api.workspace_id' => $workspace->id]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_WHATSAPP,
+            'account_type' => SocialAccount::TYPE_WHATSAPP,
+            'display_name' => 'Cuenta gestionada',
+        ]);
+
+        app(WorkspaceContext::class)->clear();
+
+        $this->withToken('test-bot-token')
+            ->getJson('/api/bot/agent/health?instance_id=WBot')
+            ->assertForbidden();
+    }
+
     public function test_legacy_health_is_limited_to_its_configured_workspace(): void
     {
         $workspace = $this->workspace();
