@@ -118,6 +118,7 @@ class DispatchMetaPagePublications extends Command
         $scheduledTime = $publication->recurrence_type === 'hourly'
             ? ($publication->recurrence_start_time ?: $publication->time)
             : $publication->time;
+        $scheduledTime = substr((string) $scheduledTime, 0, 5);
 
         if ($publication->recurrence_type === 'none') {
             return $startDate->equalTo($today) && $scheduledTime === $occurrenceTime;
