@@ -23,6 +23,10 @@ class PublicationForm
 {
     private static function authorizedDestinations(Builder $query, string $destinationType): Builder
     {
+        if ($destinationType === WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP) {
+            $query->where('is_admin', true);
+        }
+
         $membership = auth()->user()?->activeWorkspaceMemberships()
             ->where('workspace_id', app(WorkspaceContext::class)->id())
             ->first();
