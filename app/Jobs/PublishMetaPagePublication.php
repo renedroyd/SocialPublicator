@@ -6,6 +6,8 @@ use App\Models\PublicationDestination;
 use App\Models\PublicationExecution;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
+use App\Models\WorkspaceMembership;
+use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\PublicationExecutionService;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Bus\Queueable;
@@ -63,7 +65,11 @@ class PublishMetaPagePublication implements ShouldQueue
             }
 
             $publication = $execution->publication;
-            if (! $publication->active || ! $publication->destinations()->whereKey($destination->id)->exists()) {
+            if (
+                ! $publication->active
+                || ! $destination->active
+                || ! $publication->destinations()->whereKey($destination->id)->exists()
+            ) {
                 $this->failExecution($execution, $executions, 'La página ya no está seleccionada para esta publicación.');
 
                 return;
@@ -81,6 +87,26 @@ class PublishMetaPagePublication implements ShouldQueue
                 return;
             }
 
+            if ($publication->created_by_user_id !== null) {
+                $membership = WorkspaceMembership::query()
+                    ->where('workspace_id', $publication->workspace_id)
+                    ->where('user_id', $publication->created_by_user_id)
+                    ->where('status', 'active')
+                    ->first();
+
+                if (
+                    ! $membership
+                    || ! $membership->canPublishToDestination(
+                        WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
+                        (int) $destination->id,
+                    )
+                ) {
+                    $this->failExecution($execution, $executions, 'El creador ya no tiene autorización para publicar en esta página.');
+
+                    return;
+                }
+            }
+
             $connection = $account->connections->first(
                 fn (SocialAccountConnection $connection): bool => $connection->connection_type === SocialAccountConnection::TYPE_META_OAUTH
                     && $connection->provider === 'meta'
@@ -89,11 +115,13 @@ class PublishMetaPagePublication implements ShouldQueue
             );
 
             $token = (string) ($connection?->credentials['access_token'] ?? '');
+            $tokenType = (string) ($connection?->credentials['token_type'] ?? '');
             $appSecret = (string) config('services.meta.app_secret');
 
             if (
                 ! $connection
                 || $token === ''
+                || $tokenType !== 'page'
                 || $appSecret === ''
                 || ($connection->expires_at && $connection->expires_at->isPast())
             ) {
@@ -142,7 +170,7 @@ class PublishMetaPagePublication implements ShouldQueue
 
                 if ($response->failed()) {
                     $message = (string) data_get($response->json(), 'error.message', 'Meta rechazó la publicación.');
-                    $this->failExecution($execution, $executions, mb_substr($message, 0, 500));
+                    $this->failExecution($execution, $executions, mb_substr(str_replace($token, '[redacted]', $message), 0, 500));
 
                     return;
                 }
