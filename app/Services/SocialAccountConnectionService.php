@@ -25,8 +25,16 @@ class SocialAccountConnectionService
                 'last_error_message' => 'El acceso fue revocado desde SocialPublicator.',
             ]);
 
+            $hasAnotherActiveConnection = $account->connections()
+                ->where('id', '!=', $connection->id)
+                ->where('status', 'connected')
+                ->whereNull('revoked_at')
+                ->exists();
+
             $account->update([
-                'status' => SocialAccount::STATUS_DISCONNECTED,
+                'status' => $hasAnotherActiveConnection
+                    ? SocialAccount::STATUS_CONNECTED
+                    : SocialAccount::STATUS_DISCONNECTED,
                 'last_error_at' => null,
                 'last_error_message' => null,
             ]);
@@ -91,8 +99,16 @@ class SocialAccountConnectionService
                 'last_error_message' => null,
             ]);
 
+            $hasAnotherActiveConnection = $account->connections()
+                ->where('id', '!=', $connection->id)
+                ->where('status', 'connected')
+                ->whereNull('revoked_at')
+                ->exists();
+
             $account->update([
-                'status' => SocialAccount::STATUS_PENDING,
+                'status' => $hasAnotherActiveConnection
+                    ? SocialAccount::STATUS_CONNECTED
+                    : SocialAccount::STATUS_PENDING,
                 'last_error_at' => null,
                 'last_error_message' => null,
             ]);
