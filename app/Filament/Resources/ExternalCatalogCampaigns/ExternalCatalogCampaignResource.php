@@ -103,7 +103,10 @@ class ExternalCatalogCampaignResource extends Resource
         $workspaceId = app(WorkspaceContext::class)->id();
 
         if ($workspaceId && SocialAccount::query()->where('workspace_id', $workspaceId)->exists()) {
-            $query->whereNotNull('social_account_id');
+            $query->whereIn(
+                'social_account_id',
+                SocialAccount::query()->where('workspace_id', $workspaceId)->select('id'),
+            );
         }
 
         if ($destinationType === WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP) {
