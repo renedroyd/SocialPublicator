@@ -103,6 +103,38 @@ class PublicationExecutionService
         });
     }
 
+    public function retryUnknown(
+        PublicationExecution $execution,
+        bool $confirmedNoExternalPost,
+    ): PublicationExecution {
+        if ($confirmedNoExternalPost === false) {
+            throw new LogicException('A retry from unknown requires explicit confirmation that no external post exists.');
+        }
+
+        return DB::transaction(function () use ($execution): PublicationExecution {
+            $execution = PublicationExecution::query()
+                ->lockForUpdate()
+                ->findOrFail($execution->id);
+
+            if ($execution->status !== 'unknown') {
+                throw new LogicException(
+                    "Execution {$execution->id} cannot be retried from status {$execution->status}."
+                );
+            }
+
+            $execution->update([
+                'status' => 'running',
+                'started_at' => now(),
+                'completed_at' => null,
+                'external_id' => null,
+                'error_message' => null,
+                'attempts' => DB::raw('attempts + 1'),
+            ]);
+
+            return $execution->refresh();
+        });
+    }
+
     public function succeed(
         PublicationExecution $execution,
         ?string $externalId = null
