@@ -20,6 +20,8 @@ class WhatsAppGroup extends Model
         'name',
         'active',
         'last_synchronized_at',
+        'is_admin',
+        'admin_checked_at',
     ];
 
     protected function casts(): array
@@ -27,6 +29,8 @@ class WhatsAppGroup extends Model
         return [
             'active' => 'boolean',
             'last_synchronized_at' => 'datetime',
+            'is_admin' => 'boolean',
+            'admin_checked_at' => 'datetime',
         ];
     }
 
