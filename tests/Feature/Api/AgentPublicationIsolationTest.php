@@ -127,14 +127,14 @@ class AgentPublicationIsolationTest extends TestCase
             'active' => true,
             'is_admin' => true,
         ]);
-        $fbGroupA = \\App\\Models\\FacebookGroup::query()->create([
+        $fbGroupA = FacebookGroup::query()->create([
             'social_account_id' => $facebookA->id,
             'facebook_id' => 'fb-a',
             'name' => 'Facebook A',
             'url' => 'https://www.facebook.com/groups/fb-a',
             'active' => true,
         ]);
-        $fbGroupB = \\App\\Models\\FacebookGroup::query()->create([
+        $fbGroupB = FacebookGroup::query()->create([
             'social_account_id' => $facebookB->id,
             'facebook_id' => 'fb-b',
             'name' => 'Facebook B',
