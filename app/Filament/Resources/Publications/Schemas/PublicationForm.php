@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Publications\Schemas;
 
+use App\Models\SocialAccount;
+use App\Models\SocialAccountConnection;
 use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\Workspaces\WorkspaceContext;
 use Filament\Forms\Components\CheckboxList;
@@ -349,6 +351,40 @@ class PublicationForm
                             ->prefixIcon('heroicon-o-chat-bubble-left-right')
                             ->columnSpanFull(),
 
+                        Select::make('destinations')
+                            ->label('Páginas de Facebook (API oficial)')
+                            ->relationship(
+                                name: 'destinations',
+                                titleAttribute: 'name',
+                                modifyQueryUsing: fn (Builder $query): Builder => static::authorizedDestinations(
+                                    $query
+                                        ->where('platform', 'facebook')
+                                        ->where('active', true)
+                                        ->whereHas('socialAccount', fn (Builder $account): Builder => $account
+                                            ->where('account_type', SocialAccount::TYPE_FACEBOOK_PAGE)
+                                            ->where('status', SocialAccount::STATUS_CONNECTED)
+                                            ->whereHas('connections', fn (Builder $connection): Builder => $connection
+                                                ->where('connection_type', SocialAccountConnection::TYPE_META_OAUTH)
+                                                ->where('status', 'connected')
+                                                ->where(fn (Builder $expiry): Builder => $expiry
+                                                    ->whereNull('expires_at')
+                                                    ->orWhere('expires_at', '>', now())))),
+                                    WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
+                                ),
+                            )
+                            ->multiple()
+                            ->searchable()
+                            ->preload()
+                            ->optionsLimit(50)
+                            ->native(false)
+                            ->live()
+                            ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true)
+                                && blank($get('facebookGroups')))
+                            ->visible(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
+                            ->helperText('Páginas conectadas con OAuth de Meta. Se publicará directamente mediante Graph API, sin utilizar el navegador.')
+                            ->prefixIcon('heroicon-o-building-office-2')
+                            ->columnSpanFull(),
+
                         Select::make('facebookGroups')
                             ->label('Grupos de Facebook')
                             ->relationship(
@@ -364,14 +400,16 @@ class PublicationForm
                             ->preload()
                             ->optionsLimit(50)
                             ->native(false)
-                            ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
+                            ->live()
+                            ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true)
+                                && blank($get('destinations')))
                             ->visible(fn (Get $get): bool => in_array(
                                 $get('destination'),
                                 ['facebook', 'both'],
                                 true
                             ))
                             ->helperText(
-                                'Selecciona uno o varios grupos donde se compartirá la publicación.'
+                                'Selecciona grupos de Facebook. También puedes publicar en páginas oficiales mediante la API de Meta.'
                             )
                             ->prefixIcon('heroicon-o-user-group')
                             ->columnSpanFull(),
