@@ -17,6 +17,8 @@ class BotCommandController extends Controller
             'instance_id' => ['nullable', 'string', 'max:191'],
         ]);
 
+        $this->assertBotName($validated['bot_name']);
+
         $command = $service->claim(
             $validated['bot_name'],
             $this->instanceId($request, $validated),
@@ -36,6 +38,8 @@ class BotCommandController extends Controller
             'instance_id' => ['nullable', 'string', 'max:191'],
             'result' => ['nullable', 'array'],
         ]);
+
+        $this->assertBotName($validated['bot_name']);
 
         $command = $service->complete(
             $command,
@@ -60,6 +64,8 @@ class BotCommandController extends Controller
             'retry' => ['nullable', 'boolean'],
         ]);
 
+        $this->assertBotName($validated['bot_name']);
+
         $command = $service->fail(
             $command,
             $validated['bot_name'],
@@ -70,6 +76,13 @@ class BotCommandController extends Controller
         );
 
         return response()->json(['data' => $command]);
+    }
+
+    private function assertBotName(string $botName): void
+    {
+        $expected = (string) config('services.bot_api.command_bot_name', 'WBot');
+
+        abort_unless(hash_equals($expected, $botName), 403, 'This token is restricted to its configured bot name.');
     }
 
     private function instanceId(Request $request, array $validated): ?string
