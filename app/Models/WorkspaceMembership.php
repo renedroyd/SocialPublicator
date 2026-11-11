@@ -155,6 +155,7 @@ class WorkspaceMembership extends Model
 
         if ($destination->social_account_id === null) {
             return ! SocialAccount::query()
+                ->withoutGlobalScope('workspace')
                 ->where('workspace_id', $destination->workspace_id)
                 ->exists();
         }
