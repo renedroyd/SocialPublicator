@@ -15,6 +15,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -36,6 +37,17 @@ class PublishMetaPagePublication implements ShouldQueue
     {
     }
 
+    public function middleware(): array
+    {
+        $retryAfter = (int) config('queue.connections.database.retry_after', 90);
+
+        return [
+            (new WithoutOverlapping('meta-page-publication:'.$this->executionId))
+                ->expireAfter(max(120, $retryAfter + 30))
+                ->dontRelease(),
+        ];
+    }
+
     public function handle(
         PublicationExecutionService $executions,
         WorkspaceContext $context,
@@ -50,6 +62,12 @@ class PublishMetaPagePublication implements ShouldQueue
                 ->findOrFail($this->executionId);
 
             if ($execution->status !== 'running') {
+                return;
+            }
+
+            if ($execution->started_at && $execution->started_at->lt(now()->subMinutes(2))) {
+                $this->markUnknown($execution, 'El trabajo llegó tarde a la cola; verifica la página antes de reintentar.');
+
                 return;
             }
 
