@@ -27,6 +27,17 @@ class FacebookBrowserConnectionController extends Controller
             422,
         );
 
+        $connection = $account->connections()
+            ->where('connection_type', SocialAccountConnection::TYPE_BROWSER_SESSION)
+            ->where('provider', 'puppeteer')
+            ->first();
+
+        abort_if(
+            in_array($connection?->last_error_code, ['workspace_admin_revoked', 'parent_profile_revoked'], true),
+            423,
+            'La conexión fue revocada desde SocialPublicator. Reactívala desde el panel antes de volver a conectar.',
+        );
+
         $connected = $data['status'] === 'connected';
         $disconnected = $data['status'] === 'disconnected';
         $hasError = $data['status'] === 'error';
@@ -60,6 +71,13 @@ class FacebookBrowserConnectionController extends Controller
                 'last_error_message' => $hasError ? ($data['error'] ?? 'Error de sesión informado por WBot.') : null,
             ],
         );
+
+        if ($account->connections()
+            ->where('status', 'connected')
+            ->whereNull('revoked_at')
+            ->exists()) {
+            $account->update(['status' => SocialAccount::STATUS_CONNECTED]);
+        }
 
         return response()->json([
             'success' => true,

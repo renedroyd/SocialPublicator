@@ -31,6 +31,17 @@ class WhatsAppConnectionController extends Controller
             422,
         );
 
+        $connection = $account->connections()
+            ->where('connection_type', SocialAccountConnection::TYPE_WPP_CONNECT_QR)
+            ->where('provider', 'wppconnect')
+            ->first();
+
+        abort_if(
+            in_array($connection?->last_error_code, ['workspace_admin_revoked', 'parent_profile_revoked'], true),
+            423,
+            'La conexión fue revocada desde SocialPublicator. Reactívala desde el panel antes de volver a conectar.',
+        );
+
         $cacheKey = $this->qrCacheKey($account);
         if ($data['status'] === 'qr' && filled($data['qr'])) {
             Cache::put($cacheKey, $data['qr'], now()->addSeconds(60));
