@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
+use App\Models\PublicationDestination;
 use App\Models\WorkspaceMembership;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Http\Client\ConnectionException;
@@ -154,6 +155,24 @@ class MetaOAuthController extends Controller
                         'last_verified_at' => now(),
                     ]);
                     $pageAccount->save();
+
+                    PublicationDestination::query()->updateOrCreate(
+                        [
+                            'platform' => 'facebook',
+                            'external_id' => (string) $page['id'],
+                        ],
+                        [
+                            'social_account_id' => $pageAccount->id,
+                            'name' => (string) ($page['name'] ?? 'Página de Facebook'),
+                            'url' => 'https://www.facebook.com/'.rawurlencode((string) $page['id']),
+                            'active' => true,
+                            'last_synced_at' => now(),
+                            'metadata' => [
+                                'destination_type' => 'facebook_page',
+                                'delivery' => 'meta_graph_api',
+                            ],
+                        ],
+                    );
 
                     $pageAccount->connections()->updateOrCreate(
                         ['connection_type' => SocialAccountConnection::TYPE_META_OAUTH, 'provider' => 'meta'],
