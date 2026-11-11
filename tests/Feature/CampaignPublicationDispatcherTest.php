@@ -35,6 +35,11 @@ class CampaignPublicationDispatcherTest extends TestCase
             'account_type' => SocialAccount::TYPE_WHATSAPP,
             'display_name' => 'Cuenta de campaña',
         ]);
+        $facebookAccount = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
+            'display_name' => 'Perfil de campaña',
+        ]);
         $linkedGroup = WhatsAppGroup::query()->create([
             'social_account_id' => $account->id,
             'whatsapp_id' => 'campaign-linked@g.us',
@@ -46,6 +51,13 @@ class CampaignPublicationDispatcherTest extends TestCase
             'whatsapp_id' => 'campaign-orphan@g.us',
             'name' => 'Grupo huérfano',
             'active' => true,
+        ]);
+        $wrongPlatformGroup = WhatsAppGroup::query()->create([
+            'social_account_id' => $facebookAccount->id,
+            'whatsapp_id' => 'campaign-wrong-platform@g.us',
+            'name' => 'Grupo con cuenta Facebook',
+            'active' => true,
+            'is_admin' => true,
         ]);
         $campaign = ExternalCatalogCampaign::query()->create([
             'name' => 'Campaña multicuenta',
@@ -59,7 +71,7 @@ class CampaignPublicationDispatcherTest extends TestCase
             'price_change_behavior' => 'immediate',
             'destination' => 'whatsapp',
         ]);
-        $campaign->whatsappGroups()->attach([$linkedGroup->id, $orphanGroup->id]);
+        $campaign->whatsappGroups()->attach([$linkedGroup->id, $orphanGroup->id, $wrongPlatformGroup->id]);
 
         $dispatcher = app(CampaignPublicationDispatcher::class);
         $method = new ReflectionMethod(CampaignPublicationDispatcher::class, 'authorizedGroups');
