@@ -99,8 +99,17 @@ class ExternalCatalogCampaignResource extends Resource
 
     private static function authorizedDestinations(Builder $query, string $destinationType): Builder
     {
+        $workspaceId = app(WorkspaceContext::class)->id();
+
+        if ($workspaceId && SocialAccount::query()->where('workspace_id', $workspaceId)->exists()) {
+            $query->whereNotNull('social_account_id');
+        }
+
+        if ($destinationType === WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP) {
+            $query->where('is_admin', true);
+        }
         $membership = auth()->user()?->activeWorkspaceMemberships()
-            ->where('workspace_id', app(WorkspaceContext::class)->id())
+            ->where('workspace_id', $workspaceId)
             ->first();
 
         if ($membership === null) {
@@ -132,10 +141,7 @@ class ExternalCatalogCampaignResource extends Resource
                 ->whereJsonContains('permissions', 'publish')
                 ->select('social_account_id');
 
-            $query->where(function (Builder $query) use ($accountIds): void {
-                $query->whereNull('social_account_id')
-                    ->orWhereIn('social_account_id', $accountIds);
-            });
+            $query->whereIn('social_account_id', $accountIds);
         }
 
         return $query;
