@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PublicationDestination;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
-use App\Models\PublicationDestination;
 use App\Models\WorkspaceMembership;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Http\Client\ConnectionException;
