@@ -12,7 +12,6 @@ use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\DubaiShopIntegrationManager;
 use App\Services\Workspaces\WorkspaceContext;
 use BackedEnum;
-use UnitEnum;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -32,6 +31,7 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use UnitEnum;
 
 class ExternalCatalogCampaignResource extends Resource
 {
