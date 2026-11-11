@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Filament\Resources\Publications\Schemas\PublicationForm;
 use App\Filament\Resources\ExternalCatalogCampaigns\ExternalCatalogCampaignResource;
+use App\Filament\Resources\Publications\Schemas\PublicationForm;
 use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\WhatsAppGroup;
