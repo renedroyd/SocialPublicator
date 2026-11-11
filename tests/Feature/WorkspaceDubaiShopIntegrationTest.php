@@ -183,6 +183,8 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
             'external_id' => 'remote-preserve-1',
             'item_type' => 'product',
             'name' => 'External only item',
+            'price_amount_minor' => 10000,
+            'currency' => 'CUP',
             'active' => true,
             'visible' => true,
         ]);
