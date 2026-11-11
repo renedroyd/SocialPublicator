@@ -235,6 +235,13 @@ class WorkspaceMembership extends Model
                 return true;
             }
 
+            if (
+                in_array('integrations.manage', $this->permissions, true)
+                && in_array($permission, ['integrations.view', 'integrations.create', 'integrations.update', 'integrations.delete'], true)
+            ) {
+                return true;
+            }
+
             return in_array($permission, $this->permissions, true);
         }
 

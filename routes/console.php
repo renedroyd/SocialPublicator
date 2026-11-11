@@ -35,20 +35,12 @@ Artisan::command('inspire', function () {
 
 Schedule::command('social-publicator:select-campaign-items')
     ->everyFiveMinutes()
-    ->withoutOverlapping()
-    ->when(fn (): bool => (bool) config('services.dubai_shop.campaign_dispatch_enabled')
-        && filled(config('services.dubai_shop.api_base_url'))
-        && filled(config('services.dubai_shop.api_token')));
+    ->withoutOverlapping();
 
 Schedule::command('social-publicator:dispatch-campaign-publications')
     ->everyMinute()
-    ->withoutOverlapping()
-    ->when(fn (): bool => (bool) config('services.dubai_shop.campaign_dispatch_enabled')
-        && filled(config('services.dubai_shop.api_base_url'))
-        && filled(config('services.dubai_shop.api_token')));
+    ->withoutOverlapping();
 
 Schedule::command('social-publicator:sync-dubai-catalog')
     ->hourly()
-    ->withoutOverlapping()
-    ->when(fn (): bool => filled(config('services.dubai_shop.api_base_url'))
-        && filled(config('services.dubai_shop.api_token')));
+    ->withoutOverlapping();

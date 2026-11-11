@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Jobs\ProcessDubaiShopEvent;
+use App\Models\Workspace;
+use App\Models\WorkspaceDubaiShopIntegration;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Str;
@@ -119,5 +122,58 @@ class DubaiShopWebhookTest extends TestCase
         $this->sendSigned($payload)->assertUnprocessable();
 
         $this->assertDatabaseCount('integration_event_inbox', 0);
+    }
+
+    public function test_workspace_hmac_key_routes_event_to_its_workspace_and_disabled_keys_are_rejected(): void
+    {
+        Queue::fake();
+        config()->set('services.dubai_shop.webhook_keys', []);
+
+        $workspace = Workspace::query()->create(['name' => 'Webhook workspace', 'slug' => 'webhook-workspace']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://shop.example.test',
+            'api_token' => 'workspace-api-token',
+            'webhook_key_id' => 'workspace-key',
+            'webhook_secret' => self::SECRET,
+            'enabled' => true,
+        ]);
+
+        $payload = $this->payload();
+        $timestamp = now()->timestamp;
+        $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $signature = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, self::SECRET);
+
+        $this->call('POST', '/api/integrations/dubai-shop/v1/events', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_DUBAISHOP_KEY_ID' => 'workspace-key',
+            'HTTP_X_DUBAISHOP_TIMESTAMP' => (string) $timestamp,
+            'HTTP_X_DUBAISHOP_SIGNATURE' => $signature,
+        ], $body)->assertAccepted();
+
+        $this->assertDatabaseHas('integration_event_inbox', [
+            'event_id' => $payload['event_id'],
+            'workspace_id' => $workspace->id,
+        ]);
+
+        $disabledWorkspace = Workspace::query()->create(['name' => 'Disabled webhook', 'slug' => 'disabled-webhook']);
+        app(WorkspaceContext::class)->set((int) $disabledWorkspace->id);
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://disabled.example.test',
+            'api_token' => 'disabled-token',
+            'webhook_key_id' => 'disabled-key',
+            'webhook_secret' => self::SECRET,
+            'enabled' => false,
+        ]);
+
+        $disabledSignature = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, self::SECRET);
+        $this->call('POST', '/api/integrations/dubai-shop/v1/events', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_DUBAISHOP_KEY_ID' => 'disabled-key',
+            'HTTP_X_DUBAISHOP_TIMESTAMP' => (string) $timestamp,
+            'HTTP_X_DUBAISHOP_SIGNATURE' => $disabledSignature,
+        ], $body)->assertUnauthorized();
     }
 }

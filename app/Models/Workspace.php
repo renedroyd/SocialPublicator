@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Workspace extends Model
 {
@@ -46,6 +47,11 @@ class Workspace extends Model
     public function socialAccounts(): HasMany
     {
         return $this->hasMany(SocialAccount::class);
+    }
+
+    public function dubaiShopIntegration(): HasOne
+    {
+        return $this->hasOne(WorkspaceDubaiShopIntegration::class);
     }
 
     public function auditLogs(): HasMany

@@ -4,23 +4,18 @@ namespace App\Services;
 
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
 
 class DubaiShopApiClient
 {
     private function request(): PendingRequest
     {
-        $baseUrl = rtrim((string) config('services.dubai_shop.api_base_url'), '/');
-        $token = (string) config('services.dubai_shop.api_token');
-
-        if ($baseUrl === '' || $token === '') {
-            throw new RuntimeException('Dubai Shop API URL and token must be configured.');
-        }
+        $settings = app(DubaiShopIntegrationManager::class)->currentSettings();
+        $baseUrl = rtrim((string) $settings['api_base_url'], '/');
 
         return Http::baseUrl($baseUrl.'/api/integrations/social-publicator/v1/')
-            ->withToken($token)
+            ->withToken((string) $settings['api_token'])
             ->acceptJson()
-            ->timeout((int) config('services.dubai_shop.timeout', 15));
+            ->timeout((int) $settings['timeout']);
     }
 
     public function items(?string $cursor = null): array

@@ -1,24 +1,27 @@
 # Conectar SocialPublicator con Dubai Shop
 
-Guía operativa para configurar la integración con Dubai Shop (Clásico Dubai), validar el catálogo externo y habilitar campañas sociales gradualmente.
+Guía para habilitar la integración opcional por espacio de trabajo, validar el catálogo externo y activar campañas sociales gradualmente.
 
-> **Seguridad:** no guardes tokens, secretos HMAC ni credenciales de bots en Git, issues, logs compartidos o chats. Usa el gestor de secretos del despliegue.
+> **Seguridad:** nunca guardes tokens, secretos HMAC ni credenciales de bots en Git, issues, logs compartidos o chats. Los secretos de la conexión se cifran en la base de datos de SocialPublicator.
 
-## 1. Arquitectura
+## 1. Modos de funcionamiento
 
-Dubai Shop es la fuente de verdad del catálogo publicado, variantes, precios de venta, almacenes y disponibilidad. SocialPublicator conserva el espejo remoto en external_catalog_items y external_catalog_warehouses. No copia productos externos a su tabla local products, no altera inventario local y no recibe costos de adquisición.
+Cada workspace puede funcionar en uno de estos modos:
 
-La consulta del catálogo usa HTTPS y un Bearer token con catalog:read. Los cambios se notifican mediante webhooks HMAC-SHA256. SocialPublicator registra los eventos en integration_event_inbox y evita duplicados por event_id. Las publicaciones utilizan el modelo Publication, destinos, bots y seguimiento de ejecuciones existentes.
+- **Independiente:** no se configura ni habilita la conexión con Dubai Shop. Se mantienen disponibles el catálogo local, los productos, las publicaciones y los destinos propios de SocialPublicator.
+- **Integrado:** el workspace habilita su conexión privada con Dubai Shop. Su catálogo externo, almacenes, eventos y campañas quedan aislados de los demás workspaces.
+
+No se comparten tokens, secretos HMAC, catálogos ni configuraciones entre workspaces. La integración no modifica el catálogo ni el inventario local de SocialPublicator.
 
 ## 2. Requisitos
 
 - Ambas aplicaciones desplegadas y accesibles por HTTPS público.
-- Migraciones aplicadas y acceso a los gestores de secretos.
-- Scheduler y workers persistentes en ambas aplicaciones.
+- Migraciones aplicadas en SocialPublicator.
+- Scheduler y workers persistentes en ambos servidores.
 - Bots y destinos sociales configurados y probados independientemente.
 - Con Cloudflare Tunnel, usar hostnames HTTPS públicos; no localhost, IP privada ni servidor de desarrollo.
 
-## 3. Emitir token de catálogo
+## 3. Emitir el token de catálogo
 
 En el servidor de Dubai Shop:
 
@@ -26,46 +29,45 @@ En el servidor de Dubai Shop:
 php artisan social-publicator:token --name="SocialPublicator" --expires=365
 ~~~
 
-Copia el token mostrado una sola vez al gestor de secretos de SocialPublicator como DUBAI_SHOP_API_TOKEN. Debe estar limitado a catalog:read. No reutilices credenciales de usuario o bot. Si se pierde o compromete, emite otro y revoca el anterior.
+Copia el token una sola vez. Debe estar limitado al permiso catalog:read. No reutilices credenciales de usuario o bot. Si se pierde o compromete, emite otro y revoca el anterior.
 
-## 4. Variables de SocialPublicator
+## 4. Configurar el workspace en SocialPublicator
 
-~~~dotenv
-DUBAI_SHOP_API_BASE_URL=https://tu-dominio-publico-dubai-shop
-DUBAI_SHOP_API_TOKEN=<TOKEN_DE_CATALOGO_EMITIDO_POR_DUBAI_SHOP>
-DUBAI_SHOP_WEBHOOK_KEYS='{"key-2026-01":"<SECRETO_HMAC_ALEATORIO_LARGO>"}'
-DUBAI_SHOP_WEBHOOK_TOLERANCE_SECONDS=300
-DUBAI_SHOP_TIMEOUT=15
-DUBAI_SHOP_CAMPAIGN_DISPATCH_ENABLED=false
-~~~
+Entra al workspace que utilizará la integración y abre **Integraciones → Dubai Shop**.
 
-La URL es el origen de Dubai Shop, sin /api al final. DUBAI_SHOP_WEBHOOK_KEYS asocia el key ID con el secreto que valida firmas entrantes. El ID y secreto deben coincidir exactamente con SOCIAL_PUBLICATOR_WEBHOOK_KEY_ID y SOCIAL_PUBLICATOR_WEBHOOK_SECRET de Dubai Shop. Mantén el despacho de campañas deshabilitado durante la instalación.
+1. Selecciona **Configurar conexión**.
+2. Introduce la URL pública HTTPS de Dubai Shop, sin /api al final.
+3. Pega el token de catálogo emitido en el paso anterior.
+4. Deja desactivada la opción **Permitir campañas automáticas**.
+5. Activa **Integración habilitada** y guarda.
+6. Utiliza **Probar conexión** para verificar que el servidor responde y devuelve sus almacenes.
 
-## 5. Variables de Dubai Shop
+El token API se cifra al guardarse. Si editas la conexión y dejas vacío el campo de token, se conserva el secreto almacenado; no se muestra de nuevo en pantalla.
+
+La integración habilitada permite sincronizar el catálogo de ese workspace. La publicación automática continúa desactivada hasta que la actives expresamente.
+
+## 5. Configurar eventos HMAC
+
+Para recibir cambios de inventario, precios y catálogo en tiempo real, configura en **Eventos firmados**:
+
+- **Identificador de clave HMAC:** valor único para identificar esta conexión, por ejemplo socialpublicator-workspace-01.
+- **Secreto HMAC:** secreto aleatorio largo compartido con el emisor Dubai Shop.
+
+El identificador debe ser único entre los workspaces de esta instalación. El secreto se cifra en la base de datos. El receptor obtiene el workspace desde ese identificador, valida la firma y aplica la tolerancia temporal configurada. Una clave deshabilitada no puede enviar eventos.
+
+En Dubai Shop configura:
 
 ~~~dotenv
 SOCIAL_PUBLICATOR_WEBHOOK_URL=https://tu-dominio-publico-socialpublicator/api/integrations/dubai-shop/v1/events
-SOCIAL_PUBLICATOR_WEBHOOK_KEY_ID=key-2026-01
-SOCIAL_PUBLICATOR_WEBHOOK_SECRET=<EL_MISMO_SECRETO_HMAC_DE_SOCIALPUBLICATOR>
+SOCIAL_PUBLICATOR_WEBHOOK_KEY_ID=<EL_IDENTIFICADOR_CONFIGURADO_EN_SOCIALPUBLICATOR>
+SOCIAL_PUBLICATOR_WEBHOOK_SECRET=<EL_MISMO_SECRETO_HMAC>
 SOCIAL_PUBLICATOR_WEBHOOK_TIMEOUT=15
 SOCIAL_PUBLICATOR_WEBHOOK_ENABLED=false
 ~~~
 
-El receptor es POST /api/integrations/dubai-shop/v1/events. El emisor firma {timestamp}.{raw-request-body} con HMAC-SHA256. El receptor valida X-DubaiShop-Key-Id, X-DubaiShop-Timestamp y X-DubaiShop-Signature (sha256={hex-hmac}). No transformes el cuerpo JSON en un proxy intermedio.
+El emisor firma {timestamp}.{raw-request-body} con HMAC-SHA256. El receptor valida X-DubaiShop-Key-Id, X-DubaiShop-Timestamp y X-DubaiShop-Signature (sha256={hex-hmac}). No transformes el cuerpo JSON en un proxy intermedio.
 
-## 6. Aplicar configuración
-
-Después de guardar las variables en ambas aplicaciones:
-
-~~~bash
-php artisan config:clear
-php artisan config:cache
-php artisan queue:restart
-~~~
-
-Reinicia los procesos persistentes según el gestor de procesos. No imprimas secretos al comprobar variables.
-
-## 7. Sincronización inicial
+## 6. Sincronización inicial
 
 En SocialPublicator:
 
@@ -73,11 +75,13 @@ En SocialPublicator:
 php artisan social-publicator:sync-dubai-catalog
 ~~~
 
-Comprueba en Filament/base de datos los productos publicados y visibles, variantes activas, precios y monedas, imágenes, almacenes activos habilitados para fulfillment online y productos remotos retirados marcados inactivos. Esta operación no debe cambiar productos ni inventario locales. Si falla, revisa URL, token, capacidad catalog:read, HTTPS y logs.
+El comando procesa cada workspace con una integración habilitada y mantiene su contexto separado. Si no hay conexiones activas, finaliza sin afectar el modo independiente.
 
-## 8. Scheduler y workers
+Comprueba los artículos publicados y visibles, variantes activas, precios y monedas, imágenes, almacenes elegibles y productos remotos retirados marcados inactivos. La sincronización no debe cambiar productos ni inventario locales.
 
-En ambos servidores, configura scheduler de Laravel. Con cron:
+## 7. Scheduler y workers
+
+En ambos servidores configura el scheduler de Laravel. Con cron:
 
 ~~~cron
 * * * * * cd /ruta/a/la-aplicacion && php artisan schedule:run >> /dev/null 2>&1
@@ -89,11 +93,11 @@ Ejecuta workers persistentes bajo Supervisor, systemd u otro gestor:
 php artisan queue:work --sleep=3 --tries=3 --timeout=90
 ~~~
 
-Adapta parámetros al driver y duración real de los trabajos. El worker debe reiniciarse automáticamente y no depender de una sesión SSH. SocialPublicator programa reconciliación del catálogo cada hora cuando la URL y el token están configurados.
+El worker debe reiniciarse automáticamente y no depender de una sesión SSH. SocialPublicator programa reconciliación horaria por cada workspace conectado.
 
-## 9. Campaña de prueba
+## 8. Campaña de prueba
 
-Desde Filament, abre **Integraciones → Campañas sociales**:
+Una vez sincronizado el catálogo, abre **Integraciones → Campañas sociales** en el mismo workspace:
 
 1. Crea una campaña y déjala inactiva.
 2. Selecciona pocos productos o variantes externos.
@@ -102,9 +106,11 @@ Desde Filament, abre **Integraciones → Campañas sociales**:
 5. Define preferencias de agotado, reposición y cambios de precio.
 6. Selecciona un único grupo/destino de prueba que controles.
 
-## 10. Activación por etapas
+La sección de campañas externas solo está disponible cuando la integración Dubai Shop del workspace está habilitada. Las publicaciones y el catálogo local continúan disponibles aunque no exista integración.
 
-**Etapa A — catálogo:** ambos flags siguen en false. Ejecuta y valida la sincronización.
+## 9. Activación por etapas
+
+**Etapa A — catálogo:** activa la conexión, mantén deshabilitadas las campañas automáticas y valida la sincronización.
 
 **Etapa B — eventos:** después de validar catálogo y conectividad, habilita en Dubai Shop:
 
@@ -112,58 +118,37 @@ Desde Filament, abre **Integraciones → Campañas sociales**:
 SOCIAL_PUBLICATOR_WEBHOOK_ENABLED=true
 ~~~
 
-Confirma que los eventos aparecen en integration_event_inbox, las firmas se validan y cada event_id se procesa una sola vez. HTTP 202 sólo confirma aceptación en el inbox, no publicación en redes sociales.
+Confirma que los eventos aparecen en integration_event_inbox, que las firmas se validan y que cada event_id se procesa una sola vez. HTTP 202 confirma la aceptación en el inbox, no que se haya publicado en redes sociales.
 
-**Etapa C — campaña:** sólo después de validar eventos, habilita en SocialPublicator:
+**Etapa C — campañas:** cuando catálogo, eventos, almacenes y destinos estén validados, activa **Permitir campañas automáticas** en el workspace correspondiente. Esta opción es independiente de las demás conexiones y no habilita campañas en otros workspaces.
 
-~~~dotenv
-DUBAI_SHOP_CAMPAIGN_DISPATCH_ENABLED=true
-~~~
+Activa una sola campaña de prueba. Revisa la revalidación del producto, precio y disponibilidad en Dubai Shop, la publicación creada y la ejecución del bot por destino. Amplía gradualmente después de confirmar el resultado real.
 
-Activa una sola campaña de prueba. Revisa la revalidación de producto/precio/disponibilidad en Dubai Shop, la publicación creada y la ejecución del bot por destino. Amplía gradualmente después de confirmar el resultado real.
+## 10. Monitoreo y pausa
 
-## 11. Monitoreo
+Revisa integration_event_inbox, external_catalog_items, external_catalog_warehouses, triggers, grupos de selección, publicaciones, ejecuciones de bots, logs, failed jobs, scheduler y workers. Un trigger o una selección no demuestran que se haya publicado: confirma el estado del bot y el identificador externo cuando exista.
 
-Revisa integration_event_inbox, external_catalog_items, external_catalog_warehouses, triggers, grupos de selección, publicaciones, ejecuciones de bots, logs, failed jobs, scheduler y workers. Un trigger o selección no demuestra que se haya publicado: confirma el estado del bot y el identificador externo cuando exista.
+Para pausar un workspace, desactiva **Permitir campañas automáticas** y, si deseas detener también la sincronización y los webhooks, desactiva **Integración habilitada** en su conexión. Esto no elimina eventos, triggers, selecciones ni publicaciones ya creadas, y no cancela necesariamente entregas iniciadas. Para detener webhooks en origen, desactiva también SOCIAL_PUBLICATOR_WEBHOOK_ENABLED en Dubai Shop.
 
-En Dubai Shop se puede inspeccionar integration_event_outbox. Después de corregir la causa de un fallo terminal, el evento se puede reencolar desde ese servidor:
+## 11. Rotación de credenciales
 
-~~~bash
-php artisan social-publicator:requeue-outbox <event-uuid>
-php artisan social-publicator:dispatch-outbox
-~~~
+**Token API:** emite otro token en Dubai Shop, actualízalo en la conexión del workspace, prueba la conexión y revoca el anterior.
 
-## 12. Pausa de emergencia
+**HMAC:** agrega primero una nueva clave y secreto en SocialPublicator, configura el nuevo ID/secreto en Dubai Shop, verifica la recepción y retira la clave anterior cuando ya no se use.
 
-Para detener campañas, configura en SocialPublicator:
+## 12. Compatibilidad heredada
 
-~~~dotenv
-DUBAI_SHOP_CAMPAIGN_DISPATCH_ENABLED=false
-~~~
+Las variables DUBAI_SHOP_API_BASE_URL, DUBAI_SHOP_API_TOKEN, DUBAI_SHOP_WEBHOOK_KEYS y DUBAI_SHOP_WORKSPACE_ID se conservan temporalmente para instalaciones antiguas de un solo workspace. No se recomienda utilizarlas en despliegues multi-workspace. Cuando exista una conexión guardada para un workspace, esa configuración tiene prioridad y una conexión deshabilitada no puede recurrir a los secretos globales.
 
-Si ya hay una ejecución, detén también el worker/bot correspondiente. Para detener nuevos webhooks, configura en Dubai Shop:
+## 13. Checklist
 
-~~~dotenv
-SOCIAL_PUBLICATOR_WEBHOOK_ENABLED=false
-~~~
-
-Aplica los cambios y limpia la caché. Los flags no eliminan eventos, triggers, selecciones o publicaciones pendientes ni cancelan necesariamente entregas iniciadas.
-
-## 13. Rotación de credenciales
-
-**HMAC:** agrega primero un nuevo key ID/secreto a DUBAI_SHOP_WEBHOOK_KEYS, conserva temporalmente la clave anterior, configura el nuevo ID/secreto en Dubai Shop, verifica y retira la clave anterior cuando ya no se use.
-
-**Token API:** genera otro token en Dubai Shop, actualiza DUBAI_SHOP_API_TOKEN, ejecuta una sincronización de prueba y revoca el anterior.
-
-## 14. Checklist
-
-- [ ] URLs públicas HTTPS válidas.
-- [ ] Token dedicado catalog:read configurado.
-- [ ] Key ID y secreto HMAC coincidentes.
-- [ ] Flags inicialmente desactivados.
-- [ ] Configuración cacheada y workers reiniciados.
-- [ ] Sincronización de catálogo revisada.
-- [ ] Scheduler y workers persistentes en ambos servidores.
+- [ ] Workspace correcto seleccionado.
+- [ ] URL pública HTTPS y token catalog:read configurados.
+- [ ] Prueba de conexión correcta.
+- [ ] HMAC configurado si se utilizarán webhooks.
+- [ ] Campañas automáticas inicialmente desactivadas.
+- [ ] Catálogo y almacenes revisados.
+- [ ] Scheduler y workers persistentes.
 - [ ] Campaña inactiva con almacén y destino controlados.
 - [ ] Webhooks recibidos y procesados idempotentemente.
 - [ ] Publicación y ejecución del bot de prueba verificadas.

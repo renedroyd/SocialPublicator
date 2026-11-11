@@ -9,7 +9,9 @@ use App\Filament\Resources\ExternalCatalogCampaigns\Pages\ListExternalCatalogCam
 use App\Models\ExternalCatalogCampaign;
 use App\Models\ExternalCatalogItem;
 use App\Models\WorkspaceMembershipDestinationPermission;
+use App\Services\DubaiShopIntegrationManager;
 use App\Services\Workspaces\WorkspaceContext;
+use BackedEnum;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -28,6 +30,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use UnitEnum;
 
 class ExternalCatalogCampaignResource extends Resource
 {
@@ -40,11 +44,40 @@ class ExternalCatalogCampaignResource extends Resource
 
     protected static ?string $model = ExternalCatalogCampaign::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';
+
+    private static function integrationEnabled(): bool
+    {
+        return app(DubaiShopIntegrationManager::class)->isEnabledForCurrentWorkspace();
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::integrationEnabled()
+            && (static::currentWorkspaceMembership()?->hasPermission('campaigns.view') ?? false);
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::integrationEnabled()
+            && (static::currentWorkspaceMembership()?->hasPermission('campaigns.create') ?? false);
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return static::integrationEnabled()
+            && (static::currentWorkspaceMembership()?->hasPermission('campaigns.update') ?? false);
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return static::integrationEnabled()
+            && (static::currentWorkspaceMembership()?->hasPermission('campaigns.delete') ?? false);
+    }
 
     protected static ?int $navigationSort = 35;
 
-    public static function getNavigationGroup(): string|\UnitEnum|null
+    public static function getNavigationGroup(): string|UnitEnum|null
     {
         return __('Integraciones');
     }

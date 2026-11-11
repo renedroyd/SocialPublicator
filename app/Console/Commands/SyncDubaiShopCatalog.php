@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Services\DubaiShopIntegrationManager;
 use App\Services\ExternalCatalogSyncService;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Console\Command;
 use Throwable;
 
@@ -10,22 +12,38 @@ class SyncDubaiShopCatalog extends Command
 {
     protected $signature = 'social-publicator:sync-dubai-catalog';
 
-    protected $description = 'Synchronize and reconcile the external catalog from Dubai Shop';
+    protected $description = 'Synchronize enabled workspace catalogs from Dubai Shop';
 
-    public function handle(ExternalCatalogSyncService $syncService): int
-    {
-        try {
-            $result = $syncService->syncAll();
-        } catch (Throwable $exception) {
-            $this->error('Dubai Shop catalog synchronization failed: '.$exception->getMessage());
+    public function handle(
+        ExternalCatalogSyncService $syncService,
+        DubaiShopIntegrationManager $integrations,
+        WorkspaceContext $context,
+    ): int {
+        $workspaceIds = $integrations->configuredWorkspaceIds();
 
-            return self::FAILURE;
+        if ($workspaceIds === []) {
+            $this->info('No enabled Dubai Shop workspace integrations; independent workspaces are unchanged.');
+
+            return self::SUCCESS;
         }
 
-        $this->info('Dubai Shop catalog synchronization completed.');
-        $this->line('Items synchronized: '.$result['items_synced']);
-        $this->line('Eligible warehouses synchronized: '.$result['warehouses_synced']);
+        $failures = 0;
 
-        return self::SUCCESS;
+        foreach ($workspaceIds as $workspaceId) {
+            $context->set($workspaceId);
+
+            try {
+                $result = $syncService->syncAll();
+                $this->info("Workspace {$workspaceId}: catálogo sincronizado.");
+                $this->line('Artículos: '.$result['items_synced'].'; almacenes: '.$result['warehouses_synced']);
+            } catch (Throwable $exception) {
+                $failures++;
+                $this->error("Workspace {$workspaceId}: falló la sincronización: ".$exception->getMessage());
+            } finally {
+                $context->clear();
+            }
+        }
+
+        return $failures > 0 ? self::FAILURE : self::SUCCESS;
     }
 }
