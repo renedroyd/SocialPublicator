@@ -4,7 +4,14 @@ namespace App\Filament\Widgets;
 
 use App\Filament\Resources\Publications\PublicationResource;
 use App\Models\BotCommand;
+use App\Jobs\PublishMetaPagePublication;
+use App\Models\PublicationDestination;
 use App\Models\PublicationExecution;
+use App\Services\PublicationExecutionService;
+use App\Services\Workspaces\WorkspaceContext;
+use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
+use Illuminate\Support\Facades\DB;
 use App\Services\BotCommandService;
 use Filament\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
@@ -48,16 +55,19 @@ class RecentExecutions extends TableWidget
                     ->label('Canal')
                     ->badge()
                     ->formatStateUsing(
-                        fn (?string $state): string => match ($state) {
-                            'whatsapp' => 'WhatsApp',
-                            'facebook' => 'Facebook',
-                            default => ucfirst($state ?? '—'),
-                        }
+                        fn (?string $state, PublicationExecution $record): string => $this->isMetaPageExecution($record)
+                            ? 'Facebook · Página (API)'
+                            : match ($state) {
+                                'whatsapp' => 'WhatsApp',
+                                'facebook' => 'Facebook · Grupos',
+                                default => ucfirst($state ?? '—'),
+                            }
                     ),
 
                 TextColumn::make('target_key')
                     ->label('Destino')
-                    ->limit(35)
+                    ->formatStateUsing(fn (?string $state): string => $this->formatTargetLabel($state))
+                    ->limit(45)
                     ->searchable()
                     ->placeholder('—'),
 
@@ -150,16 +160,84 @@ class RecentExecutions extends TableWidget
                     ]),
             ])
             ->recordActions([
+                Action::make('retryMetaPage')
+                    ->label('Reintentar página')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('warning')
+                    ->visible(fn (PublicationExecution $record): bool => $this->canManageExecutions()
+                        && $this->isMetaPageExecution($record)
+                        && in_array($record->status, ['pending', 'failed'], true))
+                    ->requiresConfirmation()
+                    ->modalDescription('Se volverá a enviar esta publicación a la página oficial mediante Meta Graph API.')
+                    ->action(function (PublicationExecution $record): void {
+                        DB::transaction(function () use ($record): void {
+                            $fresh = PublicationExecution::query()
+                                ->lockForUpdate()
+                                ->findOrFail($record->id);
+                            $started = app(PublicationExecutionService::class)->start($fresh);
+                            PublishMetaPagePublication::dispatch($started->id)->afterCommit();
+                        });
+
+                        Notification::make()->title('Reintento de página encolado')->success()->send();
+                    }),
+
+                Action::make('resolveMetaPagePublished')
+                    ->label('Confirmar publicada')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (PublicationExecution $record): bool => $this->canManageExecutions()
+                        && $this->isMetaPageExecution($record)
+                        && $record->status === 'unknown')
+                    ->form([
+                        TextInput::make('external_id')
+                            ->label('ID externo de la publicación en Meta')
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->action(function (PublicationExecution $record, array $data): void {
+                        app(PublicationExecutionService::class)->succeed(
+                            $record,
+                            trim((string) $data['external_id']),
+                        );
+
+                        Notification::make()->title('Ejecución reconciliada como exitosa')->success()->send();
+                    }),
+
+                Action::make('retryMetaPageUnknown')
+                    ->label('Reintentar tras verificar')
+                    ->icon('heroicon-o-shield-exclamation')
+                    ->color('danger')
+                    ->visible(fn (PublicationExecution $record): bool => $this->canManageExecutions()
+                        && $this->isMetaPageExecution($record)
+                        && $record->status === 'unknown')
+                    ->form([
+                        TextInput::make('confirmation')
+                            ->label('Escribe CONFIRMO QUE NO EXISTE')
+                            ->helperText('Antes de continuar, revisa la página en Facebook y confirma que Meta no creó la publicación.')
+                            ->required()
+                            ->rule('in:CONFIRMO QUE NO EXISTE'),
+                    ])
+                    ->requiresConfirmation()
+                    ->modalDescription('Esta operación puede crear una publicación duplicada si no verificaste que el envío anterior no llegó a Facebook.')
+                    ->action(function (PublicationExecution $record): void {
+                        DB::transaction(function () use ($record): void {
+                            $fresh = PublicationExecution::query()
+                                ->lockForUpdate()
+                                ->findOrFail($record->id);
+                            $started = app(PublicationExecutionService::class)->retryUnknown($fresh, true);
+                            PublishMetaPagePublication::dispatch($started->id)->afterCommit();
+                        });
+
+                        Notification::make()->title('Reintento verificado encolado')->success()->send();
+                    }),
+
                 Action::make('retry')
                     ->label('Reintentar')
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
                     ->visible(
-                        fn (PublicationExecution $record): bool => in_array(
-                            $record->status,
-                            ['failed', 'pending'],
-                            true
-                        )
+                        fn (PublicationExecution $record): bool => ! $this->isMetaPageExecution($record)
+                            && in_array($record->status, ['failed', 'pending'], true)
                     )
                     ->requiresConfirmation()
                     ->action(
@@ -182,4 +260,37 @@ class RecentExecutions extends TableWidget
             ->defaultSort('created_at', 'desc')
             ->paginated([5, 10, 25]);
     }
+    private function isMetaPageExecution(PublicationExecution $record): bool
+    {
+        return str_starts_with($record->target_key, 'meta_page_destination:');
+    }
+
+    private function formatTargetLabel(?string $targetKey): string
+    {
+        $prefix = 'meta_page_destination:';
+        if (! $targetKey || ! str_starts_with($targetKey, $prefix)) {
+            return $targetKey ?? '—';
+        }
+
+        $destinationId = substr($targetKey, strlen($prefix));
+        if (! ctype_digit($destinationId)) {
+            return 'Página Meta';
+        }
+
+        $destination = PublicationDestination::query()->find((int) $destinationId);
+
+        return $destination?->name
+            ? $destination->name.' · Página Meta'
+            : 'Página Meta #'.$destinationId;
+    }
+
+    private function canManageExecutions(): bool
+    {
+        $membership = auth()->user()?->activeWorkspaceMemberships()
+            ->where('workspace_id', app(WorkspaceContext::class)->id())
+            ->first();
+
+        return $membership !== null && $membership->hasPermission('executions.manage');
+    }
+
 }
