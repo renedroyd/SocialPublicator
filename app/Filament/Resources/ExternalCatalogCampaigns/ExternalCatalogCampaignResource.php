@@ -30,6 +30,8 @@ use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use BackedEnum;
+use UnitEnum;
 
 class ExternalCatalogCampaignResource extends Resource
 {
@@ -42,7 +44,7 @@ class ExternalCatalogCampaignResource extends Resource
 
     protected static ?string $model = ExternalCatalogCampaign::class;
 
-    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';
 
     private static function integrationEnabled(): bool
     {
@@ -67,7 +69,7 @@ class ExternalCatalogCampaignResource extends Resource
             && (static::currentWorkspaceMembership()?->hasPermission('campaigns.update') ?? false);
     }
 
-    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    public static function canDelete(Model $record): bool
     {
         return static::integrationEnabled()
             && (static::currentWorkspaceMembership()?->hasPermission('campaigns.delete') ?? false);
@@ -75,7 +77,7 @@ class ExternalCatalogCampaignResource extends Resource
 
     protected static ?int $navigationSort = 35;
 
-    public static function getNavigationGroup(): string|\UnitEnum|null
+    public static function getNavigationGroup(): string|UnitEnum|null
     {
         return __('Integraciones');
     }
