@@ -5,15 +5,17 @@ namespace App\Console\Commands;
 use App\Jobs\PublishMetaPagePublication;
 use App\Models\Publication;
 use App\Models\PublicationDestination;
-use App\Models\PublicationExecution;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
+use App\Models\Workspace;
 use App\Models\WorkspaceMembership;
 use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\PublicationExecutionService;
+use App\Services\Workspaces\WorkspaceContext;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class DispatchMetaPagePublications extends Command
 {
@@ -21,10 +23,38 @@ class DispatchMetaPagePublications extends Command
 
     protected $description = 'Dispatch due publications to authorized Facebook Pages through Meta Graph API';
 
-    public function handle(PublicationExecutionService $executions): int
-    {
+    public function handle(
+        PublicationExecutionService $executions,
+        WorkspaceContext $context,
+    ): int {
         $now = now()->startOfMinute();
         $occurrenceTime = $now->format('H:i');
+        $total = 0;
+        $errors = 0;
+
+        foreach (Workspace::query()->orderBy('id')->pluck('id') as $workspaceId) {
+            $context->set((int) $workspaceId);
+
+            try {
+                $total += $this->dispatchForWorkspace($executions, $now, $occurrenceTime);
+            } catch (Throwable $exception) {
+                $errors++;
+                $this->error("Workspace {$workspaceId}: ".$exception->getMessage());
+            } finally {
+                $context->clear();
+            }
+        }
+
+        $this->info("Publicaciones de páginas Meta encoladas: {$total}; errores: {$errors}");
+
+        return $errors > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    private function dispatchForWorkspace(
+        PublicationExecutionService $executions,
+        Carbon $now,
+        string $occurrenceTime,
+    ): int {
         $count = 0;
 
         Publication::query()
@@ -44,11 +74,7 @@ class DispatchMetaPagePublications extends Command
                     $occurrenceId = $publication->id.'_'.$now->format('Y-m-d_H-i');
 
                     foreach ($publication->destinations as $destination) {
-                        if (! $this->isEligibleDestination($publication, $destination)) {
-                            continue;
-                        }
-
-                        if (! $this->creatorCanPublish($publication, $destination)) {
+                        if (! $this->isEligibleDestination($destination) || ! $this->creatorCanPublish($publication, $destination)) {
                             continue;
                         }
 
@@ -73,9 +99,7 @@ class DispatchMetaPagePublications extends Command
                 }
             });
 
-        $this->info("Publicaciones de páginas Meta encoladas: {$count}");
-
-        return self::SUCCESS;
+        return $count;
     }
 
     private function isDueAt(Publication $publication, Carbon $now, string $occurrenceTime): bool
@@ -134,7 +158,7 @@ class DispatchMetaPagePublications extends Command
         return ($hours * 60) + $minutes;
     }
 
-    private function isEligibleDestination(Publication $publication, PublicationDestination $destination): bool
+    private function isEligibleDestination(PublicationDestination $destination): bool
     {
         $account = $destination->socialAccount;
 
@@ -174,7 +198,6 @@ class DispatchMetaPagePublications extends Command
             && $membership->canPublishToDestination(
                 WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
                 (int) $destination->id,
-            )
-            && $membership->canUseSocialAccount($destination->socialAccount, 'publish');
+            );
     }
 }
