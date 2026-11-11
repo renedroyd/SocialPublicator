@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Publication;
 use App\Models\PublicationExecution;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -37,7 +38,7 @@ class PublicationExecutionUniquenessTest extends TestCase
 
         $this->assertSame(4, PublicationExecution::query()->where('occurrence_id', $occurrence)->count());
 
-        $this->expectException(\\Illuminate\\Database\\QueryException::class);
+        $this->expectException(QueryException::class);
         PublicationExecution::create([
             'publication_id' => $publication->id,
             'occurrence_id' => $occurrence,
