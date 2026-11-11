@@ -9,6 +9,7 @@ use App\Filament\Resources\ExternalCatalogCampaigns\Pages\ListExternalCatalogCam
 use App\Models\ExternalCatalogCampaign;
 use App\Models\ExternalCatalogItem;
 use App\Models\WorkspaceMembershipDestinationPermission;
+use App\Services\DubaiShopIntegrationManager;
 use App\Services\Workspaces\WorkspaceContext;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -41,6 +42,35 @@ class ExternalCatalogCampaignResource extends Resource
     protected static ?string $model = ExternalCatalogCampaign::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-megaphone';
+
+    private static function integrationEnabled(): bool
+    {
+        return app(DubaiShopIntegrationManager::class)->isEnabledForCurrentWorkspace();
+    }
+
+    public static function canViewAny(): bool
+    {
+        return static::integrationEnabled()
+            && (static::currentWorkspaceMembership()?->hasPermission('campaigns.view') ?? false);
+    }
+
+    public static function canCreate(): bool
+    {
+        return static::integrationEnabled()
+            && (static::currentWorkspaceMembership()?->hasPermission('campaigns.create') ?? false);
+    }
+
+    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return static::integrationEnabled()
+            && (static::currentWorkspaceMembership()?->hasPermission('campaigns.update') ?? false);
+    }
+
+    public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
+    {
+        return static::integrationEnabled()
+            && (static::currentWorkspaceMembership()?->hasPermission('campaigns.delete') ?? false);
+    }
 
     protected static ?int $navigationSort = 35;
 
