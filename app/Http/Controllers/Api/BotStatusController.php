@@ -22,7 +22,9 @@ class BotStatusController extends Controller
             'metadata' => ['nullable', 'array'],
         ]);
 
-        $instanceId = $validated['instance_id'] ?? $validated['name'];
+        $instanceId = $request->attributes->get('bot_agent_instance_id')
+            ?? $validated['instance_id']
+            ?? $validated['name'];
 
         $botStatus = BotStatus::query()->updateOrCreate(
             ['instance_id' => $instanceId],

@@ -134,13 +134,17 @@ Para pausar un workspace, desactiva **Permitir campañas automáticas** y, si de
 
 **Token API:** emite otro token en Dubai Shop, actualízalo en la conexión del workspace, prueba la conexión y revoca el anterior.
 
-**HMAC:** agrega primero una nueva clave y secreto en SocialPublicator, configura el nuevo ID/secreto en Dubai Shop, verifica la recepción y retira la clave anterior cuando ya no se use.
+**HMAC:** actualmente hay una sola clave activa por workspace. Planifica una ventana breve: pausa los webhooks en origen, actualiza el ID y secreto en SocialPublicator, actualiza el mismo par en Dubai Shop y reactiva los webhooks. Los eventos en tránsito pueden recibir 401 y deben reintentarse desde el emisor; no hay solapamiento de claves durante la rotación.
 
 ## 12. Compatibilidad heredada
 
 Las variables DUBAI_SHOP_API_BASE_URL, DUBAI_SHOP_API_TOKEN, DUBAI_SHOP_WEBHOOK_KEYS y DUBAI_SHOP_WORKSPACE_ID se conservan temporalmente para instalaciones antiguas de un solo workspace. No se recomienda utilizarlas en despliegues multi-workspace. Cuando exista una conexión guardada para un workspace, esa configuración tiene prioridad y una conexión deshabilitada no puede recurrir a los secretos globales.
 
-## 13. Checklist
+## 13. Límites de solicitudes
+
+La API de WBot aplica 600 solicitudes/min por IP y 300/min por workspace e instancia autenticada. Los endpoints de estado/QR limitan a 120/min por usuario; OAuth de Meta, a 10/min por usuario; los webhooks, a 120/min por IP. WBot debe aplicar backoff ante HTTP 429 y evitar polling agresivo. Consulta [Seguridad de agentes](../architecture/agent-security.md) para el detalle.
+
+## 14. Checklist
 
 - [ ] Workspace correcto seleccionado.
 - [ ] URL pública HTTPS y token catalog:read configurados.

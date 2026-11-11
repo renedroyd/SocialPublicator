@@ -8,8 +8,9 @@ use Illuminate\Http\Request;
 
 class SocialAccountFacebookSessionController extends Controller
 {
-    public function show(Request $request, SocialAccount $socialAccount)
+    public function show(Request $request, int $socialAccount)
     {
+        $socialAccount = SocialAccount::query()->findOrFail($socialAccount);
         $this->authorizeAccount($request, $socialAccount);
         abort_unless($socialAccount->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE, 404);
 
@@ -19,8 +20,9 @@ class SocialAccountFacebookSessionController extends Controller
         ]);
     }
 
-    public function data(Request $request, SocialAccount $socialAccount): JsonResponse
+    public function data(Request $request, int $socialAccount): JsonResponse
     {
+        $socialAccount = SocialAccount::query()->findOrFail($socialAccount);
         $this->authorizeAccount($request, $socialAccount);
         abort_unless($socialAccount->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE, 404);
 

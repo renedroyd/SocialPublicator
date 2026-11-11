@@ -21,20 +21,26 @@ Route::post('/workspace/switch', [WorkspaceSwitchController::class, 'store'])
 
 Route::middleware(['auth', ResolveWorkspaceContext::class])->group(function (): void {
     Route::get('/social-accounts/{socialAccount}/facebook/session', [SocialAccountFacebookSessionController::class, 'show'])
+        ->middleware('throttle:social-account-status')
         ->name('social-accounts.facebook.session');
 
     Route::get('/social-accounts/{socialAccount}/facebook/session/data', [SocialAccountFacebookSessionController::class, 'data'])
+        ->middleware('throttle:social-account-status')
         ->name('social-accounts.facebook.session.data');
 
     Route::get('/social-accounts/{socialAccount}/whatsapp/qr', [SocialAccountWhatsAppQrController::class, 'show'])
+        ->middleware('throttle:social-account-status')
         ->name('social-accounts.whatsapp.qr');
 
     Route::get('/social-accounts/{socialAccount}/whatsapp/qr/data', [SocialAccountWhatsAppQrController::class, 'data'])
+        ->middleware('throttle:social-account-status')
         ->name('social-accounts.whatsapp.qr.data');
 
     Route::get('/social-accounts/{socialAccount}/connect/meta', [MetaOAuthController::class, 'connect'])
+        ->middleware('throttle:meta-oauth')
         ->name('social-accounts.meta.connect');
 
     Route::get('/social-accounts/connect/meta/callback', [MetaOAuthController::class, 'callback'])
+        ->middleware('throttle:meta-oauth')
         ->name('social-accounts.meta.callback');
 });

@@ -19,6 +19,7 @@ class FacebookBrowserConnectionController extends Controller
             'error' => ['nullable', 'string', 'max:500'],
         ]);
 
+        $agentInstanceId = (string) ($request->attributes->get('bot_agent_instance_id') ?? $data['agent_instance_id']);
         $account = SocialAccount::query()->findOrFail($data['social_account_id']);
         abort_unless(
             $account->platform === SocialAccount::PLATFORM_FACEBOOK
@@ -47,8 +48,8 @@ class FacebookBrowserConnectionController extends Controller
             ],
             [
                 'status' => $connected ? 'connected' : ($disconnected ? 'revoked' : ($hasError ? 'error' : 'pending')),
-                'agent_instance_id' => $data['agent_instance_id'],
-                'session_reference' => 'puppeteer:'.hash('sha256', $data['agent_instance_id'].':'.$account->id),
+                'agent_instance_id' => $agentInstanceId,
+                'session_reference' => 'puppeteer:'.hash('sha256', $agentInstanceId.':'.$account->id),
                 'provider_connection_id' => 'facebook-browser-session',
                 'credentials' => null,
                 'expires_at' => null,

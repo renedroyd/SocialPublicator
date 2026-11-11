@@ -20,9 +20,10 @@ class BotPublicationController extends Controller
         $validated = $request->validate([
             'instance_id' => ['nullable', 'string', 'max:191'],
         ]);
-        $instanceId = filled($validated['instance_id'] ?? null)
-            ? $validated['instance_id']
-            : (string) config('services.bot_api.command_bot_name', 'WBot');
+        $instanceId = $request->attributes->get('bot_agent_instance_id')
+            ?? (filled($validated['instance_id'] ?? null)
+                ? $validated['instance_id']
+                : (string) config('services.bot_api.command_bot_name', 'WBot'));
         $authorizedAccountIds = $request->attributes->get('bot_agent_social_account_ids');
         $isAgentScopedRequest = is_array($authorizedAccountIds);
         $now = now();

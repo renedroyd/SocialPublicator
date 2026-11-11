@@ -7,6 +7,7 @@ use App\Models\FacebookGroup;
 use App\Models\PublicationExecution;
 use App\Models\SocialAccountConnection;
 use App\Models\WhatsAppGroup;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use LogicException;
@@ -68,9 +69,12 @@ class BotCommandService
         });
     }
 
-    public function claim(string $botName, ?string $instanceId = null): ?BotCommand
-    {
-        return DB::transaction(function () use ($botName, $instanceId): ?BotCommand {
+    public function claim(
+        string $botName,
+        ?string $instanceId = null,
+        ?array $authorizedAccountIds = null,
+    ): ?BotCommand {
+        return DB::transaction(function () use ($botName, $instanceId, $authorizedAccountIds): ?BotCommand {
             $query = BotCommand::query()
                 ->where('bot_name', $botName)
                 ->where('status', 'pending')
@@ -80,7 +84,9 @@ class BotCommandService
                         ->orWhere('available_at', '<=', now());
                 });
 
-            if ($instanceId === null) {
+            if (is_array($authorizedAccountIds)) {
+                $query->where('agent_instance_id', $instanceId);
+            } elseif ($instanceId === null) {
                 $query->whereNull('agent_instance_id');
             } elseif ($instanceId === $botName) {
                 $query->where(function ($query) use ($instanceId): void {
@@ -91,23 +97,42 @@ class BotCommandService
                 $query->where('agent_instance_id', $instanceId);
             }
 
-            $command = $query
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->first();
+            $skippedCommandIds = [];
 
-            if ($command === null) {
-                return null;
+            while (true) {
+                $candidateQuery = clone $query;
+
+                if ($skippedCommandIds !== []) {
+                    $candidateQuery->whereNotIn('id', $skippedCommandIds);
+                }
+
+                $command = $candidateQuery
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($command === null) {
+                    return null;
+                }
+
+                if (
+                    is_array($authorizedAccountIds)
+                    && ! $this->commandBelongsToAuthorizedAccount($command, $authorizedAccountIds, requireActiveConnection: true)
+                ) {
+                    $skippedCommandIds[] = $command->id;
+
+                    continue;
+                }
+
+                $command->update([
+                    'status' => 'claimed',
+                    'attempts' => $command->attempts + 1,
+                    'claimed_at' => now(),
+                    'error_message' => null,
+                ]);
+
+                return $command->refresh();
             }
-
-            $command->update([
-                'status' => 'claimed',
-                'attempts' => $command->attempts + 1,
-                'claimed_at' => now(),
-                'error_message' => null,
-            ]);
-
-            return $command->refresh();
         });
     }
 
@@ -116,13 +141,14 @@ class BotCommandService
         string $botName,
         array $result = [],
         ?string $instanceId = null,
+        ?array $authorizedAccountIds = null,
     ): BotCommand {
-        return DB::transaction(function () use ($command, $botName, $result, $instanceId): BotCommand {
+        return DB::transaction(function () use ($command, $botName, $result, $instanceId, $authorizedAccountIds): BotCommand {
             $command = BotCommand::query()
                 ->lockForUpdate()
                 ->findOrFail($command->id);
 
-            $this->assertClaimedByAgent($command, $botName, $instanceId);
+            $this->assertClaimedByAgent($command, $botName, $instanceId, $authorizedAccountIds);
 
             $command->update([
                 'status' => 'succeeded',
@@ -141,13 +167,14 @@ class BotCommandService
         string $error,
         bool $retry = true,
         ?string $instanceId = null,
+        ?array $authorizedAccountIds = null,
     ): BotCommand {
-        return DB::transaction(function () use ($command, $botName, $error, $retry, $instanceId): BotCommand {
+        return DB::transaction(function () use ($command, $botName, $error, $retry, $instanceId, $authorizedAccountIds): BotCommand {
             $command = BotCommand::query()
                 ->lockForUpdate()
                 ->findOrFail($command->id);
 
-            $this->assertClaimedByAgent($command, $botName, $instanceId);
+            $this->assertClaimedByAgent($command, $botName, $instanceId, $authorizedAccountIds);
 
             $canRetry = $retry && $command->attempts < $command->max_attempts;
 
@@ -165,22 +192,8 @@ class BotCommandService
 
     private function resolveAgentInstanceId(PublicationExecution $execution): ?string
     {
-        $group = null;
-        $connectionType = null;
-
-        if ($execution->channel === 'whatsapp') {
-            $group = WhatsAppGroup::query()
-                ->where(function ($query) use ($execution): void {
-                    $query->where('whatsapp_id', $execution->target_key)
-                        ->orWhere('name', $execution->target_key);
-                })
-                ->first();
-            $connectionType = SocialAccountConnection::TYPE_WPP_CONNECT_QR;
-        } elseif ($execution->channel === 'facebook') {
-            $group = $execution->facebookGroup
-                ?? FacebookGroup::query()->find($execution->facebook_group_id);
-            $connectionType = SocialAccountConnection::TYPE_BROWSER_SESSION;
-        }
+        $group = $this->executionTarget($execution);
+        $connectionType = $this->connectionTypeForChannel($execution->channel);
 
         if (! $group?->social_account_id || ! $connectionType) {
             return null;
@@ -193,10 +206,78 @@ class BotCommandService
             ->value('agent_instance_id');
     }
 
+    private function executionTarget(PublicationExecution $execution): WhatsAppGroup|FacebookGroup|null
+    {
+        if ($execution->channel === 'whatsapp') {
+            return WhatsAppGroup::query()
+                ->where(function ($query) use ($execution): void {
+                    $query->where('whatsapp_id', $execution->target_key)
+                        ->orWhere('name', $execution->target_key);
+                })
+                ->first();
+        }
+
+        if ($execution->channel === 'facebook') {
+            return $execution->facebookGroup
+                ?? ($execution->facebook_group_id
+                    ? FacebookGroup::query()->find($execution->facebook_group_id)
+                    : FacebookGroup::query()->where('facebook_id', $execution->target_key)->first());
+        }
+
+        return null;
+    }
+
+    private function connectionTypeForChannel(string $channel): ?string
+    {
+        return match ($channel) {
+            'whatsapp' => SocialAccountConnection::TYPE_WPP_CONNECT_QR,
+            'facebook' => SocialAccountConnection::TYPE_BROWSER_SESSION,
+            default => null,
+        };
+    }
+
+    private function commandBelongsToAuthorizedAccount(
+        BotCommand $command,
+        array $authorizedAccountIds,
+        bool $requireActiveConnection = false,
+    ): bool {
+        if ($command->type !== 'retry_publication') {
+            return false;
+        }
+
+        $executionId = $command->payload['execution_id'] ?? null;
+        $execution = $executionId ? PublicationExecution::query()->find($executionId) : null;
+        $group = $execution ? $this->executionTarget($execution) : null;
+
+        if (
+            $group === null
+            || $group->social_account_id === null
+            || ! in_array((int) $group->social_account_id, $authorizedAccountIds, true)
+        ) {
+            return false;
+        }
+
+        if (! $requireActiveConnection) {
+            return true;
+        }
+
+        $connectionType = $this->connectionTypeForChannel($execution->channel);
+
+        return $connectionType !== null
+            && $command->agent_instance_id !== null
+            && SocialAccountConnection::query()
+                ->where('social_account_id', $group->social_account_id)
+                ->where('connection_type', $connectionType)
+                ->where('status', 'connected')
+                ->where('agent_instance_id', $command->agent_instance_id)
+                ->exists();
+    }
+
     private function assertClaimedByAgent(
         BotCommand $command,
         string $botName,
         ?string $instanceId,
+        ?array $authorizedAccountIds,
     ): void {
         if ($command->bot_name !== $botName || $command->status !== 'claimed') {
             throw new LogicException(
@@ -204,10 +285,19 @@ class BotCommandService
             );
         }
 
-        if ($command->agent_instance_id !== null && $command->agent_instance_id !== $instanceId) {
-            throw new LogicException(
-                "El comando {$command->id} está asignado a otra instancia de WBot."
-            );
+        $allowedInstanceIds = is_array($authorizedAccountIds)
+            ? [$instanceId]
+            : ($instanceId === $botName ? [null, $botName] : [$instanceId]);
+
+        if (! in_array($command->agent_instance_id, $allowedInstanceIds, true)) {
+            throw new AuthorizationException('El comando está asignado a otra instancia de WBot.');
+        }
+
+        if (
+            is_array($authorizedAccountIds)
+            && ! $this->commandBelongsToAuthorizedAccount($command, $authorizedAccountIds)
+        ) {
+            throw new AuthorizationException('El agente no está autorizado para la cuenta social del comando.');
         }
     }
 }

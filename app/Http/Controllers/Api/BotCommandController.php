@@ -17,29 +17,38 @@ class BotCommandController extends Controller
             'instance_id' => ['nullable', 'string', 'max:191'],
         ]);
 
-        $command = $service->claim($validated['bot_name'], $validated['instance_id'] ?? null);
+        $this->assertBotName($validated['bot_name']);
 
-        return response()->json([
-            'data' => $command,
-        ]);
+        $command = $service->claim(
+            $validated['bot_name'],
+            $this->instanceId($request, $validated),
+            $request->attributes->get('bot_agent_social_account_ids'),
+        );
+
+        return response()->json(['data' => $command]);
     }
 
     public function complete(
         Request $request,
-        BotCommand $command,
-        BotCommandService $service
+        int $command,
+        BotCommandService $service,
     ): JsonResponse {
+        $command = BotCommand::query()->findOrFail($command);
+
         $validated = $request->validate([
             'bot_name' => ['required', 'string', 'max:100'],
             'instance_id' => ['nullable', 'string', 'max:191'],
             'result' => ['nullable', 'array'],
         ]);
 
+        $this->assertBotName($validated['bot_name']);
+
         $command = $service->complete(
             $command,
             $validated['bot_name'],
             $validated['result'] ?? [],
-            $validated['instance_id'] ?? null,
+            $this->instanceId($request, $validated),
+            $request->attributes->get('bot_agent_social_account_ids'),
         );
 
         return response()->json(['data' => $command]);
@@ -47,9 +56,11 @@ class BotCommandController extends Controller
 
     public function fail(
         Request $request,
-        BotCommand $command,
-        BotCommandService $service
+        int $command,
+        BotCommandService $service,
     ): JsonResponse {
+        $command = BotCommand::query()->findOrFail($command);
+
         $validated = $request->validate([
             'bot_name' => ['required', 'string', 'max:100'],
             'instance_id' => ['nullable', 'string', 'max:191'],
@@ -57,14 +68,33 @@ class BotCommandController extends Controller
             'retry' => ['nullable', 'boolean'],
         ]);
 
+        $this->assertBotName($validated['bot_name']);
+
         $command = $service->fail(
             $command,
             $validated['bot_name'],
             $validated['error'],
             $validated['retry'] ?? true,
-            $validated['instance_id'] ?? null,
+            $this->instanceId($request, $validated),
+            $request->attributes->get('bot_agent_social_account_ids'),
         );
 
         return response()->json(['data' => $command]);
+    }
+
+    private function assertBotName(string $botName): void
+    {
+        $expected = (string) config('services.bot_api.command_bot_name', 'WBot');
+
+        abort_unless(hash_equals($expected, $botName), 403, 'This token is restricted to its configured bot name.');
+    }
+
+    private function instanceId(Request $request, array $validated): ?string
+    {
+        $instanceId = $request->attributes->get('bot_agent_instance_id')
+            ?? $validated['instance_id']
+            ?? null;
+
+        return filled($instanceId) ? (string) $instanceId : null;
     }
 }
