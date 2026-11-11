@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\BotCommandController;
 use App\Http\Controllers\Api\BotExecutionController;
+use App\Http\Controllers\Api\BotAgentHealthController;
 use App\Http\Controllers\Api\BotPublicationController;
 use App\Http\Controllers\Api\BotStatusController;
 use App\Http\Controllers\Api\FacebookBrowserConnectionController;
@@ -25,6 +26,9 @@ Route::post('/integrations/dubai-shop/v1/events', [DubaiShopWebhookController::c
 Route::middleware(['throttle:600,1', VerifyBotApiToken::class, ResolveWorkspaceContext::class.':bot', 'throttle:bot-api'])
     ->prefix('bot')
     ->group(function (): void {
+        Route::get('/agent/health', BotAgentHealthController::class)
+            ->name('api.bot.agent.health');
+
         Route::get('/publications', [
             BotPublicationController::class,
             'index',
