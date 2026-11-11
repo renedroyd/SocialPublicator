@@ -194,6 +194,39 @@ class MetaOAuthController extends Controller
                         ],
                     );
                 }
+
+                $stalePagesQuery = SocialAccount::query()
+                    ->where('parent_account_id', $account->id)
+                    ->where('account_type', SocialAccount::TYPE_FACEBOOK_PAGE);
+
+                if ($authorizedPageIds !== []) {
+                    $stalePagesQuery->whereNotIn('external_account_id', $authorizedPageIds);
+                }
+
+                foreach ($stalePagesQuery->get() as $stalePage) {
+                    $stalePage->update([
+                        'status' => SocialAccount::STATUS_DISCONNECTED,
+                        'last_error_at' => now(),
+                        'last_error_message' => 'Meta ya no devuelve esta página entre las cuentas autorizadas.',
+                    ]);
+
+                    $stalePage->connections()
+                        ->where('connection_type', SocialAccountConnection::TYPE_META_OAUTH)
+                        ->where('provider', 'meta')
+                        ->update([
+                            'status' => 'revoked',
+                            'revoked_at' => now(),
+                            'last_error_code' => 'page_access_removed',
+                            'last_error_message' => 'Meta ya no devuelve esta página entre las cuentas autorizadas.',
+                        ]);
+
+                    PublicationDestination::query()
+                        ->where('social_account_id', $stalePage->id)
+                        ->update([
+                            'active' => false,
+                            'last_synced_at' => now(),
+                        ]);
+                }
             });
         } catch (ConnectionException $exception) {
             Log::warning('Meta OAuth transport failure.', [
