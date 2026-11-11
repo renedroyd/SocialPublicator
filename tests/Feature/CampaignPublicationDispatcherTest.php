@@ -7,6 +7,10 @@ use App\Models\ExternalCatalogCampaignSelection;
 use App\Models\ExternalCatalogItem;
 use App\Models\ExternalCatalogWarehouse;
 use App\Models\Publication;
+use App\Models\SocialAccount;
+use App\Models\Workspace;
+use App\Services\Workspaces\WorkspaceContext;
+use ReflectionMethod;
 use App\Models\WhatsAppGroup;
 use App\Services\CampaignPublicationDispatcher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -57,7 +61,7 @@ class CampaignPublicationDispatcherTest extends TestCase
         $campaign->whatsappGroups()->attach([$linkedGroup->id, $orphanGroup->id]);
 
         $dispatcher = app(CampaignPublicationDispatcher::class);
-        $method = new \\ReflectionMethod(CampaignPublicationDispatcher::class, 'authorizedGroups');
+        $method = new ReflectionMethod(CampaignPublicationDispatcher::class, 'authorizedGroups');
         $method->setAccessible(true);
         [$whatsappGroups, $facebookGroups] = $method->invoke($dispatcher, $campaign);
 
