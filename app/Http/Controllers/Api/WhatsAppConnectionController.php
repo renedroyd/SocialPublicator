@@ -37,7 +37,7 @@ class WhatsAppConnectionController extends Controller
             ->first();
 
         abort_if(
-            $connection?->revoked_at !== null,
+            in_array($connection?->last_error_code, ['workspace_admin_revoked', 'parent_profile_revoked'], true),
             423,
             'La conexión fue revocada desde SocialPublicator. Reactívala desde el panel antes de volver a conectar.',
         );
