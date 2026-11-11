@@ -63,7 +63,7 @@ class MetaPagePublicationTest extends TestCase
         ]);
 
         app(PublishMetaPagePublication::class, ['executionId' => $execution->id])
-            ->handle(app(PublicationExecutionService::class));
+            ->handle(app(PublicationExecutionService::class), app(WorkspaceContext::class));
 
         $execution->refresh();
         $this->assertSame('succeeded', $execution->status);
