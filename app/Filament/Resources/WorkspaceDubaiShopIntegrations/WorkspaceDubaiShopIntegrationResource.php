@@ -23,9 +23,9 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Throwable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Throwable;
 
 class WorkspaceDubaiShopIntegrationResource extends Resource
 {
@@ -45,7 +45,7 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
     public static function canCreate(): bool
     {
         return static::currentWorkspaceMembership()?->hasPermission('integrations.manage') === true
-            && ! WorkspaceDubaiShopIntegration::query()->exists();
+            && !WorkspaceDubaiShopIntegration::query()->exists();
     }
 
     public static function canDelete(Model $record): bool
@@ -93,7 +93,7 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                     Toggle::make('campaign_dispatch_enabled')
                         ->label('Permitir campañas automáticas')
                         ->default(false)
-                        ->disabled(fn (Get $get, ?WorkspaceDubaiShopIntegration $record): bool => ! $get('enabled') || blank($record?->last_verified_at) || blank($record?->last_catalog_synced_at))
+                        ->disabled(fn (Get $get, ?WorkspaceDubaiShopIntegration $record): bool => !$get('enabled') || blank($record?->last_verified_at) || blank($record?->last_catalog_synced_at))
                         ->helperText('Primero habilita, verifica la conexión y sincroniza el catálogo. Después podrás activar campañas explícitamente.'),
                     TextInput::make('api_base_url')
                         ->label('URL base de Dubai Shop')
