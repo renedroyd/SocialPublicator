@@ -44,3 +44,8 @@ Schedule::command('social-publicator:dispatch-campaign-publications')
 Schedule::command('social-publicator:sync-dubai-catalog')
     ->hourly()
     ->withoutOverlapping();
+
+
+Schedule::command('meta-pages:dispatch')
+    ->everyMinute()
+    ->withoutOverlapping();
