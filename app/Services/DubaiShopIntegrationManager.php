@@ -112,7 +112,7 @@ class DubaiShopIntegrationManager
 
             $legacyReady = filled(config('services.dubai_shop.api_base_url'))
                 && filled(config('services.dubai_shop.api_token'))
-                && ! empty(config('services.dubai_shop.webhook_keys', []))
+                && $this->hasLegacyWebhookKeys()
                 && ! $campaignsOnly;
 
             if (! $hasDatabaseRecord && $legacyReady) {
@@ -139,6 +139,25 @@ class DubaiShopIntegrationManager
         return $workspaceIds->count() === 1 ? (int) $workspaceIds->first() : null;
     }
 
+    private function hasLegacyWebhookKeys(): bool
+    {
+        $keys = config('services.dubai_shop.webhook_keys', []);
+
+        if (! is_array($keys) || $keys === []) {
+            return false;
+        }
+
+        foreach ($keys as $key) {
+            $secret = is_array($key) ? ($key['secret'] ?? null) : $key;
+
+            if (is_string($secret) && $secret !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function legacySettings(int $workspaceId): ?array
     {
         $legacyWorkspaceId = $this->legacyWorkspaceId();
@@ -150,7 +169,7 @@ class DubaiShopIntegrationManager
         $baseUrl = (string) config('services.dubai_shop.api_base_url');
         $token = (string) config('services.dubai_shop.api_token');
 
-        if ($baseUrl === '' || $token === '' || empty(config('services.dubai_shop.webhook_keys', []))) {
+        if ($baseUrl === '' || $token === '' || ! $this->hasLegacyWebhookKeys()) {
             return null;
         }
 
