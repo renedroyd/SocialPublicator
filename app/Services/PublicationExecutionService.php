@@ -29,17 +29,25 @@ class PublicationExecutionService
         }
     }
 
-    public function start(PublicationExecution $execution): PublicationExecution
+    /**
+     * Atomically claims an execution for exactly one agent request.
+     *
+     * Running, unknown and succeeded executions are never reclaimed here.
+     *
+     * @return array{execution: PublicationExecution, claimed: bool}
+     */
+    public function claim(PublicationExecution $execution): array
     {
-        return DB::transaction(function () use ($execution): PublicationExecution {
+        return DB::transaction(function () use ($execution): array {
             $execution = PublicationExecution::query()
                 ->lockForUpdate()
                 ->findOrFail($execution->id);
 
             if (! in_array($execution->status, ['pending', 'failed'], true)) {
-                throw new LogicException(
-                    "Execution {$execution->id} cannot be started from status {$execution->status}."
-                );
+                return [
+                    'execution' => $execution,
+                    'claimed' => false,
+                ];
             }
 
             $execution->update([
@@ -48,6 +56,47 @@ class PublicationExecutionService
                 'completed_at' => null,
                 'error_message' => null,
                 'attempts' => DB::raw('attempts + 1'),
+            ]);
+
+            return [
+                'execution' => $execution->refresh(),
+                'claimed' => true,
+            ];
+        });
+    }
+
+    public function start(PublicationExecution $execution): PublicationExecution
+    {
+        $claim = $this->claim($execution);
+
+        if (! $claim['claimed']) {
+            throw new LogicException(
+                "Execution {$execution->id} cannot be started from status {$claim['execution']->status}."
+            );
+        }
+
+        return $claim['execution'];
+    }
+
+    public function markUnknown(
+        PublicationExecution $execution,
+        string $errorMessage
+    ): PublicationExecution {
+        return DB::transaction(function () use ($execution, $errorMessage): PublicationExecution {
+            $execution = PublicationExecution::query()
+                ->lockForUpdate()
+                ->findOrFail($execution->id);
+
+            if ($execution->status !== 'running') {
+                throw new LogicException(
+                    "Execution {$execution->id} cannot become unknown from status {$execution->status}."
+                );
+            }
+
+            $execution->update([
+                'status' => 'unknown',
+                'completed_at' => now(),
+                'error_message' => $errorMessage,
             ]);
 
             return $execution->refresh();
