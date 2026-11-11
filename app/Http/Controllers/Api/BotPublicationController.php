@@ -26,6 +26,13 @@ class BotPublicationController extends Controller
                 : (string) config('services.bot_api.command_bot_name', 'WBot'));
         $authorizedAccountIds = $request->attributes->get('bot_agent_social_account_ids');
         $isAgentScopedRequest = is_array($authorizedAccountIds);
+        $workspaceId = $request->attributes->get('bot_agent_workspace_id')
+            ?? app(WorkspaceContext::class)->id();
+
+        if (! $isAgentScopedRequest && SocialAccount::query()->where('workspace_id', $workspaceId)->exists()) {
+            abort(403, 'Workspaces with social accounts require a scoped BotAgent token.');
+        }
+
         $now = now();
         $currentDate = $now->toDateString();
 
