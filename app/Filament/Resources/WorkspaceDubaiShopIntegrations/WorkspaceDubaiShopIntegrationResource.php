@@ -92,7 +92,6 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                     Toggle::make('campaign_dispatch_enabled')
                         ->label('Permitir campañas automáticas')
                         ->default(false)
-                        ->disabled(fn (Get $get): bool => ! $get('enabled'))
                         ->disabled(fn (Get $get, ?WorkspaceDubaiShopIntegration $record): bool => ! $get('enabled') || blank($record?->last_verified_at) || blank($record?->last_catalog_synced_at))
                         ->helperText('Primero habilita, verifica la conexión y sincroniza el catálogo. Después podrás activar campañas explícitamente.'),
                     TextInput::make('api_base_url')
@@ -208,6 +207,9 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                             $record->update([
                                 'last_error_at' => now(),
                                 'last_error_message' => 'No fue posible verificar la conexión con Dubai Shop.',
+                                'last_verified_at' => null,
+                                'last_catalog_synced_at' => null,
+                                'campaign_dispatch_enabled' => false,
                             ]);
                             Notification::make()
                                 ->title('No se pudo verificar la conexión')
