@@ -171,6 +171,7 @@ class RecentExecutions extends TableWidget
                     ->requiresConfirmation()
                     ->modalDescription('Se volverá a enviar esta publicación a la página oficial mediante Meta Graph API.')
                     ->action(function (PublicationExecution $record): void {
+                        abort_unless($this->canManageExecutions(), 403);
                         DB::transaction(function () use ($record): void {
                             $fresh = PublicationExecution::query()
                                 ->lockForUpdate()
@@ -196,6 +197,7 @@ class RecentExecutions extends TableWidget
                             ->maxLength(255),
                     ])
                     ->action(function (PublicationExecution $record, array $data): void {
+                        abort_unless($this->canManageExecutions(), 403);
                         app(PublicationExecutionService::class)->succeed(
                             $record,
                             trim((string) $data['external_id']),
@@ -221,6 +223,7 @@ class RecentExecutions extends TableWidget
                     ->requiresConfirmation()
                     ->modalDescription('Esta operación puede crear una publicación duplicada si no verificaste que el envío anterior no llegó a Facebook.')
                     ->action(function (PublicationExecution $record): void {
+                        abort_unless($this->canManageExecutions(), 403);
                         DB::transaction(function () use ($record): void {
                             $fresh = PublicationExecution::query()
                                 ->lockForUpdate()
@@ -242,11 +245,13 @@ class RecentExecutions extends TableWidget
                             && in_array($record->status, ['failed', 'pending'], true)
                     )
                     ->requiresConfirmation()
-                    ->action(
-                        fn (PublicationExecution $record): BotCommand => app(
+                    ->action(function (PublicationExecution $record): BotCommand {
+                        abort_unless($this->canManageExecutions(), 403);
+
+                        return app(
                             BotCommandService::class
-                        )->queueRetry($record)
-                    ),
+                        )->queueRetry($record);
+                    }),
 
                 Action::make('viewPublication')
                     ->label('Ver publicación')
