@@ -26,7 +26,6 @@ use Filament\Tables\Table;
 use Throwable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Throwable;
 
 class WorkspaceDubaiShopIntegrationResource extends Resource
 {
