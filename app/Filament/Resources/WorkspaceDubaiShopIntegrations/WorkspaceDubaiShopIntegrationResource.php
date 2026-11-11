@@ -93,7 +93,7 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                     Toggle::make('campaign_dispatch_enabled')
                         ->label('Permitir campañas automáticas')
                         ->default(false)
-                        ->disabled(fn (Get $get, ?WorkspaceDubaiShopIntegration $record): bool => !$get('enabled') || blank($record?->last_verified_at) || blank($record?->last_catalog_synced_at))
+                        ->disabled(fn (Get $get, ?WorkspaceDubaiShopIntegration $record): bool => ! $get('enabled') || blank($record?->last_verified_at) || blank($record?->last_catalog_synced_at))
                         ->helperText('Primero habilita, verifica la conexión y sincroniza el catálogo. Después podrás activar campañas explícitamente.'),
                     TextInput::make('api_base_url')
                         ->label('URL base de Dubai Shop')
