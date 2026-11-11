@@ -45,6 +45,7 @@ class ExternalCatalogSyncTest extends TestCase
 
         config()->set('services.dubai_shop.api_base_url', 'https://shop.example.test');
         config()->set('services.dubai_shop.api_token', 'test-api-token');
+        config()->set('services.dubai_shop.webhook_keys', ['test-key' => 'test-hmac-secret']);
     }
 
     public function test_full_sync_imports_items_and_eligible_warehouses_from_dubai_shop(): void
