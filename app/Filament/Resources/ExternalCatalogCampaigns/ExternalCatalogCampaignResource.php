@@ -29,6 +29,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ExternalCatalogCampaignResource extends Resource
 {
@@ -60,7 +61,7 @@ class ExternalCatalogCampaignResource extends Resource
             && (static::currentWorkspaceMembership()?->hasPermission('campaigns.create') ?? false);
     }
 
-    public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
+    public static function canEdit(Model $record): bool
     {
         return static::integrationEnabled()
             && (static::currentWorkspaceMembership()?->hasPermission('campaigns.update') ?? false);
