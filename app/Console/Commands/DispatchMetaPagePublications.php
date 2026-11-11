@@ -179,6 +179,7 @@ class DispatchMetaPagePublications extends Command
                 && $connection->status === 'connected'
                 && $connection->revoked_at === null
                 && (! $connection->expires_at || $connection->expires_at->isFuture())
+                && ($connection->credentials['token_type'] ?? null) === 'page'
                 && filled($connection->credentials['access_token'] ?? null),
         );
     }
