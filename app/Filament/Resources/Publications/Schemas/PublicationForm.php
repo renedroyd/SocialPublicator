@@ -28,10 +28,19 @@ class PublicationForm
         $workspaceId = app(WorkspaceContext::class)->id();
 
         if ($workspaceId && SocialAccount::query()->where('workspace_id', $workspaceId)->exists()) {
-            $query->whereIn(
-                'social_account_id',
-                SocialAccount::query()->where('workspace_id', $workspaceId)->select('id'),
-            );
+            $accounts = SocialAccount::query()->where('workspace_id', $workspaceId);
+
+            if ($destinationType === WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP) {
+                $accounts
+                    ->where('platform', SocialAccount::PLATFORM_WHATSAPP)
+                    ->where('account_type', SocialAccount::TYPE_WHATSAPP);
+            } else {
+                $accounts
+                    ->where('platform', SocialAccount::PLATFORM_FACEBOOK)
+                    ->where('account_type', SocialAccount::TYPE_FACEBOOK_PROFILE);
+            }
+
+            $query->whereIn('social_account_id', $accounts->select('id'));
         }
         if ($destinationType === WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP) {
             $query->where('is_admin', true);
