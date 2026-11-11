@@ -93,6 +93,7 @@ class BotPublicationController extends Controller
                         $legacyInstanceId,
                         SocialAccountConnection::TYPE_WPP_CONNECT_QR,
                         $authorizedAccountIds,
+                        $authorizedAccountIds,
                     ))
                     ->values();
                 $eligibleFacebookGroups = $eligibleFacebookGroups
@@ -102,6 +103,7 @@ class BotPublicationController extends Controller
                         $legacyInstanceId,
                         SocialAccountConnection::TYPE_BROWSER_SESSION,
                         $authorizedAccountIds,
+                        $authorizedAccountIds,
                     ))
                     ->values();
 
@@ -110,7 +112,7 @@ class BotPublicationController extends Controller
                 $hasFacebookDestination = in_array($publication->destination, ['facebook', 'both'], true)
                     && $eligibleFacebookGroups->isNotEmpty();
 
-                if (! $hasWhatsAppDestination && ! $hasFacebookDestination) {
+                if ($isAgentScopedRequest && ! $hasWhatsAppDestination && ! $hasFacebookDestination) {
                     continue;
                 }
             }
