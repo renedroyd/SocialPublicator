@@ -73,8 +73,6 @@ class AgentPublicationIsolationTest extends TestCase
             'recurrence_type' => 'none',
         ]);
         $publication->whatsappGroups()->attach([$groupA->id, $groupB->id, $nonAdminGroup->id]);
-        app(WorkspaceContext::class)->clear();
-
         $response = $this->withToken($tokenA)
             ->getJson('/api/bot/publications?instance_id=agent-wa-a');
 
