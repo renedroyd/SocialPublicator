@@ -111,6 +111,53 @@ class PublicationExecutionServiceTest extends TestCase
         $service->start($execution->refresh());
     }
 
+    public function test_it_claims_a_pending_execution_only_once(): void
+    {
+        $execution = $this->createExecution();
+        $service = app(PublicationExecutionService::class);
+
+        $first = $service->claim($execution);
+        $second = $service->claim($execution->refresh());
+
+        $this->assertTrue($first['claimed']);
+        $this->assertSame('running', $first['execution']->status);
+        $this->assertFalse($second['claimed']);
+        $this->assertSame($first['execution']->id, $second['execution']->id);
+        $this->assertSame(1, $second['execution']->attempts);
+    }
+
+    public function test_it_never_reclaims_running_or_unknown_executions(): void
+    {
+        $execution = $this->createExecution();
+        $service = app(PublicationExecutionService::class);
+
+        $service->start($execution);
+        $runningClaim = $service->claim($execution->refresh());
+        $this->assertFalse($runningClaim['claimed']);
+        $this->assertSame('running', $runningClaim['execution']->status);
+
+        $service->markUnknown($execution->refresh(), 'No se pudo confirmar el envío.');
+        $unknownClaim = $service->claim($execution->refresh());
+        $this->assertFalse($unknownClaim['claimed']);
+        $this->assertSame('unknown', $unknownClaim['execution']->status);
+    }
+
+    public function test_it_marks_uncertain_running_execution_as_unknown_and_allows_reconciliation_to_succeed(): void
+    {
+        $execution = $this->createExecution();
+        $service = app(PublicationExecutionService::class);
+
+        $service->start($execution);
+        $execution = $service->markUnknown($execution, 'El proveedor no confirmó el resultado.');
+
+        $this->assertSame('unknown', $execution->status);
+        $this->assertSame('El proveedor no confirmó el resultado.', $execution->error_message);
+
+        $execution = $service->succeed($execution, 'external-post-123');
+        $this->assertSame('succeeded', $execution->status);
+        $this->assertSame('external-post-123', $execution->external_id);
+    }
+
     private function createExecution(): PublicationExecution
     {
         $publication = $this->createPublication();
