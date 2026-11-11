@@ -25,6 +25,7 @@ class WhatsAppGroupController extends Controller
             ->map(static fn (array $group): array => [
                 'whatsapp_id' => $group['whatsapp_id'] ?? $group['id'] ?? null,
                 'name' => $group['name'] ?? null,
+                ...(array_key_exists('is_admin', $group) ? ['is_admin' => $group['is_admin']] : []),
             ])
             ->values()
             ->all();
@@ -35,6 +36,7 @@ class WhatsAppGroupController extends Controller
                 'groups' => ['required', 'array'],
                 'groups.*.whatsapp_id' => ['required', 'string', 'max:255'],
                 'groups.*.name' => ['required', 'string', 'max:255'],
+                'groups.*.is_admin' => ['sometimes', 'nullable', 'boolean'],
             ]
         )->validate();
 
@@ -58,6 +60,12 @@ class WhatsAppGroupController extends Controller
                         'name' => $name,
                         'active' => true,
                         'last_synchronized_at' => $synchronizedAt,
+                        ...(array_key_exists('is_admin', $group)
+                            ? [
+                                'is_admin' => $group['is_admin'],
+                                'admin_checked_at' => $group['is_admin'] === null ? null : $synchronizedAt,
+                            ]
+                            : []),
                     ],
                 );
 
@@ -71,7 +79,7 @@ class WhatsAppGroupController extends Controller
             'data' => WhatsAppGroup::query()
                 ->whereIn('id', $receivedIds)
                 ->orderBy('name')
-                ->get(['id', 'whatsapp_id', 'name', 'active', 'last_synchronized_at']),
+                ->get(['id', 'whatsapp_id', 'name', 'active', 'is_admin', 'admin_checked_at', 'last_synchronized_at']),
         ]);
     }
 }
