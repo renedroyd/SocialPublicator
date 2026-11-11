@@ -5,18 +5,19 @@ namespace App\Services;
 use App\Models\Workspace;
 use App\Models\WorkspaceDubaiShopIntegration;
 use App\Services\Workspaces\WorkspaceContext;
-use Illuminate\Support\Collection;
 use RuntimeException;
 
 class DubaiShopIntegrationManager
 {
-    public function __construct(private readonly WorkspaceContext $context) {}
+    public function __construct(private readonly WorkspaceContext $context)
+    {
+    }
 
     public function currentSettings(): array
     {
         $workspaceId = $this->context->id();
 
-        if (! $workspaceId) {
+        if (!$workspaceId) {
             throw new RuntimeException('A workspace context is required for the Dubai Shop integration.');
         }
 
@@ -40,13 +41,13 @@ class DubaiShopIntegrationManager
             $settings = $this->legacySettings($workspaceId);
         }
 
-        if (! $settings) {
+        if (!$settings) {
             throw new RuntimeException('Configure an enabled Dubai Shop integration for the active workspace.');
         }
 
         $scheme = strtolower((string) parse_url((string) $settings['api_base_url'], PHP_URL_SCHEME));
 
-        if ($scheme !== 'https' && ! app()->environment(['local', 'testing'])) {
+        if ($scheme !== 'https' && !app()->environment(['local', 'testing'])) {
             throw new RuntimeException('Dubai Shop API connections must use HTTPS.');
         }
 
@@ -90,7 +91,7 @@ class DubaiShopIntegrationManager
         $ids = $query->pluck('workspace_id')->map(fn ($id): int => (int) $id)->all();
         $legacyId = $this->legacyWorkspaceId();
 
-        if ($legacyId && ! in_array($legacyId, $ids, true)) {
+        if ($legacyId && !in_array($legacyId, $ids, true)) {
             $hasDatabaseRecord = WorkspaceDubaiShopIntegration::withoutGlobalScope('workspace')
                 ->where('workspace_id', $legacyId)
                 ->exists();
@@ -99,7 +100,7 @@ class DubaiShopIntegrationManager
                 && filled(config('services.dubai_shop.api_token'))
                 && (! $campaignsOnly || (bool) config('services.dubai_shop.campaign_dispatch_enabled'));
 
-            if (! $hasDatabaseRecord && $legacyReady) {
+            if (!$hasDatabaseRecord && $legacyReady) {
                 $ids[] = $legacyId;
             }
         }
