@@ -248,7 +248,6 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
         $this->assertFalse($integration->fresh()->campaign_dispatch_enabled);
     }
 
-
     public function test_failed_full_sync_clears_sync_state_and_pauses_campaigns(): void
     {
         $workspace = Workspace::query()->create(['name' => 'Failed sync', 'slug' => 'failed-sync']);
