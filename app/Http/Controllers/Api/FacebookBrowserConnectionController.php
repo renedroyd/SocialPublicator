@@ -72,6 +72,13 @@ class FacebookBrowserConnectionController extends Controller
             ],
         );
 
+        if ($account->connections()
+            ->where('status', 'connected')
+            ->whereNull('revoked_at')
+            ->exists()) {
+            $account->update(['status' => SocialAccount::STATUS_CONNECTED]);
+        }
+
         return response()->json([
             'success' => true,
             'status' => $data['status'],
