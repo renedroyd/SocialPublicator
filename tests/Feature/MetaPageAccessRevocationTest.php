@@ -10,6 +10,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceMembership;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -64,16 +65,25 @@ class MetaPageAccessRevocationTest extends TestCase
             'services.meta.app_secret' => 'app-secret',
             'services.meta.redirect_uri' => route('social-accounts.meta.callback'),
         ]);
-        Http::fake([
-            'https://graph.facebook.com/v26.0/oauth/access_token' => Http::sequence()
-                ->push(['access_token' => 'short-token', 'expires_in' => 3600])
-                ->push(['access_token' => 'long-token', 'expires_in' => 5184000]),
-            'https://graph.facebook.com/v26.0/me?*' => Http::response([
-                'id' => 'profile-revocation',
-                'name' => 'Perfil',
-            ]),
-            'https://graph.facebook.com/v26.0/me/accounts?*' => Http::response(['data' => []]),
-        ]);
+        Http::fake(function (HttpRequest $request) {
+            $url = $request->url();
+
+            if (str_contains($url, '/oauth/access_token')) {
+                return str_contains($url, 'code=authorization-code')
+                    ? Http::response(['access_token' => 'short-token', 'expires_in' => 3600])
+                    : Http::response(['access_token' => 'long-token', 'expires_in' => 5184000]);
+            }
+
+            if (str_contains($url, '/me/accounts')) {
+                return Http::response(['data' => []]);
+            }
+
+            if (str_contains($url, '/me')) {
+                return Http::response(['id' => 'profile-revocation', 'name' => 'Perfil']);
+            }
+
+            return Http::response([], 404);
+        });
 
         $this->actingAs($user)->withSession(['active_workspace_id' => $workspace->id]);
         $start = $this->get(route('social-accounts.meta.connect', $profile));
