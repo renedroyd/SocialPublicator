@@ -26,7 +26,7 @@ class DubaiShopIntegrationManager
             ->first();
 
         if ($integration) {
-            if (! $integration->isReady()) {
+            if (!$integration->isReady()) {
                 throw new RuntimeException('Dubai Shop integration is disabled or missing its API credentials for this workspace.');
             }
 
@@ -47,7 +47,7 @@ class DubaiShopIntegrationManager
 
         $scheme = strtolower((string) parse_url((string) $settings['api_base_url'], PHP_URL_SCHEME));
 
-        if ($scheme !== 'https' && !app()->environment(['local', 'testing'])) {
+        if ($scheme !== 'https' && ! app()->environment(['local', 'testing'])) {
             throw new RuntimeException('Dubai Shop API connections must use HTTPS.');
         }
 
@@ -91,14 +91,14 @@ class DubaiShopIntegrationManager
         $ids = $query->pluck('workspace_id')->map(fn ($id): int => (int) $id)->all();
         $legacyId = $this->legacyWorkspaceId();
 
-        if ($legacyId && !in_array($legacyId, $ids, true)) {
+        if ($legacyId && ! in_array($legacyId, $ids, true)) {
             $hasDatabaseRecord = WorkspaceDubaiShopIntegration::withoutGlobalScope('workspace')
                 ->where('workspace_id', $legacyId)
                 ->exists();
 
             $legacyReady = filled(config('services.dubai_shop.api_base_url'))
                 && filled(config('services.dubai_shop.api_token'))
-                && (! $campaignsOnly || (bool) config('services.dubai_shop.campaign_dispatch_enabled'));
+                && (!$campaignsOnly || (bool) config('services.dubai_shop.campaign_dispatch_enabled'));
 
             if (!$hasDatabaseRecord && $legacyReady) {
                 $ids[] = $legacyId;
