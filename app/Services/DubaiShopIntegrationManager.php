@@ -9,15 +9,13 @@ use RuntimeException;
 
 class DubaiShopIntegrationManager
 {
-    public function __construct(private readonly WorkspaceContext $context)
-    {
-    }
+    public function __construct(private readonly WorkspaceContext $context) {}
 
     public function currentSettings(): array
     {
         $workspaceId = $this->context->id();
 
-        if (!$workspaceId) {
+        if (! $workspaceId) {
             throw new RuntimeException('A workspace context is required for the Dubai Shop integration.');
         }
 
@@ -26,7 +24,7 @@ class DubaiShopIntegrationManager
             ->first();
 
         if ($integration) {
-            if (!$integration->isReady()) {
+            if (! $integration->isReady()) {
                 throw new RuntimeException('Dubai Shop integration is disabled or missing its API credentials for this workspace.');
             }
 
@@ -41,7 +39,7 @@ class DubaiShopIntegrationManager
             $settings = $this->legacySettings($workspaceId);
         }
 
-        if (!$settings) {
+        if (! $settings) {
             throw new RuntimeException('Configure an enabled Dubai Shop integration for the active workspace.');
         }
 
@@ -98,9 +96,9 @@ class DubaiShopIntegrationManager
 
             $legacyReady = filled(config('services.dubai_shop.api_base_url'))
                 && filled(config('services.dubai_shop.api_token'))
-                && (!$campaignsOnly || (bool) config('services.dubai_shop.campaign_dispatch_enabled'));
+                && (! $campaignsOnly || (bool) config('services.dubai_shop.campaign_dispatch_enabled'));
 
-            if (!$hasDatabaseRecord && $legacyReady) {
+            if (! $hasDatabaseRecord && $legacyReady) {
                 $ids[] = $legacyId;
             }
         }
