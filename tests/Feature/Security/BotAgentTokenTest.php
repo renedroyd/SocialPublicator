@@ -203,5 +203,4 @@ class BotAgentTokenTest extends TestCase
         ])->assertStatus(422)
             ->assertJsonPath('message', 'A social_account_id is required for agent group synchronization.');
     }
-
 }
