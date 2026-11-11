@@ -81,6 +81,4 @@ jobs:
           fi
 
           mapfile -t PHP_FILES <<< "$FILES"
-          vendor/bin/pint "${PHP_FILES[@]}"
-          git diff -- "${PHP_FILES[@]}"
           vendor/bin/pint --test "${PHP_FILES[@]}"
