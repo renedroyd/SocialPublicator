@@ -106,6 +106,12 @@ class MetaOAuthControllerTest extends TestCase
 
         $page = SocialAccount::query()->where('external_account_id', 'page-42')->firstOrFail();
         $this->assertSame($account->id, $page->parent_account_id);
+        $this->assertDatabaseHas('publication_destinations', [
+            'social_account_id' => $page->id,
+            'platform' => 'facebook',
+            'external_id' => 'page-42',
+            'active' => true,
+        ]);
         $this->assertSame('page-secret-token', $page->connections()->firstOrFail()->credentials['access_token']);
         $this->assertSame('long-user-token', $account->connections()->firstOrFail()->credentials['access_token']);
         $this->assertNotNull($account->connections()->firstOrFail()->expires_at);

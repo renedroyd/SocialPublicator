@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\PublicationDestination;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
 use App\Models\WorkspaceMembership;
@@ -134,6 +135,12 @@ class MetaOAuthController extends Controller
                     ],
                 );
 
+                $authorizedPageIds = collect(is_array($pages) ? $pages : [])
+                    ->filter(fn ($page): bool => is_array($page) && filled($page['id'] ?? null) && filled($page['access_token'] ?? null))
+                    ->map(fn (array $page): string => (string) $page['id'])
+                    ->values()
+                    ->all();
+
                 foreach (is_array($pages) ? $pages : [] as $page) {
                     if (! is_array($page) || empty($page['id']) || empty($page['access_token'])) {
                         continue;
@@ -155,6 +162,24 @@ class MetaOAuthController extends Controller
                     ]);
                     $pageAccount->save();
 
+                    PublicationDestination::query()->updateOrCreate(
+                        [
+                            'platform' => 'facebook',
+                            'external_id' => (string) $page['id'],
+                        ],
+                        [
+                            'social_account_id' => $pageAccount->id,
+                            'name' => (string) ($page['name'] ?? 'Página de Facebook'),
+                            'url' => 'https://www.facebook.com/'.rawurlencode((string) $page['id']),
+                            'active' => true,
+                            'last_synced_at' => now(),
+                            'metadata' => [
+                                'destination_type' => 'facebook_page',
+                                'delivery' => 'meta_graph_api',
+                            ],
+                        ],
+                    );
+
                     $pageAccount->connections()->updateOrCreate(
                         ['connection_type' => SocialAccountConnection::TYPE_META_OAUTH, 'provider' => 'meta'],
                         [
@@ -168,6 +193,39 @@ class MetaOAuthController extends Controller
                             'last_error_message' => null,
                         ],
                     );
+                }
+
+                $stalePagesQuery = SocialAccount::query()
+                    ->where('parent_account_id', $account->id)
+                    ->where('account_type', SocialAccount::TYPE_FACEBOOK_PAGE);
+
+                if ($authorizedPageIds !== []) {
+                    $stalePagesQuery->whereNotIn('external_account_id', $authorizedPageIds);
+                }
+
+                foreach ($stalePagesQuery->get() as $stalePage) {
+                    $stalePage->update([
+                        'status' => SocialAccount::STATUS_DISCONNECTED,
+                        'last_error_at' => now(),
+                        'last_error_message' => 'Meta ya no devuelve esta página entre las cuentas autorizadas.',
+                    ]);
+
+                    $stalePage->connections()
+                        ->where('connection_type', SocialAccountConnection::TYPE_META_OAUTH)
+                        ->where('provider', 'meta')
+                        ->update([
+                            'status' => 'revoked',
+                            'revoked_at' => now(),
+                            'last_error_code' => 'page_access_removed',
+                            'last_error_message' => 'Meta ya no devuelve esta página entre las cuentas autorizadas.',
+                        ]);
+
+                    PublicationDestination::query()
+                        ->where('social_account_id', $stalePage->id)
+                        ->update([
+                            'active' => false,
+                            'last_synced_at' => now(),
+                        ]);
                 }
             });
         } catch (ConnectionException $exception) {
