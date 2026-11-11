@@ -27,6 +27,17 @@ class FacebookBrowserConnectionController extends Controller
             422,
         );
 
+        $connection = $account->connections()
+            ->where('connection_type', SocialAccountConnection::TYPE_BROWSER_SESSION)
+            ->where('provider', 'puppeteer')
+            ->first();
+
+        abort_if(
+            $connection?->revoked_at !== null,
+            423,
+            'La conexión fue revocada desde SocialPublicator. Reactívala desde el panel antes de volver a conectar.',
+        );
+
         $connected = $data['status'] === 'connected';
         $disconnected = $data['status'] === 'disconnected';
         $hasError = $data['status'] === 'error';
