@@ -323,20 +323,31 @@ class CampaignPublicationDispatcher
     {
         $whatsappGroups = $campaign->whatsappGroups->where('active', true);
         $facebookGroups = $campaign->facebookGroups->where('active', true);
-        $workspaceAccountIds = SocialAccount::query()
+        $workspaceAccounts = SocialAccount::query()
             ->withoutGlobalScope('workspace')
-            ->where('workspace_id', $campaign->workspace_id)
-            ->pluck('id')
-            ->map(static fn ($id): int => (int) $id)
-            ->all();
+            ->where('workspace_id', $campaign->workspace_id);
+        $workspaceHasSocialAccounts = (clone $workspaceAccounts)->exists();
 
-        if ($workspaceAccountIds !== []) {
+        if ($workspaceHasSocialAccounts) {
+            $whatsappAccountIds = (clone $workspaceAccounts)
+                ->where('platform', SocialAccount::PLATFORM_WHATSAPP)
+                ->where('account_type', SocialAccount::TYPE_WHATSAPP)
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            $facebookAccountIds = (clone $workspaceAccounts)
+                ->where('platform', SocialAccount::PLATFORM_FACEBOOK)
+                ->where('account_type', SocialAccount::TYPE_FACEBOOK_PROFILE)
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
             $whatsappGroups = $whatsappGroups
                 ->filter(static fn ($group): bool => $group->is_admin === true
-                    && in_array((int) $group->social_account_id, $workspaceAccountIds, true))
+                    && in_array((int) $group->social_account_id, $whatsappAccountIds, true))
                 ->values();
             $facebookGroups = $facebookGroups
-                ->filter(static fn ($group): bool => in_array((int) $group->social_account_id, $workspaceAccountIds, true))
+                ->filter(static fn ($group): bool => in_array((int) $group->social_account_id, $facebookAccountIds, true))
                 ->values();
         }
 
