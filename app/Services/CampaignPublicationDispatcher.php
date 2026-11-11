@@ -332,7 +332,8 @@ class CampaignPublicationDispatcher
 
         if ($workspaceAccountIds !== []) {
             $whatsappGroups = $whatsappGroups
-                ->filter(static fn ($group): bool => in_array((int) $group->social_account_id, $workspaceAccountIds, true))
+                ->filter(static fn ($group): bool => $group->is_admin === true
+                    && in_array((int) $group->social_account_id, $workspaceAccountIds, true))
                 ->values();
             $facebookGroups = $facebookGroups
                 ->filter(static fn ($group): bool => in_array((int) $group->social_account_id, $workspaceAccountIds, true))
