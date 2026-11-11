@@ -37,13 +37,12 @@ class BotExecutionController extends Controller
 
         $this->assertExecutionAgent($execution, $instanceId, $authorizedAccountIds);
 
-        if (in_array($execution->status, ['succeeded', 'running', 'unknown'], true)) {
-            return response()->json(['data' => $execution]);
-        }
+        $claim = $service->claim($execution);
 
-        $execution = $service->start($execution);
-
-        return response()->json(['data' => $execution]);
+        return response()->json([
+            'data' => $claim['execution'],
+            'claimed' => $claim['claimed'],
+        ]);
     }
 
     public function complete(
@@ -82,6 +81,7 @@ class BotExecutionController extends Controller
 
         $validated = $request->validate([
             'error' => ['required', 'string', 'max:2000'],
+            'outcome_unknown' => ['sometimes', 'boolean'],
             'instance_id' => ['nullable', 'string', 'max:191'],
         ]);
 
@@ -93,10 +93,9 @@ class BotExecutionController extends Controller
         );
 
         return response()->json([
-            'data' => $service->fail(
-                $execution,
-                $validated['error'],
-            ),
+            'data' => ($validated['outcome_unknown'] ?? false)
+                ? $service->markUnknown($execution, $validated['error'])
+                : $service->fail($execution, $validated['error']),
         ]);
     }
 
