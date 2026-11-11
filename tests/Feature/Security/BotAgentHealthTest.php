@@ -64,7 +64,11 @@ class BotAgentHealthTest extends TestCase
             'name' => 'Managed health workspace',
             'slug' => 'managed-health-workspace',
         ]);
-        config(['services.bot_api.workspace_id' => $workspace->id]);
+        config([
+            'services.bot_api.token' => 'test-bot-token',
+            'services.bot_api.workspace_id' => $workspace->id,
+            'services.bot_api.command_bot_name' => 'WBot',
+        ]);
         app(WorkspaceContext::class)->set((int) $workspace->id);
 
         SocialAccount::query()->create([
