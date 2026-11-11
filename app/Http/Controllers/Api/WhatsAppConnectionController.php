@@ -23,6 +23,7 @@ class WhatsAppConnectionController extends Controller
             'error' => ['nullable', 'string', 'max:500'],
         ]);
 
+        $agentInstanceId = (string) ($request->attributes->get('bot_agent_instance_id') ?? $data['agent_instance_id']);
         $account = SocialAccount::query()->findOrFail($data['social_account_id']);
         abort_unless(
             $account->platform === SocialAccount::PLATFORM_WHATSAPP
@@ -60,8 +61,8 @@ class WhatsAppConnectionController extends Controller
             ],
             [
                 'status' => $connected ? 'connected' : ($disconnected ? 'revoked' : ($hasError ? 'error' : 'pending')),
-                'agent_instance_id' => $data['agent_instance_id'],
-                'session_reference' => 'wppconnect:'.hash('sha256', $data['agent_instance_id'].':'.$account->id.':'.($data['session_name'] ?? 'whatsapp-bot')),
+                'agent_instance_id' => $agentInstanceId,
+                'session_reference' => 'wppconnect:'.hash('sha256', $agentInstanceId.':'.$account->id.':'.($data['session_name'] ?? 'whatsapp-bot')),
                 'provider_connection_id' => $data['session_name'] ?? 'whatsapp-bot',
                 'credentials' => null,
                 'expires_at' => null,
