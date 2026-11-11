@@ -58,7 +58,7 @@ class PublishMetaPagePublication implements ShouldQueue
                 ? PublicationDestination::query()->with(['socialAccount.connections'])->find($destinationId)
                 : null;
 
-            if (! $destination) {
+            if ($destination === null) {
                 $this->failExecution($execution, $executions, 'El destino de página de Facebook ya no existe.');
 
                 return;
@@ -66,9 +66,9 @@ class PublishMetaPagePublication implements ShouldQueue
 
             $publication = $execution->publication;
             if (
-                ! $publication->active
-                || ! $destination->active
-                || ! $publication->destinations()->whereKey($destination->id)->exists()
+                $publication->active === false
+                || $destination->active === false
+                || $publication->destinations()->whereKey($destination->id)->exists() === false
             ) {
                 $this->failExecution($execution, $executions, 'La página ya no está seleccionada para esta publicación.');
 
@@ -78,7 +78,7 @@ class PublishMetaPagePublication implements ShouldQueue
             $account = $destination->socialAccount;
             if (
                 $destination->platform !== 'facebook'
-                || ! $account
+                || $account === null
                 || $account->account_type !== SocialAccount::TYPE_FACEBOOK_PAGE
                 || $account->status !== SocialAccount::STATUS_CONNECTED
             ) {
@@ -95,11 +95,11 @@ class PublishMetaPagePublication implements ShouldQueue
                     ->first();
 
                 if (
-                    ! $membership
-                    || ! $membership->canPublishToDestination(
+                    $membership === null
+                    || $membership->canPublishToDestination(
                         WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
                         (int) $destination->id,
-                    )
+                    ) === false
                 ) {
                     $this->failExecution($execution, $executions, 'El creador ya no tiene autorización para publicar en esta página.');
 
@@ -119,7 +119,7 @@ class PublishMetaPagePublication implements ShouldQueue
             $appSecret = (string) config('services.meta.app_secret');
 
             if (
-                ! $connection
+                $connection === null
                 || $token === ''
                 || $tokenType !== 'page'
                 || $appSecret === ''
@@ -132,7 +132,7 @@ class PublishMetaPagePublication implements ShouldQueue
 
             $pageId = (string) $account->external_account_id;
             $version = (string) config('services.meta.graph_version', 'v26.0');
-            if (! preg_match('/^v[0-9]+\\.[0-9]+$/', $version)) {
+            if (preg_match('/^v[0-9]+\\.[0-9]+$/', $version) !== 1) {
                 $version = 'v26.0';
             }
 
@@ -209,7 +209,7 @@ class PublishMetaPagePublication implements ShouldQueue
     private function destinationId(string $targetKey): ?int
     {
         $prefix = 'meta_page_destination:';
-        if (! str_starts_with($targetKey, $prefix)) {
+        if (str_starts_with($targetKey, $prefix) === false) {
             return null;
         }
 
