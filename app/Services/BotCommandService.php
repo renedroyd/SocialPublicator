@@ -240,8 +240,7 @@ class BotCommandService
         BotCommand $command,
         array $authorizedAccountIds,
         bool $requireActiveConnection = false,
-    ): bool
-    {
+    ): bool {
         if ($command->type !== 'retry_publication') {
             return false;
         }
