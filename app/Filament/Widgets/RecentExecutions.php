@@ -238,7 +238,7 @@ class RecentExecutions extends TableWidget
                     ->color('warning')
                     ->visible(
                         fn (PublicationExecution $record): bool => $this->canManageExecutions()
-                            && ! $this->isMetaPageExecution($record)
+                            && $this->isMetaPageExecution($record) === false
                             && in_array($record->status, ['failed', 'pending'], true)
                     )
                     ->requiresConfirmation()
@@ -271,23 +271,23 @@ class RecentExecutions extends TableWidget
     private function formatTargetLabel(?string $targetKey): string
     {
         $prefix = 'meta_page_destination:';
-        if (! $targetKey || ! str_starts_with($targetKey, $prefix)) {
+        if ($targetKey === null || $targetKey === '' || str_starts_with($targetKey, $prefix) === false) {
             return $targetKey ?? '—';
         }
 
         $destinationId = substr($targetKey, strlen($prefix));
-        if (! ctype_digit($destinationId)) {
+        if (ctype_digit($destinationId) === false) {
             return 'Página Meta';
         }
 
         $membership = $this->currentWorkspaceMembership();
         if (
-            ! $membership
-            || ! $membership->canUseDestination(
+            $membership === null
+            || $membership->canUseDestination(
                 WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
                 (int) $destinationId,
                 'view',
-            )
+            ) === false
         ) {
             return 'Página Meta';
         }
