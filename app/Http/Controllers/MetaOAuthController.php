@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -92,6 +93,7 @@ class MetaOAuthController extends Controller
             $profile = Http::acceptJson()->get($base.'/me', [
                 'fields' => 'id,name',
                 'access_token' => $token,
+                'appsecret_proof' => hash_hmac('sha256', $token, $secret),
             ])->throw()->json();
 
             $pages = Http::acceptJson()->get($base.'/me/accounts', [
@@ -103,6 +105,10 @@ class MetaOAuthController extends Controller
             abort_unless(is_array($profile) && filled($profile['id'] ?? null), 502);
 
             DB::transaction(function () use ($account, $profile, $long, $token, $pages): void {
+                $expiresAt = isset($long['expires_in'])
+                    ? now()->addSeconds((int) $long['expires_in'])
+                    : null;
+
                 $account->update([
                     'external_account_id' => (string) $profile['id'],
                     'display_name' => (string) ($profile['name'] ?? $account->display_name),
@@ -118,7 +124,7 @@ class MetaOAuthController extends Controller
                     [
                         'status' => 'connected',
                         'credentials' => ['access_token' => $token, 'token_type' => 'user'],
-                        'expires_at' => isset($long['expires_in']) ? now()->addSeconds((int) $long['expires_in']) : null,
+                        'expires_at' => $expiresAt,
                         'connected_at' => now(),
                         'last_verified_at' => now(),
                         'revoked_at' => null,
@@ -153,6 +159,7 @@ class MetaOAuthController extends Controller
                         [
                             'status' => 'connected',
                             'credentials' => ['access_token' => (string) $page['access_token'], 'token_type' => 'page'],
+                            'expires_at' => $expiresAt,
                             'connected_at' => now(),
                             'last_verified_at' => now(),
                             'revoked_at' => null,
@@ -163,7 +170,10 @@ class MetaOAuthController extends Controller
                 }
             });
         } catch (ConnectionException $exception) {
-            report($exception);
+            Log::warning('Meta OAuth transport failure.', [
+                'social_account_id' => $account->id,
+                'exception_type' => $exception::class,
+            ]);
             $account->update([
                 'status' => SocialAccount::STATUS_ERROR,
                 'last_error_at' => now(),
@@ -172,11 +182,14 @@ class MetaOAuthController extends Controller
 
             return $this->back()->with('danger', 'No se pudo completar la conexión con Meta.');
         } catch (\Throwable $exception) {
-            report($exception);
-
             if (app()->runningUnitTests()) {
                 throw $exception;
             }
+
+            Log::warning('Meta OAuth callback failed.', [
+                'social_account_id' => $account->id,
+                'exception_type' => $exception::class,
+            ]);
 
             $account->update([
                 'status' => SocialAccount::STATUS_ERROR,
