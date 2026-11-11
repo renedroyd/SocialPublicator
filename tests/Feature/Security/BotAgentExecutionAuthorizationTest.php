@@ -150,6 +150,7 @@ class BotAgentExecutionAuthorizationTest extends TestCase
             'social_account_ids' => [$allowedAccount->id],
             'is_active' => true,
         ]);
+        Workspace::query()->create(['name' => 'Workspace adicional', 'slug' => 'workspace-adicional']);
         $context->clear();
 
         $this->withToken($token)->getJson('/api/bot/commands/claim?bot_name=WBot&instance_id=agent-command-01')
