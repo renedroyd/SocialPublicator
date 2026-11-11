@@ -14,6 +14,7 @@ use App\Models\WorkspaceMembership;
 use App\Services\PublicationExecutionService;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -84,7 +85,7 @@ class MetaPagePublicationTest extends TestCase
         $execution = $this->startExecution($fixtures);
         config(['services.meta.app_secret' => 'test-meta-secret']);
         Http::fake([
-            '*' => fn () => throw new \Illuminate\Http\Client\ConnectionException('Connection timed out'),
+            '*' => fn () => throw new ConnectionException('Connection timed out'),
         ]);
 
         app(PublishMetaPagePublication::class, ['executionId' => $execution->id])
