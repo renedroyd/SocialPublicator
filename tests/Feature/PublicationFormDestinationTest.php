@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\Publications\Schemas\PublicationForm;
+use App\Models\SocialAccount;
 use App\Models\User;
 use App\Models\WhatsAppGroup;
 use App\Models\Workspace;
