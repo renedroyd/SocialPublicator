@@ -5,9 +5,8 @@ namespace Tests\Feature\Security;
 use App\Models\BotAgent;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
-use App\Models\User;
 use App\Models\Workspace;
-use App\Models\WorkspaceMembership;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,10 +16,10 @@ class BotAgentHealthTest extends TestCase
 
     public function test_scoped_agent_health_exposes_only_assigned_accounts_and_safe_connection_metadata(): void
     {
-        [$workspace, $user] = $this->workspaceWithOwner();
-        $account = $this->account($workspace, SocialAccount::PLATFORM_WHATSAPP, SocialAccount::TYPE_WHATSAPP);
-        $other = $this->account($workspace, SocialAccount::PLATFORM_FACEBOOK, SocialAccount::TYPE_FACEBOOK_PROFILE);
-        $connection = SocialAccountConnection::query()->create([
+        $workspace = $this->workspace();
+        $account = $this->account(SocialAccount::PLATFORM_WHATSAPP, SocialAccount::TYPE_WHATSAPP);
+        $other = $this->account(SocialAccount::PLATFORM_FACEBOOK, SocialAccount::TYPE_FACEBOOK_PROFILE);
+        SocialAccountConnection::query()->create([
             'social_account_id' => $account->id,
             'connection_type' => SocialAccountConnection::TYPE_WPP_CONNECT_QR,
             'provider' => 'wppconnect',
@@ -29,7 +28,7 @@ class BotAgentHealthTest extends TestCase
             'session_reference' => 'opaque-session-reference',
             'provider_connection_id' => 'whatsapp-bot',
         ]);
-        $agent = $this->agent($workspace, [$account->id], 'wbot-wa-01', 'health-token');
+        $this->agent([$account->id], 'wbot-wa-01', 'health-token');
 
         $response = $this->withToken('health-token')
             ->getJson('/api/bot/agent/health?instance_id=wbot-wa-01')
@@ -46,14 +45,13 @@ class BotAgentHealthTest extends TestCase
         $this->assertArrayNotHasKey('provider_connection_id', $response->json('data.accounts.0.connections.0'));
         $this->assertArrayNotHasKey('credentials', $response->json('data.accounts.0.connections.0'));
         $this->assertNotSame($other->id, $response->json('data.accounts.0.id'));
-        $this->assertSame($connection->id, $response->json('data.accounts.0.connections.0.id') ?? $connection->id);
     }
 
     public function test_scoped_agent_health_rejects_a_different_instance_identity(): void
     {
-        [$workspace] = $this->workspaceWithOwner();
-        $account = $this->account($workspace, SocialAccount::PLATFORM_WHATSAPP, SocialAccount::TYPE_WHATSAPP);
-        $this->agent($workspace, [$account->id], 'wbot-wa-01', 'health-token');
+        $this->workspace();
+        $account = $this->account(SocialAccount::PLATFORM_WHATSAPP, SocialAccount::TYPE_WHATSAPP);
+        $this->agent([$account->id], 'wbot-wa-01', 'health-token');
 
         $this->withToken('health-token')
             ->getJson('/api/bot/agent/health?instance_id=wbot-wa-02')
@@ -62,8 +60,8 @@ class BotAgentHealthTest extends TestCase
 
     public function test_legacy_health_is_limited_to_its_configured_workspace(): void
     {
-        [$workspace] = $this->workspaceWithOwner();
-        $this->account($workspace, SocialAccount::PLATFORM_WHATSAPP, SocialAccount::TYPE_WHATSAPP);
+        $workspace = $this->workspace();
+        $this->account(SocialAccount::PLATFORM_WHATSAPP, SocialAccount::TYPE_WHATSAPP);
         config([
             'services.bot_api.token' => 'legacy-health-token',
             'services.bot_api.workspace_id' => $workspace->id,
@@ -79,34 +77,29 @@ class BotAgentHealthTest extends TestCase
         $this->assertCount(1, $response->json('data.accounts'));
     }
 
-    private function workspaceWithOwner(): array
+    private function workspace(): Workspace
     {
-        $workspace = Workspace::query()->create(['name' => 'Health workspace', 'slug' => 'health-'.uniqid()]);
-        $user = User::factory()->create();
-        WorkspaceMembership::query()->create([
-            'workspace_id' => $workspace->id,
-            'user_id' => $user->id,
-            'role' => WorkspaceMembership::ROLE_OWNER,
-            'status' => 'active',
+        $workspace = Workspace::query()->create([
+            'name' => 'Health workspace',
+            'slug' => 'health-'.str()->random(10),
         ]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
 
-        return [$workspace, $user];
+        return $workspace;
     }
 
-    private function account(Workspace $workspace, string $platform, string $type): SocialAccount
+    private function account(string $platform, string $type): SocialAccount
     {
-        return SocialAccount::withoutGlobalScopes()->create([
-            'workspace_id' => $workspace->id,
+        return SocialAccount::query()->create([
             'platform' => $platform,
             'account_type' => $type,
             'display_name' => $type,
         ]);
     }
 
-    private function agent(Workspace $workspace, array $accountIds, string $instanceId, string $token): BotAgent
+    private function agent(array $accountIds, string $instanceId, string $token): BotAgent
     {
-        return BotAgent::withoutGlobalScopes()->create([
-            'workspace_id' => $workspace->id,
+        return BotAgent::query()->create([
             'name' => 'Health agent',
             'instance_id' => $instanceId,
             'token_hash' => hash('sha256', $token),
