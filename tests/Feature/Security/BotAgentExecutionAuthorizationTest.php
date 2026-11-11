@@ -103,6 +103,8 @@ class BotAgentExecutionAuthorizationTest extends TestCase
 
         $allowedAccount = $this->createWhatsAppAccount('Cuenta de comandos permitida', 'command-allowed');
         $deniedAccount = $this->createWhatsAppAccount('Cuenta de comandos denegada', 'command-denied');
+        $this->connectAccountToAgent($allowedAccount, 'agent-command-01');
+        $this->connectAccountToAgent($deniedAccount, 'agent-command-01');
         $allowedGroup = $this->createGroup($allowedAccount, 'command-allowed@g.us');
         $deniedGroup = $this->createGroup($deniedAccount, 'command-denied@g.us');
         $publication = $this->createPublication('Publicación de comandos');
