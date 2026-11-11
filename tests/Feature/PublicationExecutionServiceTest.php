@@ -158,6 +158,29 @@ class PublicationExecutionServiceTest extends TestCase
         $this->assertSame('external-post-123', $execution->external_id);
     }
 
+    public function test_it_requires_verified_absence_before_retrying_an_unknown_execution(): void
+    {
+        $execution = $this->createExecution();
+        $service = app(PublicationExecutionService::class);
+
+        $service->start($execution);
+        $execution = $service->markUnknown($execution, 'El resultado externo no se pudo confirmar.');
+
+        try {
+            $service->retryUnknown($execution, false);
+            $this->fail('An unknown execution must not be retried without explicit confirmation.');
+        } catch (LogicException) {
+            $this->assertSame('unknown', $execution->fresh()->status);
+        }
+
+        $execution = $service->retryUnknown($execution->refresh(), true);
+
+        $this->assertSame('running', $execution->status);
+        $this->assertSame(2, $execution->attempts);
+        $this->assertNull($execution->external_id);
+        $this->assertNull($execution->error_message);
+    }
+
     private function createExecution(): PublicationExecution
     {
         $publication = $this->createPublication();

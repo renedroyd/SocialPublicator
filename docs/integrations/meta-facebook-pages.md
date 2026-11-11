@@ -59,3 +59,13 @@ Para desactivar temporalmente esta vía, pausa las publicaciones que tengan pág
 ## Pruebas
 
 La suite `MetaPagePublicationTest` cubre la creación de ejecuciones por página, publicación de imágenes con token cifrado, persistencia del ID externo, errores explícitos y resultados de transporte desconocidos.
+
+## Reconciliación manual de ejecuciones
+
+En **Actividad reciente**, las ejecuciones de páginas oficiales tienen acciones distintas a las de WBot:
+
+- **Reintentar página:** disponible para ejecuciones `pending` o `failed`. El envío se vuelve a encolar directamente en Laravel, nunca como comando de WBot.
+- **Confirmar publicada:** para una ejecución `unknown`, permite registrar el ID externo de Meta cuando el operador comprobó que la publicación sí existe.
+- **Reintentar tras verificar:** para una ejecución `unknown`, exige escribir exactamente `CONFIRMO QUE NO EXISTE` y una confirmación adicional. Solo debe utilizarse después de revisar la página y verificar que Meta no creó la publicación.
+
+Estas acciones requieren el permiso `executions.manage`. Los roles propietario y administrador lo tienen; los permisos personalizados pueden concederlo expresamente. Los estados `unknown` nunca se reintentan automáticamente. Los reintentos usan la misma ocurrencia/destino y el job conserva el bloqueo por ejecución para evitar envíos concurrentes.
