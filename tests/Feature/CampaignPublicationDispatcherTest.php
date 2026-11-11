@@ -8,14 +8,14 @@ use App\Models\ExternalCatalogItem;
 use App\Models\ExternalCatalogWarehouse;
 use App\Models\Publication;
 use App\Models\SocialAccount;
-use App\Models\Workspace;
-use App\Services\Workspaces\WorkspaceContext;
-use ReflectionMethod;
 use App\Models\WhatsAppGroup;
+use App\Models\Workspace;
 use App\Services\CampaignPublicationDispatcher;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class CampaignPublicationDispatcherTest extends TestCase
