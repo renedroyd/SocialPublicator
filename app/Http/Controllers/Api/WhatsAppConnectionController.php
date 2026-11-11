@@ -45,8 +45,8 @@ class WhatsAppConnectionController extends Controller
             'status' => $connected
                 ? SocialAccount::STATUS_CONNECTED
                 : ($disconnected ? SocialAccount::STATUS_DISCONNECTED : ($hasError ? SocialAccount::STATUS_ERROR : SocialAccount::STATUS_PENDING)),
-            'external_account_id' => $connected && filled($data['phone']) ? $data['phone'] : $account->external_account_id,
-            'display_name' => $connected && filled($data['phone']) ? $data['phone'] : $account->display_name,
+            'external_account_id' => $connected && filled($data['phone'] ?? null) ? $data['phone'] : $account->external_account_id,
+            'display_name' => $connected && filled($data['phone'] ?? null) ? $data['phone'] : $account->display_name,
             'connected_at' => $connected ? ($account->connected_at ?? now()) : $account->connected_at,
             'last_verified_at' => $connected ? now() : $account->last_verified_at,
             'last_error_at' => $hasError ? now() : null,

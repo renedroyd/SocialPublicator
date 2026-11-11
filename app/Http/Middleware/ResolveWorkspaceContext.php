@@ -49,7 +49,8 @@ class ResolveWorkspaceContext
             $request->session()->put('active_workspace_id', $workspaceId);
         } else {
             $configuredId = match ($source) {
-                'bot' => config('services.bot_api.workspace_id'),
+                'bot' => $request->attributes->get('bot_agent_workspace_id')
+                    ?? config('services.bot_api.workspace_id'),
                 'dubai_shop' => $request->attributes->get('dubai_shop_workspace_id')
                     ?? config('services.dubai_shop.workspace_id'),
                 default => null,
