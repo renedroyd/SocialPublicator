@@ -247,7 +247,7 @@ class SocialAccountResource extends Resource
                         && $record->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE
                         && static::hasConnection($record, SocialAccountConnection::TYPE_META_OAUTH, 'connected'))
                     ->requiresConfirmation()
-                    ->modalDescription('Revoca el acceso de la API oficial. Las páginas hijas dejarán de estar disponibles como destinos. Los tokens cifrados se conservan para auditoría; no se envían a WBot.')
+                    ->modalDescription('Bloquea el uso de Meta OAuth desde SocialPublicator y desactiva las páginas hijas como destinos. No cierra sesión en Meta ni elimina los tokens cifrados.')
                     ->action(function (SocialAccount $record): void {
                         abort_unless(static::canManageConnections(), 403);
                         app(SocialAccountConnectionService::class)->revoke(
