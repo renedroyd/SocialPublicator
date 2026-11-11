@@ -9,8 +9,9 @@ use Illuminate\Support\Facades\Cache;
 
 class SocialAccountWhatsAppQrController extends Controller
 {
-    public function show(Request $request, SocialAccount $socialAccount)
+    public function show(Request $request, int $socialAccount)
     {
+        $socialAccount = SocialAccount::query()->findOrFail($socialAccount);
         $this->authorizeAccount($request, $socialAccount);
         abort_unless($socialAccount->platform === SocialAccount::PLATFORM_WHATSAPP, 404);
 
@@ -20,8 +21,9 @@ class SocialAccountWhatsAppQrController extends Controller
         ]);
     }
 
-    public function data(Request $request, SocialAccount $socialAccount): JsonResponse
+    public function data(Request $request, int $socialAccount): JsonResponse
     {
+        $socialAccount = SocialAccount::query()->findOrFail($socialAccount);
         $this->authorizeAccount($request, $socialAccount);
         abort_unless($socialAccount->platform === SocialAccount::PLATFORM_WHATSAPP, 404);
 
