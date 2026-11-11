@@ -84,7 +84,9 @@ class BotCommandService
                         ->orWhere('available_at', '<=', now());
                 });
 
-            if ($instanceId === null) {
+            if (is_array($authorizedAccountIds)) {
+                $query->where('agent_instance_id', $instanceId);
+            } elseif ($instanceId === null) {
                 $query->whereNull('agent_instance_id');
             } elseif ($instanceId === $botName) {
                 $query->where(function ($query) use ($instanceId): void {
@@ -261,9 +263,9 @@ class BotCommandService
             );
         }
 
-        $allowedInstanceIds = $instanceId === $botName
-            ? [null, $botName]
-            : [$instanceId];
+        $allowedInstanceIds = is_array($authorizedAccountIds)
+            ? [$instanceId]
+            : ($instanceId === $botName ? [null, $botName] : [$instanceId]);
 
         if (! in_array($command->agent_instance_id, $allowedInstanceIds, true)) {
             throw new AuthorizationException('El comando está asignado a otra instancia de WBot.');
