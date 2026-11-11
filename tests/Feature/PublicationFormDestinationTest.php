@@ -39,6 +39,11 @@ class PublicationFormDestinationTest extends TestCase
             'account_type' => SocialAccount::TYPE_WHATSAPP,
             'display_name' => 'Cuenta asignada',
         ]);
+        $facebookAccount = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
+            'display_name' => 'Perfil Facebook',
+        ]);
 
         $linkedGroup = WhatsAppGroup::query()->create([
             'social_account_id' => $account->id,
@@ -50,6 +55,13 @@ class PublicationFormDestinationTest extends TestCase
         $orphanGroup = WhatsAppGroup::query()->create([
             'whatsapp_id' => 'orphan-group@g.us',
             'name' => 'Grupo sin cuenta',
+            'active' => true,
+            'is_admin' => true,
+        ]);
+        $wrongPlatformGroup = WhatsAppGroup::query()->create([
+            'social_account_id' => $facebookAccount->id,
+            'whatsapp_id' => 'wrong-platform-group@g.us',
+            'name' => 'Grupo asociado a Facebook',
             'active' => true,
             'is_admin' => true,
         ]);
@@ -81,6 +93,10 @@ class PublicationFormDestinationTest extends TestCase
         $this->assertFalse($membership->canPublishToDestination(
             WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP,
             (int) $orphanGroup->id,
+        ));
+        $this->assertFalse($membership->canPublishToDestination(
+            WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP,
+            (int) $wrongPlatformGroup->id,
         ));
     }
 
