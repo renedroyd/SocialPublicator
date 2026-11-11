@@ -77,6 +77,8 @@ class ExternalCatalogSyncService
                 $integration->update([
                     'last_error_at' => now(),
                     'last_error_message' => 'No fue posible completar la sincronización del catálogo.',
+                    'last_catalog_synced_at' => null,
+                    'campaign_dispatch_enabled' => false,
                 ]);
             }
 
