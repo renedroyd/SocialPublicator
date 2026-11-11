@@ -162,7 +162,27 @@ class WorkspaceMembership extends Model
 
         $account = SocialAccount::query()->find($destination->social_account_id);
 
-        return $account !== null && $this->canUseSocialAccount($account, 'publish');
+        if ($account === null) {
+            return false;
+        }
+
+        $expectedAccount = match ($destinationType) {
+            WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP => [
+                SocialAccount::PLATFORM_WHATSAPP,
+                SocialAccount::TYPE_WHATSAPP,
+            ],
+            WorkspaceMembershipDestinationPermission::DESTINATION_FACEBOOK_GROUP => [
+                SocialAccount::PLATFORM_FACEBOOK,
+                SocialAccount::TYPE_FACEBOOK_PROFILE,
+            ],
+            default => [$account->platform, $account->account_type],
+        };
+
+        if ([$account->platform, $account->account_type] !== $expectedAccount) {
+            return false;
+        }
+
+        return $this->canUseSocialAccount($account, 'publish');
     }
 
     public function canUseDestination(string $destinationType, int $destinationId, string $permission = 'view'): bool
