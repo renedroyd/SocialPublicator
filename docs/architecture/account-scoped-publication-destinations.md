@@ -3,7 +3,8 @@
 ## Modelo de propiedad
 
 Cada grupo de WhatsApp o Facebook pertenece a una cuenta social del mismo workspace
-mediante `social_account_id`. Una publicación puede seleccionar destinos de varias
+mediante `social_account_id`. Las cuentas deben coincidir con la plataforma del destino:
+WhatsApp con una cuenta WhatsApp y Facebook Groups con un perfil Facebook de navegador. Una publicación puede seleccionar destinos de varias
 cuentas. La asociación vive en SocialPublicator; Dubai Shop no recibe ni almacena
 credenciales o IDs de sesión social.
 
@@ -41,7 +42,9 @@ autorizadas para el BotAgent que realiza la petición:
 - Cada grupo conserva su clave de destino y su ejecución idempotente independiente.
 
 Así, una campaña puede publicar el mismo contenido a destinos de varias cuentas sin
-compartir sesiones, tokens ni permisos entre workers.
+compartir sesiones, tokens ni permisos entre workers. Los tokens legacy sin alcance de
+cuenta solo se aceptan en workspaces que todavía no tengan cuentas sociales; al activar
+cuentas sociales, cada worker debe autenticarse con su BotAgent y token individual.
 
 ## Integración con Dubai-Shop
 
