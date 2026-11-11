@@ -30,6 +30,7 @@ class VerifyBotApiToken
             }
 
             $request->attributes->set('bot_agent_instance_id', $legacyInstanceId);
+            $request->attributes->set('bot_agent_auth_mode', 'legacy_workspace');
             $request->attributes->set('bot_agent_social_account_ids', null);
 
             $workspaceId = config('services.bot_api.workspace_id');
@@ -82,6 +83,7 @@ class VerifyBotApiToken
 
         $request->attributes->set('bot_agent_workspace_id', (int) $agent->workspace_id);
         $request->attributes->set('bot_agent_instance_id', $agent->instance_id);
+        $request->attributes->set('bot_agent_auth_mode', 'scoped');
         $request->attributes->set('bot_agent_social_account_ids', $allowedAccountIds);
 
         return $next($request);

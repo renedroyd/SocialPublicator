@@ -94,3 +94,8 @@ Actualmente se mantiene una sola clave HMAC activa por workspace. Para rotarla, 
 - Rate limiting habilitado y workers/scheduler supervisados.
 - Tokens y secretos fuera de Git, logs, respuestas API y herramientas de observabilidad.
 - Copias de seguridad cifradas y acceso restringido a los perfiles de navegador de WBot.
+
+
+## Startup preflight
+
+Cada instancia WBot integrada consulta `GET /api/bot/agent/health` antes de abrir sesiones. El endpoint devuelve exclusivamente cuentas autorizadas y estado no secreto de sus conexiones. Nunca incluye credenciales, cookies, referencias de sesión ni rutas locales. El agente valida identidad, grants, plataforma/tipo y propietario de la sesión; si hay una discrepancia detiene el arranque sin tocar los perfiles locales. El modo legacy permanece limitado al workspace configurado.
