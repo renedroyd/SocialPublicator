@@ -154,6 +154,10 @@ class WorkspaceMembership extends Model
         }
 
         if ($destination->social_account_id === null) {
+            if ($destinationType === WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION) {
+                return true;
+            }
+
             return ! SocialAccount::query()
                 ->withoutGlobalScope('workspace')
                 ->where('workspace_id', $destination->workspace_id)
