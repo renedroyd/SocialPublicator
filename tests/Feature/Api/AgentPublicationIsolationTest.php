@@ -46,12 +46,14 @@ class AgentPublicationIsolationTest extends TestCase
             'whatsapp_id' => 'group-a@g.us',
             'name' => 'Grupo A',
             'active' => true,
+            'is_admin' => true,
         ]);
         $groupB = WhatsAppGroup::query()->create([
             'social_account_id' => $accountB->id,
             'whatsapp_id' => 'group-b@g.us',
             'name' => 'Grupo B',
             'active' => true,
+            'is_admin' => true,
         ]);
 
         $publication = Publication::query()->create([
@@ -109,12 +111,14 @@ class AgentPublicationIsolationTest extends TestCase
             'whatsapp_id' => 'wa-a@g.us',
             'name' => 'WhatsApp A',
             'active' => true,
+            'is_admin' => true,
         ]);
         $waGroupB = WhatsAppGroup::query()->create([
             'social_account_id' => $whatsappB->id,
             'whatsapp_id' => 'wa-b@g.us',
             'name' => 'WhatsApp B',
             'active' => true,
+            'is_admin' => true,
         ]);
         $fbGroupA = \\App\\Models\\FacebookGroup::query()->create([
             'social_account_id' => $facebookA->id,
