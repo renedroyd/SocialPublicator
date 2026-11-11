@@ -54,19 +54,23 @@ class SocialAccountConnectionService
                         'last_error_message' => null,
                     ]);
 
-                    $page->connections()
+                    foreach ($page->connections()
                         ->where('connection_type', SocialAccountConnection::TYPE_META_OAUTH)
                         ->where('provider', 'meta')
-                        ->update([
+                        ->get() as $pageConnection) {
+                        $pageConnection->update([
                             'status' => 'revoked',
                             'revoked_at' => now(),
                             'last_error_code' => 'parent_profile_revoked',
                             'last_error_message' => 'El perfil principal de Meta fue desconectado desde SocialPublicator.',
                         ]);
+                    }
 
-                    PublicationDestination::query()
+                    foreach (PublicationDestination::query()
                         ->where('social_account_id', $page->id)
-                        ->update(['active' => false]);
+                        ->get() as $destination) {
+                        $destination->update(['active' => false]);
+                    }
                 }
             }
 
