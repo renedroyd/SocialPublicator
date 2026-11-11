@@ -283,4 +283,35 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
         $this->assertFalse($integration->campaign_dispatch_enabled);
         $this->assertFalse($manager->campaignsEnabledForCurrentWorkspace());
     }
+
+    public function test_external_catalog_items_with_same_external_id_are_isolated_by_workspace(): void
+    {
+        $firstWorkspace = Workspace::query()->create(['name' => 'External first', 'slug' => 'external-first']);
+        $secondWorkspace = Workspace::query()->create(['name' => 'External second', 'slug' => 'external-second']);
+        $sync = app(ExternalCatalogSyncService::class);
+        $payload = [
+            'external_id' => 'shared-remote-id',
+            'name' => 'First workspace item',
+            'active' => true,
+            'visible' => true,
+            'revision' => 1,
+        ];
+
+        app(WorkspaceContext::class)->set((int) $firstWorkspace->id);
+        $sync->upsertItem($payload);
+
+        app(WorkspaceContext::class)->set((int) $secondWorkspace->id);
+        $sync->upsertItem([...$payload, 'name' => 'Second workspace item']);
+
+        $this->assertDatabaseHas('external_catalog_items', [
+            'workspace_id' => $firstWorkspace->id,
+            'external_id' => 'shared-remote-id',
+            'name' => 'First workspace item',
+        ]);
+        $this->assertDatabaseHas('external_catalog_items', [
+            'workspace_id' => $secondWorkspace->id,
+            'external_id' => 'shared-remote-id',
+            'name' => 'Second workspace item',
+        ]);
+    }
 }
