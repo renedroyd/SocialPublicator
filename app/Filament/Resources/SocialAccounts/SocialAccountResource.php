@@ -149,12 +149,14 @@ class SocialAccountResource extends Resource
                     ->label('Sesión Facebook')
                     ->icon('heroicon-o-globe-alt')
                     ->url(fn (SocialAccount $record): string => route('social-accounts.facebook.session', $record))
-                    ->visible(fn (SocialAccount $record): bool => $record->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE),
+                    ->visible(fn (SocialAccount $record): bool => $record->account_type === SocialAccount::TYPE_FACEBOOK_PROFILE
+                        && static::hasConnection($record, SocialAccountConnection::TYPE_BROWSER_SESSION, 'revoked') === false),
                 Action::make('connectWhatsApp')
                     ->label('Conectar WhatsApp')
                     ->icon('heroicon-o-qr-code')
                     ->url(fn (SocialAccount $record): string => route('social-accounts.whatsapp.qr', $record))
-                    ->visible(fn (SocialAccount $record): bool => $record->account_type === SocialAccount::TYPE_WHATSAPP),
+                    ->visible(fn (SocialAccount $record): bool => $record->account_type === SocialAccount::TYPE_WHATSAPP
+                        && static::hasConnection($record, SocialAccountConnection::TYPE_WPP_CONNECT_QR, 'revoked') === false),
                 Action::make('connectMeta')
                     ->label('Conectar con Meta')
                     ->icon('heroicon-o-link')
