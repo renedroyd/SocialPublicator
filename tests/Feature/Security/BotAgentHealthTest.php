@@ -77,8 +77,6 @@ class BotAgentHealthTest extends TestCase
             'display_name' => 'Cuenta gestionada',
         ]);
 
-        app(WorkspaceContext::class)->clear();
-
         $this->withToken('test-bot-token')
             ->getJson('/api/bot/agent/health?instance_id=WBot')
             ->assertForbidden();
