@@ -20,6 +20,11 @@ class BotAgentHealthController extends Controller
         abort_if($instanceId === '', 403, 'The bot agent identity is missing.');
 
         $authorizedIds = $request->attributes->get('bot_agent_social_account_ids');
+
+        if (! is_array($authorizedIds) && SocialAccount::query()->where('workspace_id', $workspaceId)->exists()) {
+            abort(403, 'Workspaces with social accounts require a scoped BotAgent token.');
+        }
+
         $query = SocialAccount::query()->where('workspace_id', $workspaceId);
 
         if (is_array($authorizedIds)) {

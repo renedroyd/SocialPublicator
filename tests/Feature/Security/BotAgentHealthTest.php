@@ -58,10 +58,33 @@ class BotAgentHealthTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_legacy_health_is_rejected_when_workspace_has_social_accounts(): void
+    {
+        $workspace = Workspace::query()->create([
+            'name' => 'Managed health workspace',
+            'slug' => 'managed-health-workspace',
+        ]);
+        config([
+            'services.bot_api.token' => 'test-bot-token',
+            'services.bot_api.workspace_id' => $workspace->id,
+            'services.bot_api.command_bot_name' => 'WBot',
+        ]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_WHATSAPP,
+            'account_type' => SocialAccount::TYPE_WHATSAPP,
+            'display_name' => 'Cuenta gestionada',
+        ]);
+
+        $this->withToken('test-bot-token')
+            ->getJson('/api/bot/agent/health?instance_id=WBot')
+            ->assertForbidden();
+    }
+
     public function test_legacy_health_is_limited_to_its_configured_workspace(): void
     {
         $workspace = $this->workspace();
-        $this->account(SocialAccount::PLATFORM_WHATSAPP, SocialAccount::TYPE_WHATSAPP);
         config([
             'services.bot_api.token' => 'legacy-health-token',
             'services.bot_api.workspace_id' => $workspace->id,
@@ -74,7 +97,7 @@ class BotAgentHealthTest extends TestCase
             ->assertJsonPath('data.authorization_mode', 'legacy_workspace')
             ->assertJsonPath('data.workspace_id', $workspace->id);
 
-        $this->assertCount(1, $response->json('data.accounts'));
+        $this->assertCount(0, $response->json('data.accounts'));
     }
 
     private function workspace(): Workspace

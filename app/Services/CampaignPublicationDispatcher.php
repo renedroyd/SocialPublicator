@@ -7,6 +7,7 @@ use App\Models\ExternalCatalogCampaignSelection;
 use App\Models\ExternalCatalogCampaignTrigger;
 use App\Models\ExternalCatalogItem;
 use App\Models\Publication;
+use App\Models\SocialAccount;
 use App\Models\WorkspaceMembership;
 use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\Workspaces\WorkspaceContext;
@@ -322,6 +323,33 @@ class CampaignPublicationDispatcher
     {
         $whatsappGroups = $campaign->whatsappGroups->where('active', true);
         $facebookGroups = $campaign->facebookGroups->where('active', true);
+        $workspaceAccounts = SocialAccount::query()
+            ->withoutGlobalScope('workspace')
+            ->where('workspace_id', $campaign->workspace_id);
+        $workspaceHasSocialAccounts = (clone $workspaceAccounts)->exists();
+
+        if ($workspaceHasSocialAccounts) {
+            $whatsappAccountIds = (clone $workspaceAccounts)
+                ->where('platform', SocialAccount::PLATFORM_WHATSAPP)
+                ->where('account_type', SocialAccount::TYPE_WHATSAPP)
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            $facebookAccountIds = (clone $workspaceAccounts)
+                ->where('platform', SocialAccount::PLATFORM_FACEBOOK)
+                ->where('account_type', SocialAccount::TYPE_FACEBOOK_PROFILE)
+                ->pluck('id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
+            $whatsappGroups = $whatsappGroups
+                ->filter(static fn ($group): bool => $group->is_admin === true
+                    && in_array((int) $group->social_account_id, $whatsappAccountIds, true))
+                ->values();
+            $facebookGroups = $facebookGroups
+                ->filter(static fn ($group): bool => in_array((int) $group->social_account_id, $facebookAccountIds, true))
+                ->values();
+        }
 
         if ($campaign->created_by_user_id === null) {
             return [$whatsappGroups, $facebookGroups];

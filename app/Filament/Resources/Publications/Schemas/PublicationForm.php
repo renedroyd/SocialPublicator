@@ -25,12 +25,29 @@ class PublicationForm
 {
     private static function authorizedDestinations(Builder $query, string $destinationType): Builder
     {
+        $workspaceId = app(WorkspaceContext::class)->id();
+
+        if ($workspaceId && SocialAccount::query()->where('workspace_id', $workspaceId)->exists()) {
+            $accounts = SocialAccount::query()->where('workspace_id', $workspaceId);
+
+            if ($destinationType === WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP) {
+                $accounts
+                    ->where('platform', SocialAccount::PLATFORM_WHATSAPP)
+                    ->where('account_type', SocialAccount::TYPE_WHATSAPP);
+            } else {
+                $accounts
+                    ->where('platform', SocialAccount::PLATFORM_FACEBOOK)
+                    ->where('account_type', SocialAccount::TYPE_FACEBOOK_PROFILE);
+            }
+
+            $query->whereIn('social_account_id', $accounts->select('id'));
+        }
         if ($destinationType === WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP) {
             $query->where('is_admin', true);
         }
 
         $membership = auth()->user()?->activeWorkspaceMemberships()
-            ->where('workspace_id', app(WorkspaceContext::class)->id())
+            ->where('workspace_id', $workspaceId)
             ->first();
 
         if (! $membership) {
@@ -62,10 +79,7 @@ class PublicationForm
                 ->whereJsonContains('permissions', 'publish')
                 ->select('social_account_id');
 
-            $query->where(function (Builder $query) use ($accountIds): void {
-                $query->whereNull('social_account_id')
-                    ->orWhereIn('social_account_id', $accountIds);
-            });
+            $query->whereIn('social_account_id', $accountIds);
         }
 
         return $query;

@@ -590,6 +590,7 @@ class BotPublicationApiTest extends TestCase
             'whatsapp_id' => 'allowed-group@g.us',
             'name' => 'Grupo permitido',
             'active' => true,
+            'is_admin' => true,
         ]);
 
         $revokedGroup = WhatsAppGroup::query()->create([
@@ -597,6 +598,7 @@ class BotPublicationApiTest extends TestCase
             'whatsapp_id' => 'revoked-group@g.us',
             'name' => 'Grupo sin permiso',
             'active' => true,
+            'is_admin' => true,
         ]);
 
         WorkspaceMembershipSocialAccountPermission::query()->create([
@@ -624,6 +626,11 @@ class BotPublicationApiTest extends TestCase
         ]);
 
         $publication->whatsappGroups()->attach([$allowedGroup->id, $revokedGroup->id]);
+
+        request()->attributes->set('bot_agent_social_account_ids', [$account->id]);
+        request()->attributes->set('bot_agent_instance_id', 'WBot');
+        request()->attributes->set('bot_agent_workspace_id', $workspace->id);
+        request()->query->set('instance_id', 'WBot');
 
         $payload = app(BotPublicationController::class)->index()->getData(true);
 

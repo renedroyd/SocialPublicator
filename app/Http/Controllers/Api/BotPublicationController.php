@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Publication;
+use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
 use App\Models\WorkspaceMembership;
 use App\Models\WorkspaceMembershipDestinationPermission;
+use App\Services\Workspaces\WorkspaceContext;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +28,13 @@ class BotPublicationController extends Controller
                 : (string) config('services.bot_api.command_bot_name', 'WBot'));
         $authorizedAccountIds = $request->attributes->get('bot_agent_social_account_ids');
         $isAgentScopedRequest = is_array($authorizedAccountIds);
+        $workspaceId = $request->attributes->get('bot_agent_workspace_id')
+            ?? app(WorkspaceContext::class)->id();
+
+        if (! $isAgentScopedRequest && SocialAccount::query()->where('workspace_id', $workspaceId)->exists()) {
+            abort(403, 'Workspaces with social accounts require a scoped BotAgent token.');
+        }
+
         $now = now();
         $currentDate = $now->toDateString();
 
@@ -84,6 +93,12 @@ class BotPublicationController extends Controller
                     WorkspaceMembershipDestinationPermission::DESTINATION_FACEBOOK_GROUP,
                     (int) $group->id,
                 ))->values();
+
+            if ($isAgentScopedRequest) {
+                $eligibleWhatsAppGroups = $eligibleWhatsAppGroups
+                    ->filter(static fn ($group): bool => $group->is_admin === true)
+                    ->values();
+            }
 
             if ($instanceId !== null) {
                 $legacyInstanceId = (string) config('services.bot_api.command_bot_name', 'WBot');

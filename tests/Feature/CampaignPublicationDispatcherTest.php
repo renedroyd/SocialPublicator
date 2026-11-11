@@ -7,16 +7,80 @@ use App\Models\ExternalCatalogCampaignSelection;
 use App\Models\ExternalCatalogItem;
 use App\Models\ExternalCatalogWarehouse;
 use App\Models\Publication;
+use App\Models\SocialAccount;
 use App\Models\WhatsAppGroup;
+use App\Models\Workspace;
 use App\Services\CampaignPublicationDispatcher;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class CampaignPublicationDispatcherTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_campaign_dispatcher_excludes_unassigned_destinations_when_workspace_uses_social_accounts(): void
+    {
+        $workspace = Workspace::query()->create([
+            'name' => 'Campaign account scope',
+            'slug' => 'campaign-account-scope',
+        ]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        $account = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_WHATSAPP,
+            'account_type' => SocialAccount::TYPE_WHATSAPP,
+            'display_name' => 'Cuenta de campaña',
+        ]);
+        $facebookAccount = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
+            'display_name' => 'Perfil de campaña',
+        ]);
+        $linkedGroup = WhatsAppGroup::query()->create([
+            'social_account_id' => $account->id,
+            'whatsapp_id' => 'campaign-linked@g.us',
+            'name' => 'Grupo vinculado',
+            'active' => true,
+            'is_admin' => true,
+        ]);
+        $orphanGroup = WhatsAppGroup::query()->create([
+            'whatsapp_id' => 'campaign-orphan@g.us',
+            'name' => 'Grupo huérfano',
+            'active' => true,
+        ]);
+        $wrongPlatformGroup = WhatsAppGroup::query()->create([
+            'social_account_id' => $facebookAccount->id,
+            'whatsapp_id' => 'campaign-wrong-platform@g.us',
+            'name' => 'Grupo con cuenta Facebook',
+            'active' => true,
+            'is_admin' => true,
+        ]);
+        $campaign = ExternalCatalogCampaign::query()->create([
+            'name' => 'Campaña multicuenta',
+            'is_active' => true,
+            'selection_mode' => 'manual',
+            'publication_mode' => 'grouped',
+            'max_publications_per_day' => 3,
+            'minimum_interval_minutes' => 60,
+            'out_of_stock_behavior' => 'pause',
+            'restock_behavior' => 'publish',
+            'price_change_behavior' => 'immediate',
+            'destination' => 'whatsapp',
+        ]);
+        $campaign->whatsappGroups()->attach([$linkedGroup->id, $orphanGroup->id, $wrongPlatformGroup->id]);
+
+        $dispatcher = app(CampaignPublicationDispatcher::class);
+        $method = new ReflectionMethod(CampaignPublicationDispatcher::class, 'authorizedGroups');
+        $method->setAccessible(true);
+        [$whatsappGroups, $facebookGroups] = $method->invoke($dispatcher, $campaign);
+
+        $this->assertSame([$linkedGroup->id], $whatsappGroups->pluck('id')->all());
+        $this->assertCount(0, $facebookGroups);
+    }
 
     public function test_planned_campaign_group_becomes_one_idempotent_bot_publication(): void
     {
