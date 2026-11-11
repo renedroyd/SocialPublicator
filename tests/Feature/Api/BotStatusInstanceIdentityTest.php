@@ -27,6 +27,7 @@ class BotStatusInstanceIdentityTest extends TestCase
         app(WorkspaceContext::class)->set((int) $workspace->id);
 
         foreach (['wbot-whatsapp-01', 'wbot-whatsapp-02'] as $instanceId) {
+            app(WorkspaceContext::class)->set((int) $workspace->id);
             $token = 'token-'.$instanceId;
             BotAgent::query()->create([
                 'name' => $instanceId,
