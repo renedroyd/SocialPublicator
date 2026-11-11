@@ -31,7 +31,7 @@ class VerifyDubaiShopWebhookSignature
             ->first();
 
         if ($integration) {
-            if (! $integration->enabled || blank($integration->webhook_secret)) {
+            if (! $integration->isReady()) {
                 return response()->json(['message' => 'Invalid webhook signature.'], 401);
             }
 
@@ -56,6 +56,8 @@ class VerifyDubaiShopWebhookSignature
                 ! is_string($secret)
                 || $secret === ''
                 || $workspaceId < 1
+                || blank(config('services.dubai_shop.api_base_url'))
+                || blank(config('services.dubai_shop.api_token'))
                 || WorkspaceDubaiShopIntegration::withoutGlobalScope('workspace')
                     ->where('workspace_id', $workspaceId)
                     ->exists()
