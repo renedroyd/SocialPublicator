@@ -44,6 +44,57 @@ class WhatsAppGroupControllerTest extends TestCase
         ]);
     }
 
+    public function test_it_persists_verified_admin_status_and_does_not_erase_it_when_older_agents_omit_the_field(): void
+    {
+        $response = $this->withToken('test-bot-token')->postJson(
+            '/api/bot/whatsapp/groups/sync',
+            [
+                'groups' => [
+                    [
+                        'whatsapp_id' => '120363000000003@g.us',
+                        'name' => 'Grupo administrador',
+                        'is_admin' => true,
+                    ],
+                    [
+                        'whatsapp_id' => '120363000000004@g.us',
+                        'name' => 'Grupo sin administración',
+                        'is_admin' => false,
+                    ],
+                ],
+            ],
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.is_admin', true);
+
+        $this->assertDatabaseHas('whatsapp_groups', [
+            'whatsapp_id' => '120363000000003@g.us',
+            'is_admin' => true,
+        ]);
+        $this->assertDatabaseHas('whatsapp_groups', [
+            'whatsapp_id' => '120363000000004@g.us',
+            'is_admin' => false,
+        ]);
+
+        $this->withToken('test-bot-token')->postJson(
+            '/api/bot/whatsapp/groups/sync',
+            [
+                'groups' => [
+                    [
+                        'whatsapp_id' => '120363000000003@g.us',
+                        'name' => 'Grupo administrador actualizado',
+                    ],
+                ],
+            ],
+        )->assertOk();
+
+        $this->assertDatabaseHas('whatsapp_groups', [
+            'whatsapp_id' => '120363000000003@g.us',
+            'name' => 'Grupo administrador actualizado',
+            'is_admin' => true,
+        ]);
+    }
+
     public function test_it_updates_the_name_for_an_existing_whatsapp_group(): void
     {
         $group = WhatsAppGroup::create([

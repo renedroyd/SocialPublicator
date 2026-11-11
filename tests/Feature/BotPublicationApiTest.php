@@ -93,6 +93,48 @@ class BotPublicationApiTest extends TestCase
         $this->assertCount(1, $response->json('data.0.facebook_groups'));
     }
 
+    public function test_it_returns_all_selected_whatsapp_and_facebook_groups_for_multidestination_delivery(): void
+    {
+        $publication = Publication::create([
+            'date' => '2026-10-07',
+            'time' => '12:00',
+            'image' => 'publications/test.jpg',
+            'text' => 'Publicación multigrupo',
+            'destination' => 'both',
+            'active' => true,
+            'recurrence_type' => 'none',
+        ]);
+
+        $whatsappGroups = collect([
+            ['whatsapp_id' => 'wa-one@g.us', 'name' => 'WhatsApp uno'],
+            ['whatsapp_id' => 'wa-two@g.us', 'name' => 'WhatsApp dos'],
+        ])->map(fn (array $attributes) => WhatsAppGroup::create($attributes));
+
+        $facebookGroups = collect([
+            ['facebook_id' => 'fb-one', 'name' => 'Facebook uno', 'url' => 'https://www.facebook.com/groups/fb-one'],
+            ['facebook_id' => 'fb-two', 'name' => 'Facebook dos', 'url' => 'https://www.facebook.com/groups/fb-two'],
+        ])->map(fn (array $attributes) => FacebookGroup::create([...$attributes, 'active' => true]));
+
+        $publication->whatsappGroups()->attach($whatsappGroups->pluck('id'));
+        $publication->facebookGroups()->attach($facebookGroups->pluck('id'));
+
+        $response = $this->withToken('test-token')->getJson('/api/bot/publications');
+
+        $response->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonCount(2, 'data.0.whatsapp_groups')
+            ->assertJsonCount(2, 'data.0.facebook_groups');
+
+        $this->assertEqualsCanonicalizing(
+            $whatsappGroups->pluck('whatsapp_id')->all(),
+            collect($response->json('data.0.whatsapp_groups'))->pluck('whatsapp_id')->all(),
+        );
+        $this->assertEqualsCanonicalizing(
+            $facebookGroups->pluck('facebook_id')->all(),
+            collect($response->json('data.0.facebook_groups'))->pluck('facebook_id')->all(),
+        );
+    }
+
     public function test_it_returns_a_publication_with_both_destinations(): void
     {
         $publication = Publication::create([

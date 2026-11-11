@@ -127,6 +127,7 @@ class BotPublicationController extends Controller
                             'id' => $group->id,
                             'whatsapp_id' => $group->whatsapp_id,
                             'name' => $group->name,
+                            'is_admin' => $group->is_admin,
                         ])
                         ->values()
                         ->all()
