@@ -176,5 +176,4 @@ class DubaiShopWebhookTest extends TestCase
             'HTTP_X_DUBAISHOP_SIGNATURE' => $disabledSignature,
         ], $body)->assertUnauthorized();
     }
-
 }
