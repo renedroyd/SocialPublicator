@@ -64,6 +64,15 @@ class PublicationFormDestinationTest extends TestCase
         );
 
         $this->assertSame([$linkedGroup->id], $query->pluck('id')->all());
+        $campaignMethod = new ReflectionMethod(ExternalCatalogCampaignResource::class, 'authorizedDestinations');
+        $campaignMethod->setAccessible(true);
+        $campaignQuery = $campaignMethod->invoke(
+            null,
+            WhatsAppGroup::query(),
+            WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP,
+        );
+        $this->assertSame([$linkedGroup->id], $campaignQuery->pluck('id')->all());
+
         $this->assertTrue($membership->canPublishToDestination(
             WorkspaceMembershipDestinationPermission::DESTINATION_WHATSAPP_GROUP,
             (int) $linkedGroup->id,
