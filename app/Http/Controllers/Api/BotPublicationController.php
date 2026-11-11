@@ -23,6 +23,8 @@ class BotPublicationController extends Controller
         $instanceId = filled($validated['instance_id'] ?? null)
             ? $validated['instance_id']
             : (string) config('services.bot_api.command_bot_name', 'WBot');
+        $authorizedAccountIds = $request->attributes->get('bot_agent_social_account_ids');
+        $isAgentScopedRequest = is_array($authorizedAccountIds);
         $now = now();
         $currentDate = $now->toDateString();
 
@@ -90,6 +92,7 @@ class BotPublicationController extends Controller
                         $instanceId,
                         $legacyInstanceId,
                         SocialAccountConnection::TYPE_WPP_CONNECT_QR,
+                        $authorizedAccountIds,
                     ))
                     ->values();
                 $eligibleFacebookGroups = $eligibleFacebookGroups
@@ -98,6 +101,7 @@ class BotPublicationController extends Controller
                         $instanceId,
                         $legacyInstanceId,
                         SocialAccountConnection::TYPE_BROWSER_SESSION,
+                        $authorizedAccountIds,
                     ))
                     ->values();
 
@@ -219,9 +223,14 @@ class BotPublicationController extends Controller
         string $instanceId,
         string $legacyInstanceId,
         string $connectionType,
+        ?array $authorizedAccountIds = null,
     ): bool {
         if (! $group->social_account_id) {
-            return $instanceId === $legacyInstanceId;
+            return $authorizedAccountIds === null && $instanceId === $legacyInstanceId;
+        }
+
+        if (is_array($authorizedAccountIds) && ! in_array((int) $group->social_account_id, $authorizedAccountIds, true)) {
+            return false;
         }
 
         return $group->socialAccount?->connections?->contains(
