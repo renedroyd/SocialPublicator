@@ -117,7 +117,7 @@ class BotCommandService
 
                 if (
                     is_array($authorizedAccountIds)
-                    && ! $this->commandBelongsToAuthorizedAccount($command, $authorizedAccountIds)
+                    && ! $this->commandBelongsToAuthorizedAccount($command, $authorizedAccountIds, requireActiveConnection: true)
                 ) {
                     $skippedCommandIds[] = $command->id;
 
@@ -236,7 +236,11 @@ class BotCommandService
         };
     }
 
-    private function commandBelongsToAuthorizedAccount(BotCommand $command, array $authorizedAccountIds): bool
+    private function commandBelongsToAuthorizedAccount(
+        BotCommand $command,
+        array $authorizedAccountIds,
+        bool $requireActiveConnection = false,
+    ): bool
     {
         if ($command->type !== 'retry_publication') {
             return false;
@@ -246,9 +250,28 @@ class BotCommandService
         $execution = $executionId ? PublicationExecution::query()->find($executionId) : null;
         $group = $execution ? $this->executionTarget($execution) : null;
 
-        return $group !== null
-            && $group->social_account_id !== null
-            && in_array((int) $group->social_account_id, $authorizedAccountIds, true);
+        if (
+            $group === null
+            || $group->social_account_id === null
+            || ! in_array((int) $group->social_account_id, $authorizedAccountIds, true)
+        ) {
+            return false;
+        }
+
+        if (! $requireActiveConnection) {
+            return true;
+        }
+
+        $connectionType = $this->connectionTypeForChannel($execution->channel);
+
+        return $connectionType !== null
+            && $command->agent_instance_id !== null
+            && SocialAccountConnection::query()
+                ->where('social_account_id', $group->social_account_id)
+                ->where('connection_type', $connectionType)
+                ->where('status', 'connected')
+                ->where('agent_instance_id', $command->agent_instance_id)
+                ->exists();
     }
 
     private function assertClaimedByAgent(
