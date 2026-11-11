@@ -85,6 +85,28 @@ class AgentPublicationIsolationTest extends TestCase
         );
     }
 
+    public function test_legacy_publication_feed_is_rejected_once_the_workspace_uses_social_accounts(): void
+    {
+        $workspace = Workspace::query()->create([
+            'name' => 'Managed workspace',
+            'slug' => 'managed-workspace-legacy-agent',
+        ]);
+        config(['services.bot_api.workspace_id' => $workspace->id]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_WHATSAPP,
+            'account_type' => SocialAccount::TYPE_WHATSAPP,
+            'display_name' => 'Cuenta gestionada',
+        ]);
+
+        app(WorkspaceContext::class)->clear();
+
+        $this->withToken('test-bot-token')
+            ->getJson('/api/bot/publications?instance_id=WBot')
+            ->assertForbidden();
+    }
+
     public function test_two_agents_receive_only_their_own_selected_whatsapp_and_facebook_destinations(): void
     {
         $workspace = Workspace::query()->create(['name' => 'Multi-account agents', 'slug' => 'multi-account-agents']);
