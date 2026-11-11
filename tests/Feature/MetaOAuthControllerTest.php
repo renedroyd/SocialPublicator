@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\SocialAccount;
+use App\Models\PublicationDestination;
 use App\Models\SocialAccountConnection;
 use App\Models\User;
 use App\Models\Workspace;
