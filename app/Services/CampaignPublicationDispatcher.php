@@ -323,17 +323,19 @@ class CampaignPublicationDispatcher
     {
         $whatsappGroups = $campaign->whatsappGroups->where('active', true);
         $facebookGroups = $campaign->facebookGroups->where('active', true);
-        $workspaceHasSocialAccounts = SocialAccount::query()
+        $workspaceAccountIds = SocialAccount::query()
             ->withoutGlobalScope('workspace')
             ->where('workspace_id', $campaign->workspace_id)
-            ->exists();
+            ->pluck('id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
 
-        if ($workspaceHasSocialAccounts) {
+        if ($workspaceAccountIds !== []) {
             $whatsappGroups = $whatsappGroups
-                ->filter(static fn ($group): bool => $group->social_account_id !== null)
+                ->filter(static fn ($group): bool => in_array((int) $group->social_account_id, $workspaceAccountIds, true))
                 ->values();
             $facebookGroups = $facebookGroups
-                ->filter(static fn ($group): bool => $group->social_account_id !== null)
+                ->filter(static fn ($group): bool => in_array((int) $group->social_account_id, $workspaceAccountIds, true))
                 ->values();
         }
 
