@@ -10,6 +10,7 @@ use App\Models\Publication;
 use App\Models\SocialAccount;
 use App\Models\WhatsAppGroup;
 use App\Models\Workspace;
+use App\Models\WorkspaceDubaiShopIntegration;
 use App\Services\CampaignPublicationDispatcher;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -89,7 +90,6 @@ class CampaignPublicationDispatcherTest extends TestCase
             'services.dubai_shop.api_token' => 'test-token',
         ]);
 
-        $workspaceId = app(WorkspaceContext::class)->id();
         $integration = WorkspaceDubaiShopIntegration::query()->create([
             'api_base_url' => 'https://dubai.example.test',
             'api_token' => 'test-token',
