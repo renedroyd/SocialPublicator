@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Models\BotAgent;
+use App\Models\FacebookGroup;
 use App\Models\Publication;
 use App\Models\SocialAccount;
 use App\Models\SocialAccountConnection;
