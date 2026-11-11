@@ -75,6 +75,85 @@ class AgentPublicationIsolationTest extends TestCase
         );
     }
 
+    public function test_two_agents_receive_only_their_own_selected_whatsapp_and_facebook_destinations(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Multi-account agents', 'slug' => 'multi-account-agents']);
+        config(['services.bot_api.workspace_id' => $workspace->id]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        $whatsappA = $this->createWhatsAppAccount($workspace, 'agent-a');
+        $whatsappB = $this->createWhatsAppAccount($workspace, 'agent-b');
+        $facebookA = $this->createFacebookAccount($workspace, 'agent-a');
+        $facebookB = $this->createFacebookAccount($workspace, 'agent-b');
+
+        $tokenA = 'token-multi-agent-a';
+        $tokenB = 'token-multi-agent-b';
+        BotAgent::query()->create([
+            'name' => 'Agent A',
+            'instance_id' => 'agent-a',
+            'token_hash' => hash('sha256', $tokenA),
+            'social_account_ids' => [$whatsappA->id, $facebookA->id],
+            'is_active' => true,
+        ]);
+        BotAgent::query()->create([
+            'name' => 'Agent B',
+            'instance_id' => 'agent-b',
+            'token_hash' => hash('sha256', $tokenB),
+            'social_account_ids' => [$whatsappB->id, $facebookB->id],
+            'is_active' => true,
+        ]);
+
+        $waGroupA = WhatsAppGroup::query()->create([
+            'social_account_id' => $whatsappA->id,
+            'whatsapp_id' => 'wa-a@g.us',
+            'name' => 'WhatsApp A',
+            'active' => true,
+        ]);
+        $waGroupB = WhatsAppGroup::query()->create([
+            'social_account_id' => $whatsappB->id,
+            'whatsapp_id' => 'wa-b@g.us',
+            'name' => 'WhatsApp B',
+            'active' => true,
+        ]);
+        $fbGroupA = \\App\\Models\\FacebookGroup::query()->create([
+            'social_account_id' => $facebookA->id,
+            'facebook_id' => 'fb-a',
+            'name' => 'Facebook A',
+            'url' => 'https://www.facebook.com/groups/fb-a',
+            'active' => true,
+        ]);
+        $fbGroupB = \\App\\Models\\FacebookGroup::query()->create([
+            'social_account_id' => $facebookB->id,
+            'facebook_id' => 'fb-b',
+            'name' => 'Facebook B',
+            'url' => 'https://www.facebook.com/groups/fb-b',
+            'active' => true,
+        ]);
+
+        $publication = Publication::query()->create([
+            'date' => now()->toDateString(),
+            'time' => '23:59',
+            'image' => 'publications/multi-account.jpg',
+            'text' => 'Publicación para dos cuentas',
+            'destination' => 'both',
+            'active' => true,
+            'recurrence_type' => 'none',
+        ]);
+        $publication->whatsappGroups()->attach([$waGroupA->id, $waGroupB->id]);
+        $publication->facebookGroups()->attach([$fbGroupA->id, $fbGroupB->id]);
+        app(WorkspaceContext::class)->clear();
+
+        $responseA = $this->withToken($tokenA)->getJson('/api/bot/publications?instance_id=agent-a');
+        $responseA->assertOk()->assertJsonCount(1, 'data');
+        $this->assertSame([$waGroupA->id], collect($responseA->json('data.0.whatsapp_groups'))->pluck('id')->all());
+        $this->assertSame([$fbGroupA->id], collect($responseA->json('data.0.facebook_groups'))->pluck('id')->all());
+
+        $responseB = $this->withToken($tokenB)->getJson('/api/bot/publications?instance_id=agent-b');
+        $responseB->assertOk()->assertJsonCount(1, 'data');
+        $this->assertSame([$waGroupB->id], collect($responseB->json('data.0.whatsapp_groups'))->pluck('id')->all());
+        $this->assertSame([$fbGroupB->id], collect($responseB->json('data.0.facebook_groups'))->pluck('id')->all());
+    }
+
     public function test_execution_start_and_completion_require_the_destination_owner_agent(): void
     {
         $workspace = Workspace::query()->create(['name' => 'Execution agents', 'slug' => 'execution-agents']);
@@ -151,6 +230,27 @@ class AgentPublicationIsolationTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.status', 'succeeded');
+    }
+
+    private function createFacebookAccount(Workspace $workspace, string $agentId): SocialAccount
+    {
+        $account = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
+            'display_name' => 'Facebook '.$agentId,
+        ]);
+
+        SocialAccountConnection::query()->create([
+            'social_account_id' => $account->id,
+            'connection_type' => SocialAccountConnection::TYPE_BROWSER_SESSION,
+            'provider' => 'puppeteer',
+            'status' => 'connected',
+            'agent_instance_id' => $agentId,
+            'session_reference' => 'browser:'.$agentId,
+            'provider_connection_id' => 'facebook-'.$agentId,
+        ]);
+
+        return $account;
     }
 
     private function createWhatsAppAccount(Workspace $workspace, string $agentId): SocialAccount
