@@ -28,6 +28,13 @@ class MetaOAuthControllerTest extends TestCase
             'role' => WorkspaceMembership::ROLE_OWNER,
             'status' => 'active',
         ]);
+        $otherWorkspace = Workspace::query()->create(['name' => 'Otro workspace', 'slug' => 'otro-workspace']);
+        WorkspaceMembership::query()->create([
+            'workspace_id' => $otherWorkspace->id,
+            'user_id' => $user->id,
+            'role' => WorkspaceMembership::ROLE_OWNER,
+            'status' => 'active',
+        ]);
         $account = SocialAccount::query()->create([
             'platform' => SocialAccount::PLATFORM_FACEBOOK,
             'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
@@ -68,7 +75,16 @@ class MetaOAuthControllerTest extends TestCase
             return Http::response([], 404);
         });
 
+        $whatsappAccount = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_WHATSAPP,
+            'account_type' => SocialAccount::TYPE_WHATSAPP,
+            'display_name' => 'WhatsApp de prueba',
+        ]);
+
         $this->actingAs($user)->withSession(['active_workspace_id' => $workspace->id]);
+        $this->get(route('social-accounts.facebook.session', $account))->assertOk();
+        $this->get(route('social-accounts.whatsapp.qr', $whatsappAccount))->assertOk();
+
         $start = $this->get(route('social-accounts.meta.connect', $account));
         $start->assertRedirect();
         parse_str((string) parse_url($start->headers->get('Location'), PHP_URL_QUERY), $query);
