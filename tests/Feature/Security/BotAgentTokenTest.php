@@ -134,4 +134,74 @@ class BotAgentTokenTest extends TestCase
             BotAgent::withoutGlobalScopes()->where('instance_id', 'agent-token-issue')->value('token_hash'),
         );
     }
+
+    public function test_authenticated_agent_identity_overrides_conflicting_session_payload_identity(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Agent identity', 'slug' => 'agent-identity']);
+        config([
+            'services.bot_api.token' => '',
+            'services.bot_api.workspace_id' => null,
+        ]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        $account = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_WHATSAPP,
+            'account_type' => SocialAccount::TYPE_WHATSAPP,
+            'display_name' => 'Cuenta de identidad',
+        ]);
+        $token = 'agent-identity-token';
+        BotAgent::query()->create([
+            'name' => 'Agente de identidad',
+            'instance_id' => 'agent-identity-01',
+            'token_hash' => hash('sha256', $token),
+            'social_account_ids' => [$account->id],
+            'is_active' => true,
+        ]);
+        app(WorkspaceContext::class)->clear();
+
+        $this->withToken($token)->postJson('/api/bot/whatsapp/connection/state', [
+            'social_account_id' => $account->id,
+            'instance_id' => 'agent-identity-01',
+            'agent_instance_id' => 'attacker-selected-instance',
+            'status' => 'connected',
+        ])->assertOk();
+
+        $this->assertDatabaseHas('social_account_connections', [
+            'social_account_id' => $account->id,
+            'agent_instance_id' => 'agent-identity-01',
+            'connection_type' => 'wppconnect_qr',
+        ]);
+    }
+
+    public function test_scoped_agent_cannot_use_legacy_facebook_group_sync_alias_without_account_id(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Facebook sync alias', 'slug' => 'facebook-sync-alias']);
+        config([
+            'services.bot_api.token' => '',
+            'services.bot_api.workspace_id' => null,
+        ]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        $account = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
+            'display_name' => 'Perfil de Facebook',
+        ]);
+        $token = 'facebook-alias-token';
+        BotAgent::query()->create([
+            'name' => 'Agente Facebook',
+            'instance_id' => 'agent-facebook-01',
+            'token_hash' => hash('sha256', $token),
+            'social_account_ids' => [$account->id],
+            'is_active' => true,
+        ]);
+        app(WorkspaceContext::class)->clear();
+
+        $this->withToken($token)->postJson('/api/bot/facebook/grupos/sincronizar', [
+            'agent_instance_id' => 'agent-facebook-01',
+            'groups' => [['facebook_id' => 'group-1', 'name' => 'Grupo de prueba']],
+        ])->assertStatus(422)
+            ->assertJsonPath('message', 'A social_account_id is required for agent group synchronization.');
+    }
+
 }
