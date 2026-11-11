@@ -244,4 +244,42 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
         $this->assertFalse($integration->fresh()->campaign_dispatch_enabled);
     }
 
+
+    public function test_failed_full_sync_clears_sync_state_and_pauses_campaigns(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Failed sync', 'slug' => 'failed-sync']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        $integration = WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://failed-sync.example.test',
+            'api_token' => 'failed-sync-token',
+            'webhook_key_id' => 'failed-sync-key',
+            'webhook_secret' => 'failed-sync-secret',
+            'enabled' => true,
+        ]);
+        $integration->update([
+            'last_verified_at' => now(),
+            'last_catalog_synced_at' => now(),
+            'campaign_dispatch_enabled' => true,
+        ]);
+
+        $manager = app(DubaiShopIntegrationManager::class);
+        $this->assertTrue($manager->campaignsEnabledForCurrentWorkspace());
+
+        Http::fake([
+            'https://failed-sync.example.test/api/integrations/social-publicator/v1/warehouses' => Http::response(['message' => 'unavailable'], 503),
+        ]);
+
+        try {
+            app(ExternalCatalogSyncService::class)->syncAll();
+            $this->fail('The catalog sync should fail when Dubai Shop returns HTTP 503.');
+        } catch (RequestException) {
+            // Expected: the service records the failed sync and pauses campaign dispatch.
+        }
+
+        $integration->refresh();
+        $this->assertNull($integration->last_catalog_synced_at);
+        $this->assertFalse($integration->campaign_dispatch_enabled);
+        $this->assertFalse($manager->campaignsEnabledForCurrentWorkspace());
+    }
 }
