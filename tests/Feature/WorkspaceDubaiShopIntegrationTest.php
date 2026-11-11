@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\ExternalCatalogItem;
-use App\Models\Product;
 use App\Models\Workspace;
 use App\Models\WorkspaceDubaiShopIntegration;
 use App\Services\DubaiShopApiClient;
