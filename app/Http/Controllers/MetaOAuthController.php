@@ -135,6 +135,12 @@ class MetaOAuthController extends Controller
                     ],
                 );
 
+                $authorizedPageIds = collect(is_array($pages) ? $pages : [])
+                    ->filter(fn ($page): bool => is_array($page) && filled($page['id'] ?? null) && filled($page['access_token'] ?? null))
+                    ->map(fn (array $page): string => (string) $page['id'])
+                    ->values()
+                    ->all();
+
                 foreach (is_array($pages) ? $pages : [] as $page) {
                     if (! is_array($page) || empty($page['id']) || empty($page['access_token'])) {
                         continue;
