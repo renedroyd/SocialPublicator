@@ -7,6 +7,7 @@ use App\Models\ExternalCatalogCampaignSelection;
 use App\Models\ExternalCatalogCampaignTrigger;
 use App\Models\ExternalCatalogItem;
 use App\Models\Publication;
+use App\Models\SocialAccount;
 use App\Models\WorkspaceMembership;
 use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\Workspaces\WorkspaceContext;
