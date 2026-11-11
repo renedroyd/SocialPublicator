@@ -33,9 +33,7 @@ class PublishMetaPagePublication implements ShouldQueue
 
     public int $timeout = 60;
 
-    public function __construct(public int $executionId)
-    {
-    }
+    public function __construct(public int $executionId) {}
 
     public function middleware(): array
     {
