@@ -89,6 +89,20 @@ class CampaignPublicationDispatcherTest extends TestCase
             'services.dubai_shop.api_token' => 'test-token',
         ]);
 
+        $workspaceId = app(WorkspaceContext::class)->id();
+        $integration = WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://dubai.example.test',
+            'api_token' => 'test-token',
+            'webhook_key_id' => 'campaign-test-key',
+            'webhook_secret' => 'campaign-test-secret',
+            'enabled' => true,
+        ]);
+        $integration->update([
+            'last_verified_at' => now(),
+            'last_catalog_synced_at' => now(),
+            'campaign_dispatch_enabled' => true,
+        ]);
+
         $warehouseId = '2f20b7e0-01a1-4e33-8a10-40abfa9b2a00';
         $itemId = '9d20b7e0-01a1-4e33-8a10-40abfa9b2a00';
         $groupId = (string) Str::uuid();
