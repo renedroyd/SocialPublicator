@@ -8,6 +8,7 @@ use App\Filament\Resources\WorkspaceDubaiShopIntegrations\Pages\EditWorkspaceDub
 use App\Filament\Resources\WorkspaceDubaiShopIntegrations\Pages\ListWorkspaceDubaiShopIntegrations;
 use App\Models\WorkspaceDubaiShopIntegration;
 use App\Services\DubaiShopApiClient;
+use App\Services\ExternalCatalogSyncService;
 use App\Services\Workspaces\WorkspaceContext;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
