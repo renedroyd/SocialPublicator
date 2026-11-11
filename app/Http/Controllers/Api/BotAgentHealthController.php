@@ -76,7 +76,8 @@ class BotAgentHealthController extends Controller
             'data' => [
                 'workspace_id' => (int) $workspaceId,
                 'instance_id' => $instanceId,
-                'authorization_mode' => is_array($authorizedIds) ? 'scoped' : 'legacy_workspace',
+                'authorization_mode' => $request->attributes->get('bot_agent_auth_mode')
+                    ?? (is_array($authorizedIds) ? 'scoped' : 'legacy_workspace'),
                 'authorized_social_account_ids' => is_array($authorizedIds)
                     ? array_values(array_map('intval', $authorizedIds))
                     : null,
