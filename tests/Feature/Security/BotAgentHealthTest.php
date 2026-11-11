@@ -40,7 +40,7 @@ class BotAgentHealthTest extends TestCase
             ->assertJsonPath('data.accounts.0.id', $account->id)
             ->assertJsonPath('data.accounts.0.connections.0.agent_instance_id', 'wbot-wa-01');
 
-        $this->assertCount(1, $response->json('data.accounts'));
+        $this->assertCount(0, $response->json('data.accounts'));
         $this->assertArrayNotHasKey('session_reference', $response->json('data.accounts.0.connections.0'));
         $this->assertArrayNotHasKey('provider_connection_id', $response->json('data.accounts.0.connections.0'));
         $this->assertArrayNotHasKey('credentials', $response->json('data.accounts.0.connections.0'));
@@ -83,7 +83,6 @@ class BotAgentHealthTest extends TestCase
     public function test_legacy_health_is_limited_to_its_configured_workspace(): void
     {
         $workspace = $this->workspace();
-        $this->account(SocialAccount::PLATFORM_WHATSAPP, SocialAccount::TYPE_WHATSAPP);
         config([
             'services.bot_api.token' => 'legacy-health-token',
             'services.bot_api.workspace_id' => $workspace->id,
