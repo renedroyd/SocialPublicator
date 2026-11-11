@@ -40,6 +40,7 @@ class CampaignPublicationDispatcherTest extends TestCase
             'whatsapp_id' => 'campaign-linked@g.us',
             'name' => 'Grupo vinculado',
             'active' => true,
+            'is_admin' => true,
         ]);
         $orphanGroup = WhatsAppGroup::query()->create([
             'whatsapp_id' => 'campaign-orphan@g.us',
