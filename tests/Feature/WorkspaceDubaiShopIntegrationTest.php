@@ -181,6 +181,7 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
         $item = ExternalCatalogItem::query()->create([
             'source' => ExternalCatalogItem::SOURCE_DUBAI_SHOP,
             'external_id' => 'remote-preserve-1',
+            'item_type' => 'product',
             'name' => 'External only item',
             'active' => true,
             'visible' => true,
