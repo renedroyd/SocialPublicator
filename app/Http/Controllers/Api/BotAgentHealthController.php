@@ -38,7 +38,6 @@ class BotAgentHealthController extends Controller
                     'connected_at',
                     'last_verified_at',
                     'revoked_at',
-                    'last_error_at',
                 ])
                 ->whereIn('connection_type', [
                     'wppconnect_qr',
@@ -67,7 +66,6 @@ class BotAgentHealthController extends Controller
                         'connected_at' => $connection->connected_at?->toISOString(),
                         'last_verified_at' => $connection->last_verified_at?->toISOString(),
                         'revoked_at' => $connection->revoked_at?->toISOString(),
-                        'last_error_at' => $connection->last_error_at?->toISOString(),
                     ])
                     ->values()
                     ->all(),
