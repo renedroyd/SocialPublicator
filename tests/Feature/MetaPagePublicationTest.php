@@ -88,7 +88,7 @@ class MetaPagePublicationTest extends TestCase
         ]);
 
         app(PublishMetaPagePublication::class, ['executionId' => $execution->id])
-            ->handle(app(PublicationExecutionService::class));
+            ->handle(app(PublicationExecutionService::class), app(WorkspaceContext::class));
 
         $this->assertSame('unknown', $execution->fresh()->status);
         $this->assertStringContainsString('verifica la página', $execution->fresh()->error_message);
@@ -106,7 +106,7 @@ class MetaPagePublicationTest extends TestCase
         ]);
 
         app(PublishMetaPagePublication::class, ['executionId' => $execution->id])
-            ->handle(app(PublicationExecutionService::class));
+            ->handle(app(PublicationExecutionService::class), app(WorkspaceContext::class));
 
         $this->assertSame('failed', $execution->fresh()->status);
         $this->assertSame('Permissions error', $execution->fresh()->error_message);
