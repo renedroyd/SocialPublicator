@@ -7,6 +7,7 @@ use App\Models\BotCommand;
 use App\Jobs\PublishMetaPagePublication;
 use App\Models\PublicationDestination;
 use App\Models\PublicationExecution;
+use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\PublicationExecutionService;
 use App\Services\Workspaces\WorkspaceContext;
 use Filament\Forms\Components\TextInput;
@@ -236,7 +237,8 @@ class RecentExecutions extends TableWidget
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
                     ->visible(
-                        fn (PublicationExecution $record): bool => ! $this->isMetaPageExecution($record)
+                        fn (PublicationExecution $record): bool => $this->canManageExecutions()
+                            && ! $this->isMetaPageExecution($record)
                             && in_array($record->status, ['failed', 'pending'], true)
                     )
                     ->requiresConfirmation()
@@ -278,6 +280,18 @@ class RecentExecutions extends TableWidget
             return 'Página Meta';
         }
 
+        $membership = $this->currentWorkspaceMembership();
+        if (
+            ! $membership
+            || ! $membership->canUseDestination(
+                WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
+                (int) $destinationId,
+                'view',
+            )
+        ) {
+            return 'Página Meta';
+        }
+
         $destination = PublicationDestination::query()->find((int) $destinationId);
 
         return $destination?->name
@@ -287,10 +301,13 @@ class RecentExecutions extends TableWidget
 
     private function canManageExecutions(): bool
     {
-        $membership = auth()->user()?->activeWorkspaceMemberships()
+        return $this->currentWorkspaceMembership()?->hasPermission('executions.manage') ?? false;
+    }
+
+    private function currentWorkspaceMembership()
+    {
+        return auth()->user()?->activeWorkspaceMemberships()
             ->where('workspace_id', app(WorkspaceContext::class)->id())
             ->first();
-
-        return $membership !== null && $membership->hasPermission('executions.manage');
     }
 }
