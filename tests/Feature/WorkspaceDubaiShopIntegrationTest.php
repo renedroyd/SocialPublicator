@@ -2,10 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Models\ExternalCatalogItem;
+use App\Models\Product;
 use App\Models\Workspace;
 use App\Models\WorkspaceDubaiShopIntegration;
 use App\Services\DubaiShopApiClient;
 use App\Services\DubaiShopIntegrationManager;
+use App\Services\ExternalCatalogSyncService;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
