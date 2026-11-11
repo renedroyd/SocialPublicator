@@ -22,7 +22,7 @@ Route::post('/integrations/dubai-shop/v1/events', [DubaiShopWebhookController::c
     ])
     ->name('api.integrations.dubai-shop.events');
 
-Route::middleware([VerifyBotApiToken::class, ResolveWorkspaceContext::class.':bot'])
+Route::middleware(['throttle:600,1', VerifyBotApiToken::class, 'throttle:bot-api', ResolveWorkspaceContext::class.':bot'])
     ->prefix('bot')
     ->group(function (): void {
         Route::get('/publications', [
