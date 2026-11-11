@@ -44,7 +44,7 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
     public static function canCreate(): bool
     {
         return static::currentWorkspaceMembership()?->hasPermission('integrations.manage') === true
-            && !WorkspaceDubaiShopIntegration::query()->exists();
+            && ! WorkspaceDubaiShopIntegration::query()->exists();
     }
 
     public static function canDelete(Model $record): bool
@@ -92,7 +92,7 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                     Toggle::make('campaign_dispatch_enabled')
                         ->label('Permitir campañas automáticas')
                         ->default(false)
-                        ->disabled(fn (Get $get): bool => !$get('enabled'))
+                        ->disabled(fn (Get $get): bool => ! $get('enabled'))
                         ->helperText('Mantén esta opción desactivada hasta validar catálogo, almacenes y destinos.'),
                     TextInput::make('api_base_url')
                         ->label('URL base de Dubai Shop')
