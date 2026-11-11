@@ -30,9 +30,11 @@ class BotCommandController extends Controller
 
     public function complete(
         Request $request,
-        BotCommand $command,
+        int $command,
         BotCommandService $service,
     ): JsonResponse {
+        $command = BotCommand::query()->findOrFail($command);
+
         $validated = $request->validate([
             'bot_name' => ['required', 'string', 'max:100'],
             'instance_id' => ['nullable', 'string', 'max:191'],
@@ -54,9 +56,11 @@ class BotCommandController extends Controller
 
     public function fail(
         Request $request,
-        BotCommand $command,
+        int $command,
         BotCommandService $service,
     ): JsonResponse {
+        $command = BotCommand::query()->findOrFail($command);
+
         $validated = $request->validate([
             'bot_name' => ['required', 'string', 'max:100'],
             'instance_id' => ['nullable', 'string', 'max:191'],
