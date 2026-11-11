@@ -154,7 +154,9 @@ class WorkspaceMembership extends Model
         }
 
         if ($destination->social_account_id === null) {
-            return true;
+            return ! SocialAccount::query()
+                ->where('workspace_id', $destination->workspace_id)
+                ->exists();
         }
 
         $account = SocialAccount::query()->find($destination->social_account_id);
