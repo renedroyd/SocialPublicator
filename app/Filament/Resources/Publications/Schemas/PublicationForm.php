@@ -67,10 +67,7 @@ class PublicationForm
                 ->whereJsonContains('permissions', 'publish')
                 ->select('social_account_id');
 
-            $query->where(function (Builder $query) use ($accountIds): void {
-                $query->whereNull('social_account_id')
-                    ->orWhereIn('social_account_id', $accountIds);
-            });
+            $query->whereIn('social_account_id', $accountIds);
         }
 
         return $query;
