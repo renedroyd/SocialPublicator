@@ -93,7 +93,8 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                         ->label('Permitir campañas automáticas')
                         ->default(false)
                         ->disabled(fn (Get $get): bool => ! $get('enabled'))
-                        ->helperText('Mantén esta opción desactivada hasta validar catálogo, almacenes y destinos.'),
+                        ->disabled(fn (Get $get, ?WorkspaceDubaiShopIntegration $record): bool => ! $get('enabled') || blank($record?->last_verified_at) || blank($record?->last_catalog_synced_at))
+                        ->helperText('Primero habilita, verifica la conexión y sincroniza el catálogo. Después podrás activar campañas explícitamente.'),
                     TextInput::make('api_base_url')
                         ->label('URL base de Dubai Shop')
                         ->url()
@@ -110,19 +111,20 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                         ->columnSpanFull(),
                 ]),
             Section::make('Eventos firmados')
-                ->description('Opcional. Permite recibir cambios de catálogo, inventario y precios mediante webhooks HMAC.')
+                ->description('Obligatorio para habilitar la integración. Los cambios de catálogo, inventario y precios se reciben mediante webhooks HMAC.')
                 ->columns(2)
                 ->schema([
                     TextInput::make('webhook_key_id')
                         ->label('Identificador de clave HMAC')
                         ->maxLength(120)
+                        ->required(fn (Get $get): bool => $get('enabled'))
                         ->helperText('Debe coincidir con el identificador configurado en el emisor de Dubai Shop.'),
                     TextInput::make('webhook_secret')
                         ->label('Secreto HMAC')
                         ->password()
                         ->revealable()
                         ->dehydrated(fn (?string $state): bool => filled($state))
-                        ->required(fn (Get $get): bool => filled($get('webhook_key_id')))
+                        ->required(fn (Get $get, ?WorkspaceDubaiShopIntegration $record): bool => $get('enabled') && blank($record?->webhook_secret))
                         ->helperText('Se cifra al guardar. Déjalo vacío para conservar el secreto existente.'),
                     TextInput::make('timeout')
                         ->label('Tiempo máximo de espera (segundos)')
@@ -152,9 +154,38 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                 IconColumn::make('campaign_dispatch_enabled')->label('Campañas automáticas')->boolean(),
                 TextColumn::make('api_base_url')->label('Servidor')->limit(48),
                 TextColumn::make('last_verified_at')->label('Última verificación')->dateTime()->placeholder('Sin verificar'),
+                TextColumn::make('last_catalog_synced_at')->label('Última sincronización')->dateTime()->placeholder('Sin sincronizar'),
                 TextColumn::make('last_error_message')->label('Último error')->limit(60)->placeholder('Sin errores'),
             ])
             ->recordActions([
+                Action::make('syncCatalog')
+                    ->label('Sincronizar catálogo')
+                    ->icon('heroicon-o-arrow-path')
+                    ->visible(fn (WorkspaceDubaiShopIntegration $record): bool => $record->isReady() && $record->last_verified_at !== null)
+                    ->requiresConfirmation()
+                    ->action(function (WorkspaceDubaiShopIntegration $record): void {
+                        try {
+                            $result = app(ExternalCatalogSyncService::class)->syncAll();
+                            $record->refresh();
+
+                            Notification::make()
+                                ->title('Catálogo sincronizado')
+                                ->body('Artículos: '.$result['items_synced'].'; almacenes: '.$result['warehouses_synced'].'. Las campañas siguen desactivadas hasta que las habilites explícitamente.')
+                                ->success()
+                                ->send();
+                        } catch (Throwable $exception) {
+                            report($exception);
+                            $record->update([
+                                'last_error_at' => now(),
+                                'last_error_message' => 'No fue posible completar la sincronización del catálogo.',
+                            ]);
+                            Notification::make()
+                                ->title('Falló la sincronización')
+                                ->body('Revisa la conexión y los registros del servidor antes de habilitar campañas.')
+                                ->danger()
+                                ->send();
+                        }
+                    }),
                 Action::make('verify')
                     ->label('Probar conexión')
                     ->icon('heroicon-o-signal')
