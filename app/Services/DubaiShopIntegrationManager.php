@@ -33,6 +33,8 @@ class DubaiShopIntegrationManager
                 'api_token' => $integration->api_token,
                 'timeout' => $integration->timeout,
                 'campaign_dispatch_enabled' => $integration->campaign_dispatch_enabled,
+                'last_verified_at' => $integration->last_verified_at,
+                'last_catalog_synced_at' => $integration->last_catalog_synced_at,
                 'workspace_id' => $workspaceId,
             ];
         } else {
@@ -65,11 +67,21 @@ class DubaiShopIntegrationManager
 
     public function campaignsEnabledForCurrentWorkspace(): bool
     {
-        if (! $this->isEnabledForCurrentWorkspace()) {
+        $workspaceId = $this->context->id();
+
+        if (! $workspaceId) {
             return false;
         }
 
-        return (bool) $this->currentSettings()['campaign_dispatch_enabled'];
+        $integration = WorkspaceDubaiShopIntegration::query()
+            ->where('workspace_id', $workspaceId)
+            ->first();
+
+        return $integration !== null
+            && $integration->isReady()
+            && $integration->campaign_dispatch_enabled
+            && $integration->last_verified_at !== null
+            && $integration->last_catalog_synced_at !== null;
     }
 
     /**
@@ -80,10 +92,14 @@ class DubaiShopIntegrationManager
         $query = WorkspaceDubaiShopIntegration::withoutGlobalScope('workspace')
             ->where('enabled', true)
             ->whereNotNull('api_base_url')
-            ->whereNotNull('api_token');
+            ->whereNotNull('api_token')
+            ->whereNotNull('webhook_key_id')
+            ->whereNotNull('webhook_secret')
+            ->whereNotNull('last_verified_at');
 
         if ($campaignsOnly) {
-            $query->where('campaign_dispatch_enabled', true);
+            $query->where('campaign_dispatch_enabled', true)
+                ->whereNotNull('last_catalog_synced_at');
         }
 
         $ids = $query->pluck('workspace_id')->map(fn ($id): int => (int) $id)->all();
@@ -96,7 +112,8 @@ class DubaiShopIntegrationManager
 
             $legacyReady = filled(config('services.dubai_shop.api_base_url'))
                 && filled(config('services.dubai_shop.api_token'))
-                && (! $campaignsOnly || (bool) config('services.dubai_shop.campaign_dispatch_enabled'));
+                && ! empty(config('services.dubai_shop.webhook_keys', []))
+                && ! $campaignsOnly;
 
             if (! $hasDatabaseRecord && $legacyReady) {
                 $ids[] = $legacyId;
@@ -133,7 +150,7 @@ class DubaiShopIntegrationManager
         $baseUrl = (string) config('services.dubai_shop.api_base_url');
         $token = (string) config('services.dubai_shop.api_token');
 
-        if ($baseUrl === '' || $token === '') {
+        if ($baseUrl === '' || $token === '' || empty(config('services.dubai_shop.webhook_keys', []))) {
             return null;
         }
 
@@ -141,7 +158,9 @@ class DubaiShopIntegrationManager
             'api_base_url' => $baseUrl,
             'api_token' => $token,
             'timeout' => (int) config('services.dubai_shop.timeout', 15),
-            'campaign_dispatch_enabled' => (bool) config('services.dubai_shop.campaign_dispatch_enabled'),
+            'campaign_dispatch_enabled' => false,
+            'last_verified_at' => null,
+            'last_catalog_synced_at' => null,
             'workspace_id' => $workspaceId,
         ];
     }
