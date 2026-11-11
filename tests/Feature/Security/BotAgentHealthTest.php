@@ -40,7 +40,7 @@ class BotAgentHealthTest extends TestCase
             ->assertJsonPath('data.accounts.0.id', $account->id)
             ->assertJsonPath('data.accounts.0.connections.0.agent_instance_id', 'wbot-wa-01');
 
-        $this->assertCount(0, $response->json('data.accounts'));
+        $this->assertCount(1, $response->json('data.accounts'));
         $this->assertArrayNotHasKey('session_reference', $response->json('data.accounts.0.connections.0'));
         $this->assertArrayNotHasKey('provider_connection_id', $response->json('data.accounts.0.connections.0'));
         $this->assertArrayNotHasKey('credentials', $response->json('data.accounts.0.connections.0'));
@@ -95,7 +95,7 @@ class BotAgentHealthTest extends TestCase
             ->assertJsonPath('data.authorization_mode', 'legacy_workspace')
             ->assertJsonPath('data.workspace_id', $workspace->id);
 
-        $this->assertCount(1, $response->json('data.accounts'));
+        $this->assertCount(0, $response->json('data.accounts'));
     }
 
     private function workspace(): Workspace
