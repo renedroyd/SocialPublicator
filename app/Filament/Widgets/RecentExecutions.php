@@ -260,6 +260,7 @@ class RecentExecutions extends TableWidget
             ->defaultSort('created_at', 'desc')
             ->paginated([5, 10, 25]);
     }
+
     private function isMetaPageExecution(PublicationExecution $record): bool
     {
         return str_starts_with($record->target_key, 'meta_page_destination:');
@@ -292,5 +293,4 @@ class RecentExecutions extends TableWidget
 
         return $membership !== null && $membership->hasPermission('executions.manage');
     }
-
 }
