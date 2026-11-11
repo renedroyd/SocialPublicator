@@ -11,6 +11,7 @@ use App\Services\DubaiShopIntegrationManager;
 use App\Services\ExternalCatalogSyncService;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
