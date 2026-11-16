@@ -67,6 +67,36 @@ class WorkspaceDubaiShopIntegration extends Model
                 throw new RuntimeException('A Dubai Shop installation cannot be reassigned to another workspace.');
             }
 
+            $previousKeyConfigured = filled($integration->previous_webhook_key_id)
+                || filled($integration->previous_webhook_secret)
+                || $integration->previous_webhook_secret_expires_at !== null;
+
+            if ($previousKeyConfigured && (
+                blank($integration->previous_webhook_key_id)
+                || blank($integration->previous_webhook_secret)
+                || $integration->previous_webhook_secret_expires_at === null
+            )) {
+                throw new RuntimeException('A previous HMAC key requires an ID, secret, and expiration timestamp.');
+            }
+
+            if (filled($integration->previous_webhook_key_id)) {
+                if (hash_equals((string) $integration->webhook_key_id, (string) $integration->previous_webhook_key_id)) {
+                    throw new RuntimeException('The active and previous HMAC key IDs must be different.');
+                }
+
+                $keyConflict = self::withoutGlobalScope('workspace')
+                    ->where(function ($query) use ($integration): void {
+                        $query->where('webhook_key_id', $integration->previous_webhook_key_id)
+                            ->orWhere('previous_webhook_key_id', $integration->previous_webhook_key_id);
+                    })
+                    ->when($integration->exists, fn ($query) => $query->whereKeyNot($integration->getKey()))
+                    ->exists();
+
+                if ($keyConflict) {
+                    throw new RuntimeException('The previous HMAC key ID is already assigned to another workspace.');
+                }
+            }
+
             $credentialsChanged = $integration->isDirty([
                 'api_base_url',
                 'api_token',
