@@ -3,8 +3,12 @@
 namespace App\Filament\Widgets;
 
 use App\Models\BotStatus;
+use App\Models\ExternalCatalogCampaignSelection;
+use App\Models\ExternalCatalogCampaignTrigger;
+use App\Models\IntegrationEventInbox;
 use App\Models\PublicationExecution;
 use App\Models\PublicationSchedule;
+use App\Models\WorkspaceDubaiShopIntegration;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +34,9 @@ class SystemHealthOverview extends BaseWidget
             $this->queueStat(),
             $this->schedulerStat(),
             $this->executionsStat(),
+            $this->dubaiInboxStat(),
+            $this->campaignPipelineStat(),
+            $this->dubaiIntegrationStat(),
             $this->botHeartbeatStat(),
             $this->failedJobsStat(),
         ];
@@ -131,6 +138,124 @@ class SystemHealthOverview extends BaseWidget
 
             return Stat::make('Ejecuciones', 'Error')
                 ->description('No se pudo consultar actividad')
+                ->descriptionIcon('heroicon-m-x-circle')
+                ->color('danger');
+        }
+    }
+
+    private function dubaiInboxStat(): Stat
+    {
+        try {
+            if (! Schema::hasTable('integration_event_inbox')) {
+                return Stat::make('Inbox Dubai Shop', 'No disponible')
+                    ->description('La integración no está instalada')
+                    ->descriptionIcon('heroicon-m-minus-circle')
+                    ->color('gray');
+            }
+
+            $query = IntegrationEventInbox::query();
+            $pending = (clone $query)->where('status', 'pending')->count();
+            $processing = (clone $query)->where('status', 'processing')->count();
+            $failed = (clone $query)->where('status', 'failed')->count();
+            $overdue = (clone $query)->where('status', 'pending')
+                ->where('received_at', '<=', now()->subMinutes(5))
+                ->count();
+            $expiredLeases = (clone $query)->where('status', 'processing')
+                ->where(function ($lease): void {
+                    $lease->whereNull('lease_expires_at')->orWhere('lease_expires_at', '<=', now());
+                })
+                ->count();
+            $attention = $failed + $overdue + $expiredLeases;
+
+            return Stat::make('Inbox Dubai Shop', number_format($pending + $processing))
+                ->description($pending.' pendientes · '.$processing.' procesando · '.$failed.' fallidos · '.($overdue + $expiredLeases).' atrasados')
+                ->descriptionIcon($attention > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-inbox')
+                ->color($failed > 0 ? 'danger' : ($attention > 0 ? 'warning' : 'success'));
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return Stat::make('Inbox Dubai Shop', 'Error')
+                ->description('No se pudo consultar la recepción de eventos')
+                ->descriptionIcon('heroicon-m-x-circle')
+                ->color('danger');
+        }
+    }
+
+    private function campaignPipelineStat(): Stat
+    {
+        try {
+            if (! Schema::hasTable('external_catalog_campaign_triggers')
+                || ! Schema::hasTable('external_catalog_campaign_selections')) {
+                return Stat::make('Campañas', 'No disponible')
+                    ->description('El módulo de campañas no está instalado')
+                    ->descriptionIcon('heroicon-m-minus-circle')
+                    ->color('gray');
+            }
+
+            $pendingTriggers = ExternalCatalogCampaignTrigger::query()->where('status', 'pending')->count();
+            $plannedSelections = ExternalCatalogCampaignSelection::query()->where('status', 'planned')->count();
+            $blockedTriggers = ExternalCatalogCampaignTrigger::query()
+                ->where('status', 'pending')
+                ->whereNotNull('last_error')
+                ->count();
+            $blockedSelections = ExternalCatalogCampaignSelection::query()
+                ->where('status', 'planned')
+                ->whereNotNull('last_error')
+                ->count();
+            $blocked = $blockedTriggers + $blockedSelections;
+
+            return Stat::make('Campañas', number_format($pendingTriggers + $plannedSelections))
+                ->description($pendingTriggers.' avisos pendientes · '.$plannedSelections.' grupos planificados · '.$blocked.' bloqueados')
+                ->descriptionIcon($blocked > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-megaphone')
+                ->color($blocked > 0 ? 'warning' : 'success');
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return Stat::make('Campañas', 'Error')
+                ->description('No se pudo consultar la cola de campañas')
+                ->descriptionIcon('heroicon-m-x-circle')
+                ->color('danger');
+        }
+    }
+
+    private function dubaiIntegrationStat(): Stat
+    {
+        try {
+            $integration = WorkspaceDubaiShopIntegration::query()->first();
+
+            if ($integration === null) {
+                return Stat::make('Dubai Shop', 'No configurado')
+                    ->description('Este workspace no tiene una conexión propia')
+                    ->descriptionIcon('heroicon-m-link')
+                    ->color('gray');
+            }
+
+            if (! $integration->isReady()) {
+                return Stat::make('Dubai Shop', 'Desconectado')
+                    ->description('La integración está deshabilitada o incompleta')
+                    ->descriptionIcon('heroicon-m-x-circle')
+                    ->color('danger');
+            }
+
+            $lastSync = $integration->last_catalog_synced_at;
+            $stale = $lastSync === null || $lastSync->lt(now()->subHours(24));
+            $description = $lastSync
+                ? 'Última sincronización '.$lastSync->diffForHumans()
+                : 'Todavía no se ha completado una sincronización';
+
+            if ($integration->last_verified_at) {
+                $description .= ' · verificada '.$integration->last_verified_at->diffForHumans();
+            }
+
+            return Stat::make('Dubai Shop', $stale ? 'Revisar sincronización' : 'Conectado')
+                ->description($description)
+                ->descriptionIcon($stale ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
+                ->color($stale ? 'warning' : 'success');
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return Stat::make('Dubai Shop', 'Error')
+                ->description('No se pudo comprobar la integración')
                 ->descriptionIcon('heroicon-m-x-circle')
                 ->color('danger');
         }
