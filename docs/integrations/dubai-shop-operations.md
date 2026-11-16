@@ -115,3 +115,14 @@ Recommended zero-downtime rotation:
 5. After expiration, clear the previous key ID, previous secret, and expiration fields in SocialPublicator. The old key is already rejected automatically once expired.
 
 Do not rotate by changing the sender first: the receiver must accept the new key before Dubai Shop starts signing with it. The current and previous key IDs are globally unique across workspace integrations. The legacy environment-based v1 compatibility path remains unchanged and does not use these workspace rotation fields.
+
+
+## Operational health dashboard
+
+The Filament dashboard's **Salud del sistema** widget now includes three Dubai Shop integration indicators:
+
+- **Inbox Dubai Shop:** pending, processing, failed, and delayed events. Pending events older than five minutes and expired processing leases are highlighted.
+- **Campañas:** pending triggers, planned publication groups, and records with a blocking error.
+- **Dubai Shop:** connection readiness and the age of the last successful catalog synchronization.
+
+These counters are scoped to the active workspace. A healthy inbox does not prove that a social network accepted a post; inspect the corresponding publication execution and Meta/WBot delivery state as well.
