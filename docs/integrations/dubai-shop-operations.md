@@ -100,3 +100,18 @@ Never put API tokens, webhook secrets, bot tokens, or customer data in Git. Use 
 ## Outbound API destination security
 
 SocialPublicator validates every configured Dubai Shop API destination before making an outbound request. Production connections require HTTPS on port 443. Localhost, private, loopback, link-local, reserved, and IPv4-mapped private IPv6 addresses are rejected. Hostnames are resolved on each request; every returned A/AAAA address must be public, and the selected validated address is pinned with cURL's DNS resolve option to prevent a DNS-rebinding change between validation and connection. The HTTP client does not follow redirects, so the configured API token cannot be forwarded to a different redirect target. Production deployments therefore require PHP's cURL extension. Reserved `.test` hostnames are accepted only in the test environment for isolated HTTP fakes.
+
+
+## HMAC key rotation (workspace integrations)
+
+Workspace integrations accept one active HMAC key and one previous key with a mandatory expiration timestamp. Both secrets are encrypted at rest. The previous key is accepted only until its configured expiration; after that, requests signed with it receive HTTP 401. The active key remains valid throughout the overlap.
+
+Recommended zero-downtime rotation:
+
+1. Generate a new random key ID and a new high-entropy secret outside source control.
+2. In SocialPublicator's Integraciones → Dubai Shop settings, copy the current key ID and secret into the previous-key fields, set the previous-key expiration (24 hours is a practical default), and replace the active key ID and secret with the new pair. Save.
+3. Update Dubai Shop's SOCIAL_PUBLICATOR_WEBHOOK_KEY_ID and SOCIAL_PUBLICATOR_WEBHOOK_SECRET to the new pair and reload its configuration / workers.
+4. Confirm signed events are accepted with the new key. Keep the previous key only for the agreed overlap window.
+5. After expiration, clear the previous key ID, previous secret, and expiration fields in SocialPublicator. The old key is already rejected automatically once expired.
+
+Do not rotate by changing the sender first: the receiver must accept the new key before Dubai Shop starts signing with it. The current and previous key IDs are globally unique across workspace integrations. The legacy environment-based v1 compatibility path remains unchanged and does not use these workspace rotation fields.
