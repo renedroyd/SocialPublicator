@@ -1,15 +1,15 @@
 <?php
 
-namespace Tests\\Feature;
+namespace Tests\Feature;
 
-use App\\Models\\Workspace;
-use App\\Models\\WorkspaceDubaiShopIntegration;
-use App\\Services\\Workspaces\\WorkspaceContext;
-use Illuminate\\Database\\QueryException;
-use Illuminate\\Foundation\\Testing\\RefreshDatabase;
-use Illuminate\\Support\\Facades\\Queue;
-use Illuminate\\Support\\Str;
-use Tests\\TestCase;
+use App\Models\Workspace;
+use App\Models\WorkspaceDubaiShopIntegration;
+use App\Services\Workspaces\WorkspaceContext;
+use Illuminate\Database\QueryException;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Str;
+use Tests\TestCase;
 
 class DubaiShopInstallationIdentityTest extends TestCase
 {
@@ -73,7 +73,7 @@ class DubaiShopInstallationIdentityTest extends TestCase
             'enabled' => true,
         ]);
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $integration->update(['installation_id' => (string) Str::uuid()]);
     }
 
