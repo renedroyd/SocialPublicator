@@ -1,157 +1,159 @@
-# Roadmap — VIRALYX / SocialPublicator
+# SocialPublicator — Product and Integration Roadmap
 
-## Objetivo
+**Status date:** 2026-11-15
 
-Evolucionar SocialPublicator desde un gestor de publicaciones y bots hacia una plataforma profesional de gestión, programación, distribución y observabilidad de contenido para múltiples redes sociales.
+## Product objective
 
-La arquitectura debe mantener una única fuente de verdad para contenido y agenda, desacoplando la lógica de negocio de los canales de publicación.
+SocialPublicator is the editorial, campaign and social-account control plane. It manages workspaces, permissions, connected social accounts, destinations, campaign rules, publication scheduling and delivery visibility.
 
-## Estado actual
+It must remain usable as an independent product. A Dubai-Shop connection is optional and must never be required for local publications, local campaigns or other supported workflows.
 
-### Ya disponible
-- Laravel 13 + Filament 5.
-- Panel administrativo VIRALYX.
-- Gestión de publicaciones.
-- Programación por fecha y hora.
-- Recurrencia por intervalos.
-- Productos, categorías e inventario.
-- Destinos sociales modelados como entidades independientes.
-- Grupos de Facebook sincronizados desde el bot.
-- Registro de ejecuciones por publicación, ocurrencia, canal y destino.
-- Estados de ejecución: pending, running, succeeded, failed.
-- Protección de la API mediante token de bot.
-- Comandos remotos para reclamar, completar y fallar tareas.
-- Estado operativo de bots.
-- Dashboard operativo en Filament.
-- Suite de pruebas y CI con build de assets frontend.
-- Landing comercial y login con identidad VIRALYX.
+## System boundaries
 
-## Principios de arquitectura
-1. Contenido independiente del canal.
-2. Adaptadores por canal mediante un contrato común.
-3. Idempotencia obligatoria para cada ocurrencia y destino.
-4. La agenda debe ser un dominio, no lógica de las vistas ni del bot.
-5. La ejecución debe ser asíncrona.
-6. Toda ejecución debe ser observable y trazable.
-7. Compatibilidad progresiva con WBot.
-8. Seguridad por defecto: secretos fuera del repositorio y acciones remotas autenticadas.
+| Application | Owns | Must not own |
+|---|---|---|
+| Dubai-Shop | Product catalogue, variants, sale prices, publication visibility, warehouses and stock availability | Social credentials, editorial calendar, social destinations or publication execution |
+| SocialPublicator | Workspaces, users and permissions, social connections, campaigns, destinations, publication planning, routing and execution records | Dubai-Shop's source-of-truth inventory or browser/session automation |
+| WBot | Execution of assigned WhatsApp and Facebook Group tasks, isolated agent instances, browser/session runtime and execution reporting | Product catalogue, campaign selection, workspace billing or official Meta Page OAuth |
 
-# Fase 1 — Núcleo editorial profesional
-Objetivo: convertir la gestión de publicaciones en un flujo editorial completo.
-- [ ] Estados editoriales: borrador, programada, en proceso, publicada, fallida, cancelada.
-- [ ] Separar estado editorial de estado de ejecución.
-- [ ] Calendario editorial mensual/semanal/diario.
-- [ ] Vista de detalle con historial completo.
-- [ ] Duplicar publicación.
-- [ ] Reprogramar publicación.
-- [ ] Cancelar una ocurrencia sin eliminar la publicación.
-- [ ] Previsualización por canal.
-- [ ] Biblioteca multimedia básica.
-- [ ] Validaciones de contenido antes de programar.
-Salida: el usuario puede crear, programar, modificar, cancelar y revisar publicaciones sin conocer la API ni el bot.
+### Channel policy
 
-# Fase 2 — Arquitectura multi-red
-Objetivo: incorporar nuevas redes sin duplicar la lógica del dominio.
-- [ ] Contrato SocialChannelDriver.
-- [ ] Registro central de drivers.
-- [ ] Capacidades por canal: texto, imagen, vídeo, enlaces, límites y programación.
-- [ ] PublicationDestination como destino normalizado.
-- [ ] Separación entre plataforma, cuenta/conexión y destino.
-- [ ] Credenciales almacenadas de forma segura.
-- [ ] Health check por conexión.
-- [ ] Facebook como primer driver de referencia.
-- [ ] WhatsApp/WBot como driver de compatibilidad.
-- [ ] Preparación para Instagram, Telegram, X y otros canales.
-Salida: añadir un canal requiere principalmente un nuevo driver y sus pruebas.
+- WhatsApp delivery is executed by WBot using the configured WhatsApp session.
+- Facebook Group delivery remains browser-session automation in WBot. It is an unofficial integration and is sensitive to Facebook UI and policy changes.
+- Facebook Page delivery uses SocialPublicator's official Meta OAuth / Graph API integration whenever the Page permissions and API capabilities allow it.
+- SocialPublicator remains the control plane; WBot remains an execution agent.
 
-# Fase 3 — Motor de programación y colas
-Objetivo: ejecutar publicaciones de forma fiable y escalable.
-- [ ] Jobs de Laravel para materializar/encolar ocurrencias.
-- [ ] Cola de ejecución por canal/destino.
-- [ ] Backoff y reintentos configurables.
-- [ ] Control de concurrencia.
-- [ ] Idempotency keys.
-- [ ] Dead-letter/fallos permanentes.
-- [ ] Expiración de trabajos atrasados.
-- [ ] Scheduler de Laravel.
-- [ ] Métricas de latencia y tasa de éxito.
-- [ ] Herramientas administrativas para reintentar/cancelar.
+## Integration cardinality and tenant isolation
 
-# Fase 4 — Calendario y planificación avanzada
-- [ ] Calendario visual.
-- [ ] Arrastrar y soltar para reprogramar.
-- [ ] Filtros por canal, estado, campaña y destino.
-- [ ] Vista semanal y mensual.
-- [ ] Agenda de próximas publicaciones.
-- [ ] Bloqueos y ventanas horarias.
-- [ ] Recurrencias avanzadas por días de semana.
-- [ ] Fechas de finalización y máximo de ocurrencias.
-- [ ] Zona horaria explícita por cuenta/espacio de trabajo.
+**Mandatory relationship: one Dubai-Shop installation ↔ one SocialPublicator workspace.**
 
-# Fase 5 — Campañas, equipos y permisos
-- [ ] Espacios de trabajo/organizaciones.
-- [ ] Roles y permisos.
-- [ ] Propietario, administrador, editor y operador.
-- [ ] Campañas y etiquetas.
-- [ ] Flujos de aprobación.
-- [ ] Comentarios internos.
-- [ ] Historial de cambios.
-- [ ] Auditoría de acciones sensibles.
+- One Dubai-Shop installation may be paired with exactly one SocialPublicator workspace.
+- One SocialPublicator workspace may have at most one Dubai-Shop installation.
+- A Dubai-Shop installation must never fan out catalogue, stock or webhook events to multiple workspaces.
+- Each integration credential, HMAC identity, event stream, sync cursor and external catalogue mirror belongs to that single pair.
+- A workspace without a Dubai-Shop pair continues operating independently.
+- Multiple independent stores require separate Dubai-Shop installations and separate workspaces.
 
-# Fase 6 — Analítica y observabilidad
-- [ ] Métricas de publicaciones por canal.
-- [ ] Tasa de éxito/fallo.
-- [ ] Intentos y latencia.
-- [ ] Rendimiento por canal y campaña.
-- [ ] Panel de salud de integraciones.
-- [ ] Alertas operativas.
-- [ ] Exportación de reportes.
-- [ ] Retención configurable de logs.
+Enforce this invariant in database constraints and in the connection/handshake API. Do not rely only on Filament form visibility or application-level checks.
 
-# Fase 7 — Seguridad y producción
-- [ ] Gestión segura y rotación de secretos.
-- [ ] Rate limiting.
-- [ ] Políticas de autorización.
-- [ ] Protección de endpoints internos.
-- [ ] Auditoría.
-- [ ] Backups y recuperación.
-- [ ] Health checks y monitoring.
-- [ ] Logs estructurados.
-- [ ] CI/CD con staging y producción.
-- [ ] Migraciones verificadas en CI.
+## Current implementation baseline
 
-# Fase 8 — Producto SaaS
-- [ ] Multi-tenancy.
-- [ ] Suscripciones y facturación.
-- [ ] Límites por plan.
-- [ ] Onboarding.
-- [ ] Gestión de miembros.
-- [ ] Configuración de marca.
-- [ ] Medición de uso por organización.
-- [ ] Centro de ayuda.
+### Available in SocialPublicator
 
-## Orden de implementación recomendado
-1. Núcleo editorial.
-2. Drivers multi-red.
-3. Motor de colas.
-4. Calendario avanzado.
-5. Equipos y campañas.
-6. Analítica.
-7. Producción.
-8. SaaS.
+- Laravel 13 / Filament 5 application with workspace isolation and membership-based permissions.
+- Social accounts and connections are separated from publication destinations.
+- Account-level and destination-level authorization for managed workspaces.
+- Multiple publication destinations per occurrence with execution tracking by occurrence and target.
+- WhatsApp group administration verification and filtering of groups available to managed accounts.
+- Official Meta OAuth and Facebook Page publication flow.
+- Atomic publication execution claims, idempotency and explicit handling of uncertain outcomes.
+- Controlled reconciliation/retry for unknown Meta Page outcomes.
+- Optional, workspace-scoped Dubai-Shop integration foundation and external catalogue mirror are implemented on the current integration branch; final integration activation is gated on CI/review.
 
-## Definición de profesional
-- Contenido y programación desacoplados de los bots.
-- Contrato común para integrar canales.
-- Publicaciones idempotentes.
-- Trazabilidad completa de ejecuciones.
-- Calendario visual.
-- Fallos visibles y reintentables.
-- Acciones administrativas protegidas y auditadas.
-- CI validando PHP, tests y assets.
-- Nuevos canales añadibles sin reescribir el dominio.
+### Available in Dubai-Shop
 
-## Próximo incremento
-El siguiente incremento de código debe centrarse en Fase 1: separar explícitamente el ciclo editorial de la ejecución técnica.
+- Transactional integration outbox and signed HMAC event delivery.
+- Read-only integration API for published catalogue items, variants, prices and eligible warehouses.
+- Rollout/readiness controls for the SocialPublicator integration.
 
-Una publicación debe tener un estado de negocio independiente, mientras cada entrega a Facebook, WhatsApp u otro canal conserva su propio estado operativo. Este desacoplamiento es la base del calendario, los reintentos, las aprobaciones y la integración multi-red.
+### Available in WBot
+
+- Isolated multi-instance agent runtime and account-scoped execution.
+- WhatsApp via WPPConnect.
+- Facebook Group automation through browser sessions.
+- Execution claims, idempotency and reporting back to SocialPublicator.
+- Administrative account-revocation preflight is proposed in the open integration PR and must be validated against the merged SocialPublicator contract.
+
+## Phase 0 — Close and stabilize current work
+
+1. Validate the SocialPublicator optional Dubai-Shop integration PR, including migrations, tests, formatting and activation gates.
+2. Validate SocialPublicator account revocation/reactivation.
+3. Validate WBot revocation preflight against the exact SocialPublicator health response contract.
+4. Refresh this roadmap and the Dubai-Shop integration operations/readiness documentation.
+5. Do not merge a dependent WBot change before the SocialPublicator contract it consumes is available.
+6. Merge only after CI is green and the repository owner explicitly approves.
+
+**Exit criteria:** all outstanding PRs are reviewed, their CI corresponds to their latest head commits, dependencies are explicit, and documentation matches the code.
+
+## Phase 1 — Enforce the integration contract
+
+- Enforce the one-installation-to-one-workspace invariant with database uniqueness and server-side authorization.
+- Bind installation identity, workspace identity and HMAC key identity into the signed event contract.
+- Define stable event IDs, event schema versions, timestamps, aggregate revisions and idempotency behavior.
+- Publish product lifecycle events (publish, unpublish and relevant updates), not only price/inventory changes.
+- Include an inventory/availability snapshot or monotonic revision in stock events so queued events cannot silently lose intermediate stock transitions.
+- Preserve ordering per aggregate and reject stale revisions.
+- Add durable inbox recovery for persisted events whose queue dispatch failed; use leases, bounded retries and dead-letter visibility.
+- Protect configurable Dubai-Shop API endpoints against SSRF, private/loopback/link-local targets and DNS rebinding; validate redirects as well as initial hosts.
+- Define safe HMAC key rotation with an overlap window and key versioning.
+
+**Exit criteria:** the pair is authenticated and unique; event delivery is durable, replay-safe, ordered and observable; catalogue and stock state converge without cross-workspace leakage.
+
+## Phase 2 — Complete campaign routing and channel delivery
+
+- Route Dubai-Shop-origin campaigns to explicitly selected, active and authorized destinations.
+- Support WhatsApp Groups through WBot.
+- Support Facebook Groups through WBot browser sessions, with explicit operational warnings and health checks.
+- Support Facebook Pages through the official Meta publishing flow.
+- Reject disconnected, revoked, unverified or unauthorized accounts before creating execution jobs.
+- Keep destination selection, content validation and campaign policy in SocialPublicator.
+- Keep channel-specific delivery and session state in the appropriate executor.
+- Preserve per-destination idempotency and execution history.
+
+**Exit criteria:** a campaign can target one or more eligible destinations, and each destination has independent status, retry/reconciliation behavior and audit history.
+
+## Phase 3 — Cross-repository end-to-end validation
+
+Build automated contract tests across all three applications for:
+
+- Initial installation/workspace pairing and rejection of duplicate pairings.
+- Authentication, HMAC signature verification, replay rejection and key rotation.
+- Full catalogue sync, pagination and reconciliation.
+- Product publish/unpublish, price changes and stock depletion/restock.
+- Event retries, duplicate delivery, ordering and out-of-order revisions.
+- Campaign dispatch to WhatsApp Groups, Facebook Groups and Facebook Pages.
+- Revocation, reconnection and permission changes during queued work.
+- Dubai-Shop disconnection while SocialPublicator continues independent operation.
+- Failure recovery, dead-letter visibility and audit traceability.
+
+**Exit criteria:** CI validates the real contracts between repositories, not only mocks isolated within each repository.
+
+## Phase 4 — Security, reliability and operations
+
+- Triage WBot npm audit findings; upgrade dependencies in compatibility-tested increments, especially WPPConnect/Puppeteer.
+- Make critical dependency/security checks visible and blocking where actionable.
+- Add structured correlation IDs across Dubai-Shop events, SocialPublicator inbox/campaigns and WBot executions.
+- Add metrics and alerts for outbox lag, inbox lag, sync age, failed dispatches, queue saturation and disconnected agents.
+- Define retention, backup, restore and credential-rotation procedures.
+- Verify production HTTPS, webhook exposure, rate limits, least-privilege tokens and branch protection.
+- Document the operational limitations of unofficial Facebook Group automation.
+
+**Exit criteria:** operators can identify, trace, pause and recover failures without losing events or duplicating publications.
+
+## Phase 5 — Controlled Clásico Dubai pilot
+
+- Use one Dubai-Shop installation paired to one dedicated SocialPublicator workspace.
+- Start with a limited catalogue, a small set of warehouses and explicitly approved destinations.
+- Keep campaign dispatch disabled until full sync, connection health and end-to-end tests pass.
+- Begin with supervised/manual dispatch; expand automation only after measured stability.
+- Define rollback: pause campaigns, disable integration, preserve audit/history and continue SocialPublicator independently.
+
+**Exit criteria:** an agreed pilot period completes with no cross-workspace leakage, unexplained catalogue divergence or duplicate publication incidents.
+
+## Phase 6 — Scale and productize
+
+- Support multiple customers by repeating the one-to-one installation/workspace pair, never by sharing one installation across workspaces.
+- Add onboarding and guided pairing, diagnostics, per-tenant quotas and operational dashboards.
+- Define versioned API/event compatibility and deprecation policies.
+- Add tenant-level export, retention and deletion workflows.
+- Scale workers and queues by tenant/channel while preserving fairness and isolation.
+
+## Delivery rules
+
+- Work one phase at a time, in a dedicated branch per change.
+- Inspect the current repository and its CI before implementation.
+- Run relevant tests locally or through CI, fix real failures and rerun.
+- Require CI to pass on the latest PR head, not on an earlier commit.
+- Do not merge SocialPublicator changes without explicit owner approval.
+- Do not start a dependent phase until its prerequisite contract is merged and validated.
+- Do not enable production automated campaigns before the Phase 3 and Phase 4 exit criteria are met.
