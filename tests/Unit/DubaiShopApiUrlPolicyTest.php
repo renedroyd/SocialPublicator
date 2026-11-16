@@ -1,10 +1,10 @@
 <?php
 
-namespace Tests\\Unit;
+namespace Tests\Unit;
 
-use App\\Services\\Security\\DubaiShopApiUrlPolicy;
+use App\Services\Security\DubaiShopApiUrlPolicy;
 use RuntimeException;
-use Tests\\TestCase;
+use Tests\TestCase;
 
 class DubaiShopApiUrlPolicyTest extends TestCase
 {
@@ -56,9 +56,10 @@ class DubaiShopApiUrlPolicyTest extends TestCase
         $this->assertSame(['catalog.example.com:443:93.184.216.34'], $result['curl_resolve']);
     }
 
-    public function test_it_rejects_unresolvable_hostnames_and_invalid_url_components(): void
+    public function test_it_rejects_unresolvable_hostnames(): void
     {
         $unresolvable = new DubaiShopApiUrlPolicy(fn (string $host): array => []);
+
         $this->expectException(RuntimeException::class);
         $unresolvable->resolve('https://missing.example.com');
     }
