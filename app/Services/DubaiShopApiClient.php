@@ -1,18 +1,37 @@
 <?php
 
-namespace App\Services;
+namespace App\\Services;
 
-use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Support\Facades\Http;
+use App\\Services\\Security\\DubaiShopApiUrlPolicy;
+use Illuminate\\Http\\Client\\PendingRequest;
+use Illuminate\\Support\\Facades\\Http;
+use RuntimeException;
 
 class DubaiShopApiClient
 {
     private function request(): PendingRequest
     {
         $settings = app(DubaiShopIntegrationManager::class)->currentSettings();
+        $endpoint = app(DubaiShopApiUrlPolicy::class)->resolve((string) $settings['api_base_url']);
+
+        $options = [
+            'allow_redirects' => false,
+        ];
+
+        if ($endpoint['curl_resolve'] !== []) {
+            if (! defined('CURLOPT_RESOLVE')) {
+                throw new RuntimeException('The cURL extension is required for secure Dubai Shop DNS pinning.');
+            }
+
+            $options['curl'] = [
+                CURLOPT_RESOLVE => $endpoint['curl_resolve'],
+            ];
+        }
+
         $baseUrl = rtrim((string) $settings['api_base_url'], '/');
 
-        return Http::baseUrl($baseUrl.'/api/integrations/social-publicator/v1/')
+        return Http::withOptions($options)
+            ->baseUrl($baseUrl.'/api/integrations/social-publicator/v1/')
             ->withToken((string) $settings['api_token'])
             ->acceptJson()
             ->timeout((int) $settings['timeout']);
