@@ -6,6 +6,7 @@ use App\Models\Workspace;
 use App\Models\WorkspaceDubaiShopIntegration;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class VerifyDubaiShopWebhookSignature
@@ -21,6 +22,8 @@ class VerifyDubaiShopWebhookSignature
         $keyId = (string) $request->header('X-DubaiShop-Key-Id');
         $timestamp = (string) $request->header('X-DubaiShop-Timestamp');
         $signature = (string) $request->header('X-DubaiShop-Signature');
+        $signatureVersion = (string) $request->header('X-DubaiShop-Signature-Version', 'v1');
+        $installationId = (string) $request->header('X-DubaiShop-Installation-Id');
 
         if ($keyId === '' || ! ctype_digit($timestamp)) {
             return response()->json(['message' => 'Invalid webhook signature.'], 401);
@@ -35,10 +38,22 @@ class VerifyDubaiShopWebhookSignature
                 return response()->json(['message' => 'Invalid webhook signature.'], 401);
             }
 
+            if ($signatureVersion === 'v2') {
+                if (! Str::isUuid($installationId) || ! hash_equals((string) $integration->installation_id, $installationId)) {
+                    return response()->json(['message' => 'Invalid installation identity.'], 401);
+                }
+            } elseif ($signatureVersion !== 'v1' || filled($integration->installation_id)) {
+                return response()->json(['message' => 'Unsupported webhook signature version.'], 401);
+            }
+
             $secret = $integration->webhook_secret;
             $workspaceId = (int) $integration->workspace_id;
             $tolerance = max(1, (int) $integration->webhook_tolerance_seconds);
         } else {
+            if ($signatureVersion !== 'v1') {
+                return response()->json(['message' => 'Unknown installation identity.'], 401);
+            }
+
             // Compatibility for existing single-workspace installations using env-based keys.
             $keys = config('services.dubai_shop.webhook_keys', []);
             $keyConfig = is_array($keys) ? ($keys[$keyId] ?? null) : null;
@@ -72,13 +87,17 @@ class VerifyDubaiShopWebhookSignature
             return response()->json(['message' => 'Webhook timestamp outside the accepted window.'], 401);
         }
 
-        $expected = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, $secret);
+        $signedPayload = $signatureVersion === 'v2'
+            ? $timestamp.'.'.$installationId.'.'.$body
+            : $timestamp.'.'.$body;
+        $expected = 'sha256='.hash_hmac('sha256', $signedPayload, $secret);
 
         if ($signature === '' || ! hash_equals($expected, $signature)) {
             return response()->json(['message' => 'Invalid webhook signature.'], 401);
         }
 
         $request->attributes->set('dubai_shop_webhook_key_id', $keyId);
+        $request->attributes->set('dubai_shop_installation_id', $signatureVersion === 'v2' ? $installationId : null);
         $request->attributes->set('dubai_shop_workspace_id', $workspaceId);
 
         return $next($request);

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToWorkspace;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use RuntimeException;
 
 class WorkspaceDubaiShopIntegration extends Model
 {
@@ -13,6 +14,7 @@ class WorkspaceDubaiShopIntegration extends Model
     protected $table = 'workspace_dubai_shop_integrations';
 
     protected $fillable = [
+        'installation_id',
         'api_base_url',
         'api_token',
         'webhook_key_id',
@@ -55,6 +57,10 @@ class WorkspaceDubaiShopIntegration extends Model
     protected static function booted(): void
     {
         static::saving(function (self $integration): void {
+            if (filled($integration->getOriginal('installation_id')) && $integration->isDirty('installation_id')) {
+                throw new RuntimeException('A Dubai Shop installation cannot be reassigned to another workspace.');
+            }
+
             $credentialsChanged = $integration->isDirty([
                 'api_base_url',
                 'api_token',

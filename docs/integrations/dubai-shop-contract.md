@@ -1,6 +1,6 @@
 # Dubai Shop integration contract
 
-**Status:** approved technical contract for phased implementation  
+**Status:** implemented foundation; identity-bound handshake and reliability hardening in progress  
 **Contract version:** v1  
 **System of record:** Dubai Shop (Clásico Dubai)  
 **Consumer and publishing orchestrator:** SocialPublicator
@@ -9,7 +9,7 @@
 
 Dubai Shop is the sole authority for products, variants, sale prices, warehouses, and inventory. SocialPublicator consumes the catalog and events to select campaign items and prepare social publications. The applications must not connect directly to each other's databases.
 
-This document defines the planned contract. It does not claim that the endpoints, tables, or workers already exist.
+The read API, signed webhook receiver, external catalog mirror and workspace-scoped integration foundation exist. The one-to-one installation identity handshake is being introduced in the coordinated Phase 1 changes; lifecycle event completeness, durable inbox recovery and end-to-end coverage remain roadmap work.
 
 The integration must preserve the existing local-product workflow, Publication scheduling, destinations, bots, and execution tracking.
 
@@ -35,6 +35,7 @@ Dubai Shop will expose the versioned read API:
 
 | Method | Route | Purpose |
 |---|---|---|
+| GET | `/identity` | Authenticated stable UUID of this Dubai-Shop installation. |
 | GET | `/items` | Full or incremental paginated catalog. |
 | GET | `/items/{external_id}` | Current item state. |
 | GET | `/warehouses` | Eligible warehouses and stable external identifiers. |
@@ -138,7 +139,7 @@ External products are published in grouped messages by campaign and destination,
 
 - Use HTTPS only.
 - Catalog reads from Dubai Shop use a dedicated Bearer token with least-privilege read scopes.
-- Event delivery uses a separate HMAC SHA-256 signing key over the timestamp and raw request body, with key ID and replay protection.
+- Event delivery uses HMAC SHA-256 v2 over `timestamp + "." + installation_id + "." + raw_request_body`, with key ID, signature-version and installation-identity headers plus replay protection. HMAC v1 is transitional and accepted only for legacy workspace connections that have not yet been paired to an installation UUID.
 - Secrets are stored outside source control and encrypted at rest where persisted.
 - Support key rotation, rate limiting, audit logs, payload-size limits, and safe error responses.
 - WhatsApp/Facebook credentials remain in SocialPublicator and the existing bot environments; they are never sent to Dubai Shop.
@@ -161,3 +162,18 @@ The current local Product model and its inventory fields remain dedicated to Soc
 8. End-to-end tests, CI validation, and gradual activation.
 
 Each phase must have automated tests and passing CI before it is considered ready for integration.
+
+
+## 11. Mandatory one-to-one installation pairing
+
+The supported cardinality is **one Dubai-Shop installation ↔ one SocialPublicator workspace**.
+
+- Each Dubai-Shop database installation owns one persistent UUID, created once and returned by the authenticated `GET /identity` endpoint.
+- Each SocialPublicator workspace may have at most one integration row; this is enforced by the unique `workspace_id` constraint.
+- Each Dubai-Shop installation UUID may be stored by at most one workspace; this is enforced by a unique `installation_id` constraint.
+- Once paired, the UUID cannot be reassigned through normal application updates.
+- SocialPublicator obtains the UUID by calling the authenticated identity endpoint during connection verification; it must not accept a UUID typed or supplied by a user.
+- HMAC v2 binds the installation UUID into the signature. The webhook receiver checks that the signed UUID matches the UUID paired to the workspace selected by the HMAC key.
+- A workspace without a Dubai-Shop integration remains fully independent. Multiple stores require separate Dubai-Shop installations and separate SocialPublicator workspaces.
+
+The integration must not support fan-out from one Dubai-Shop installation to multiple workspaces, even if the same API URL or token is copied into multiple workspace settings.
