@@ -33,13 +33,19 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
+      - name: Audit PHP dependencies
+        run: composer audit --locked --no-interaction
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
 
       - name: Install frontend dependencies
-        run: npm install --ignore-scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Audit frontend dependencies
+        run: npm audit --audit-level=high
 
       - name: Build frontend assets
         run: npm run build
