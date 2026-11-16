@@ -383,6 +383,7 @@ class CampaignPublicationDispatcherTest extends TestCase
 
         $result = $dispatcher->dispatchPending();
 
+        $this->assertSame(0, $result['errors'], (string) ExternalCatalogCampaignSelection::query()->value('last_error'));
         $this->assertSame(1, $result['selections'], json_encode($result));
         $publication = Publication::query()->firstOrFail();
         $this->assertSame(
