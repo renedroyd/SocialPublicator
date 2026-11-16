@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Services;
+namespace App\Services;
 
-use App\\Services\\Security\\DubaiShopApiUrlPolicy;
-use Illuminate\\Http\\Client\\PendingRequest;
-use Illuminate\\Support\\Facades\\Http;
+use App\Services\Security\DubaiShopApiUrlPolicy;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
 class DubaiShopApiClient
@@ -14,18 +14,14 @@ class DubaiShopApiClient
         $settings = app(DubaiShopIntegrationManager::class)->currentSettings();
         $endpoint = app(DubaiShopApiUrlPolicy::class)->resolve((string) $settings['api_base_url']);
 
-        $options = [
-            'allow_redirects' => false,
-        ];
+        $options = ['allow_redirects' => false];
 
         if ($endpoint['curl_resolve'] !== []) {
             if (! defined('CURLOPT_RESOLVE')) {
                 throw new RuntimeException('The cURL extension is required for secure Dubai Shop DNS pinning.');
             }
 
-            $options['curl'] = [
-                CURLOPT_RESOLVE => $endpoint['curl_resolve'],
-            ];
+            $options['curl'] = [CURLOPT_RESOLVE => $endpoint['curl_resolve']];
         }
 
         $baseUrl = rtrim((string) $settings['api_base_url'], '/');
