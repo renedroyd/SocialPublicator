@@ -374,10 +374,17 @@ class CampaignPublicationDispatcherTest extends TestCase
             ], 200),
         ]);
 
-        $result = app(CampaignPublicationDispatcher::class)->dispatchPending();
-        $publication = Publication::query()->firstOrFail();
+        $dispatcher = app(CampaignPublicationDispatcher::class);
+        $method = new ReflectionMethod(CampaignPublicationDispatcher::class, 'authorizedMetaPageDestinations');
+        $method->setAccessible(true);
+        $eligiblePages = $method->invoke($dispatcher, $campaign);
 
-        $this->assertSame(1, $result['selections']);
+        $this->assertSame([$activeDestination->id], $eligiblePages->modelKeys());
+
+        $result = $dispatcher->dispatchPending();
+
+        $this->assertSame(1, $result['selections'], json_encode($result));
+        $publication = Publication::query()->firstOrFail();
         $this->assertSame(
             [$activeDestination->id],
             $publication->destinations()->pluck('publication_destinations.id')->all(),
