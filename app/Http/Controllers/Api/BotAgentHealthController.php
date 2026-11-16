@@ -42,6 +42,7 @@ class BotAgentHealthController extends Controller
                     'agent_instance_id',
                     'connected_at',
                     'last_verified_at',
+                    'last_error_code',
                     'revoked_at',
                 ])
                 ->whereIn('connection_type', [
@@ -70,6 +71,7 @@ class BotAgentHealthController extends Controller
                         'agent_instance_id' => $connection->agent_instance_id,
                         'connected_at' => $connection->connected_at?->toISOString(),
                         'last_verified_at' => $connection->last_verified_at?->toISOString(),
+                        'last_error_code' => $connection->last_error_code,
                         'revoked_at' => $connection->revoked_at?->toISOString(),
                     ])
                     ->values()
