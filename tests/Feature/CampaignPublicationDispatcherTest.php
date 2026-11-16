@@ -7,7 +7,9 @@ use App\Models\ExternalCatalogCampaignSelection;
 use App\Models\ExternalCatalogItem;
 use App\Models\ExternalCatalogWarehouse;
 use App\Models\Publication;
+use App\Models\PublicationDestination;
 use App\Models\SocialAccount;
+use App\Models\SocialAccountConnection;
 use App\Models\WhatsAppGroup;
 use App\Models\Workspace;
 use App\Models\WorkspaceDubaiShopIntegration;
@@ -206,4 +208,181 @@ class CampaignPublicationDispatcherTest extends TestCase
         $this->assertSame($whatsappGroup->id, $publication->whatsappGroups()->first()->id);
         $this->assertSame('queued', $selection->fresh()->status);
     }
+
+    public function test_campaign_dispatch_attaches_only_connected_meta_pages_for_official_api_delivery(): void
+    {
+        config([
+            'services.dubai_shop.api_base_url' => 'https://dubai.example.test',
+            'services.dubai_shop.api_token' => 'test-token',
+        ]);
+
+        $integration = WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://dubai.example.test',
+            'api_token' => 'test-token',
+            'webhook_key_id' => 'campaign-page-key',
+            'webhook_secret' => 'campaign-page-secret',
+            'enabled' => true,
+        ]);
+        $integration->update([
+            'last_verified_at' => now(),
+            'last_catalog_synced_at' => now(),
+            'campaign_dispatch_enabled' => true,
+        ]);
+
+        $warehouseId = (string) Str::uuid();
+        $itemId = (string) Str::uuid();
+        $groupId = (string) Str::uuid();
+
+        $warehouse = ExternalCatalogWarehouse::query()->create([
+            'source' => ExternalCatalogItem::SOURCE_DUBAI_SHOP,
+            'external_id' => $warehouseId,
+            'code' => 'MAIN',
+            'name' => 'Almacén principal',
+            'active' => true,
+            'online_fulfillment_enabled' => true,
+        ]);
+
+        $item = ExternalCatalogItem::query()->create([
+            'source' => ExternalCatalogItem::SOURCE_DUBAI_SHOP,
+            'external_id' => $itemId,
+            'item_type' => 'product',
+            'name' => 'Producto para página',
+            'active' => true,
+            'visible' => true,
+            'price_amount_minor' => 125000,
+            'currency' => 'CUP',
+            'availability' => ['warehouses' => [[
+                'warehouse_external_id' => $warehouseId,
+                'available_quantity' => 8,
+            ]]],
+            'revision' => 1,
+        ]);
+
+        $profile = SocialAccount::query()->create([
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PROFILE,
+            'external_account_id' => 'profile-campaign-pages',
+            'display_name' => 'Perfil de páginas',
+            'status' => SocialAccount::STATUS_CONNECTED,
+        ]);
+
+        $activePage = SocialAccount::query()->create([
+            'parent_account_id' => $profile->id,
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PAGE,
+            'external_account_id' => 'page-campaign-active',
+            'display_name' => 'Página activa',
+            'status' => SocialAccount::STATUS_CONNECTED,
+        ]);
+        $revokedPage = SocialAccount::query()->create([
+            'parent_account_id' => $profile->id,
+            'platform' => SocialAccount::PLATFORM_FACEBOOK,
+            'account_type' => SocialAccount::TYPE_FACEBOOK_PAGE,
+            'external_account_id' => 'page-campaign-revoked',
+            'display_name' => 'Página revocada',
+            'status' => SocialAccount::STATUS_CONNECTED,
+        ]);
+
+        SocialAccountConnection::query()->create([
+            'social_account_id' => $activePage->id,
+            'connection_type' => SocialAccountConnection::TYPE_META_OAUTH,
+            'provider' => 'meta',
+            'status' => 'connected',
+            'credentials' => ['access_token' => 'active-page-token', 'token_type' => 'page'],
+            'expires_at' => now()->addDays(30),
+        ]);
+        SocialAccountConnection::query()->create([
+            'social_account_id' => $revokedPage->id,
+            'connection_type' => SocialAccountConnection::TYPE_META_OAUTH,
+            'provider' => 'meta',
+            'status' => 'connected',
+            'revoked_at' => now(),
+            'credentials' => ['access_token' => 'revoked-page-token', 'token_type' => 'page'],
+            'expires_at' => now()->addDays(30),
+        ]);
+
+        $activeDestination = PublicationDestination::query()->create([
+            'social_account_id' => $activePage->id,
+            'platform' => 'facebook',
+            'external_id' => 'page-campaign-active',
+            'name' => 'Página activa',
+            'url' => 'https://www.facebook.com/page-campaign-active',
+            'active' => true,
+            'metadata' => ['destination_type' => 'facebook_page', 'delivery' => 'meta_graph_api'],
+        ]);
+        $revokedDestination = PublicationDestination::query()->create([
+            'social_account_id' => $revokedPage->id,
+            'platform' => 'facebook',
+            'external_id' => 'page-campaign-revoked',
+            'name' => 'Página revocada',
+            'url' => 'https://www.facebook.com/page-campaign-revoked',
+            'active' => true,
+            'metadata' => ['destination_type' => 'facebook_page', 'delivery' => 'meta_graph_api'],
+        ]);
+
+        $campaign = ExternalCatalogCampaign::query()->create([
+            'name' => 'Campaña de páginas',
+            'is_active' => true,
+            'selection_mode' => 'manual',
+            'publication_mode' => 'grouped',
+            'max_publications_per_day' => 3,
+            'minimum_interval_minutes' => 60,
+            'out_of_stock_behavior' => 'pause',
+            'restock_behavior' => 'publish',
+            'price_change_behavior' => 'immediate',
+            'destination' => 'facebook',
+        ]);
+        $campaign->warehouses()->attach($warehouse->id);
+        $campaign->facebookPageDestinations()->attach([$activeDestination->id, $revokedDestination->id]);
+
+        ExternalCatalogCampaignSelection::query()->create([
+            'campaign_id' => $campaign->id,
+            'external_catalog_item_id' => $item->id,
+            'selection_group_id' => $groupId,
+            'available_quantity' => 8,
+            'warehouse_external_ids' => [$warehouseId],
+            'selected_at' => now(),
+            'status' => 'planned',
+        ]);
+
+        Http::fake([
+            'https://dubai.example.test/*' => Http::response([
+                'contract_version' => 'v1',
+                'data' => [
+                    'external_id' => $itemId,
+                    'product_external_id' => $itemId,
+                    'item_type' => 'product',
+                    'sku' => 'PAGE-001',
+                    'name' => 'Producto para página',
+                    'description' => null,
+                    'category' => null,
+                    'brand' => null,
+                    'image_url' => null,
+                    'active' => true,
+                    'visible' => true,
+                    'price' => ['amount_minor' => 125000, 'currency' => 'CUP'],
+                    'availability' => ['warehouses' => [[
+                        'warehouse_external_id' => $warehouseId,
+                        'available_quantity' => 8,
+                    ]]],
+                    'revision' => 2,
+                    'updated_at' => now()->toISOString(),
+                ],
+            ], 200),
+        ]);
+
+        $result = app(CampaignPublicationDispatcher::class)->dispatchPending();
+        $publication = Publication::query()->firstOrFail();
+
+        $this->assertSame(1, $result['selections']);
+        $this->assertSame(
+            [$activeDestination->id],
+            $publication->destinations()->pluck('publication_destinations.id')->all(),
+        );
+        $this->assertDatabaseMissing('publication_publication_destination', [
+            'publication_id' => $publication->id,
+            'publication_destination_id' => $revokedDestination->id,
+        ]);
+    }
+
 }
