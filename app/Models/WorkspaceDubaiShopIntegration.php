@@ -79,6 +79,17 @@ class WorkspaceDubaiShopIntegration extends Model
                 throw new RuntimeException('A previous HMAC key requires an ID, secret, and expiration timestamp.');
             }
 
+            if (filled($integration->webhook_key_id)) {
+                $activeKeyConflict = self::withoutGlobalScope('workspace')
+                    ->where('previous_webhook_key_id', $integration->webhook_key_id)
+                    ->when($integration->exists, fn ($query) => $query->where('id', '!=', $integration->getKey()))
+                    ->exists();
+
+                if ($activeKeyConflict) {
+                    throw new RuntimeException('The active HMAC key ID is already assigned as a previous key to another workspace.');
+                }
+            }
+
             if (filled($integration->previous_webhook_key_id)) {
                 if (hash_equals((string) $integration->webhook_key_id, (string) $integration->previous_webhook_key_id)) {
                     throw new RuntimeException('The active and previous HMAC key IDs must be different.');
@@ -89,7 +100,7 @@ class WorkspaceDubaiShopIntegration extends Model
                         $query->where('webhook_key_id', $integration->previous_webhook_key_id)
                             ->orWhere('previous_webhook_key_id', $integration->previous_webhook_key_id);
                     })
-                    ->when($integration->exists, fn ($query) => $query->whereKeyNot($integration->getKey()))
+                    ->when($integration->exists, fn ($query) => $query->where('id', '!=', $integration->getKey()))
                     ->exists();
 
                 if ($keyConflict) {
