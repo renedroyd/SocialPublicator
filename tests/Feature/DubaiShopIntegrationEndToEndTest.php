@@ -82,7 +82,7 @@ class DubaiShopIntegrationEndToEndTest extends TestCase
             ->assertJsonPath('event_id', $fixture['event_id'])
             ->assertJsonPath('duplicate', false);
 
-        $event = IntegrationEventInbox::query()
+        $event = IntegrationEventInbox::withoutGlobalScope('workspace')
             ->where('event_id', $fixture['event_id'])
             ->firstOrFail();
 
@@ -118,7 +118,7 @@ class DubaiShopIntegrationEndToEndTest extends TestCase
             ->handle(app(ExternalCatalogSyncService::class));
 
         $event->refresh();
-        $item = ExternalCatalogItem::query()
+        $item = ExternalCatalogItem::withoutGlobalScope('workspace')
             ->where('external_id', $fixture['aggregate_external_id'])
             ->firstOrFail();
 
