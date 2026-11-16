@@ -18,6 +18,11 @@ class DubaiShopApiClient
             ->timeout((int) $settings['timeout']);
     }
 
+    public function identity(): array
+    {
+        return $this->request()->get('identity')->throw()->json();
+    }
+
     public function items(?string $cursor = null): array
     {
         $query = ['limit' => 100];
