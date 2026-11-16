@@ -134,7 +134,17 @@ Para pausar un workspace, desactiva **Permitir campañas automáticas** y, si de
 
 **Token API:** emite otro token en Dubai Shop, actualízalo en la conexión del workspace, prueba la conexión y revoca el anterior.
 
-**HMAC:** actualmente hay una sola clave activa por workspace. Planifica una ventana breve: pausa los webhooks en origen, actualiza el ID y secreto en SocialPublicator, actualiza el mismo par en Dubai Shop y reactiva los webhooks. Los eventos en tránsito pueden recibir 401 y deben reintentarse desde el emisor; no hay solapamiento de claves durante la rotación.
+**HMAC:** cada workspace admite una clave activa y una clave anterior con fecha obligatoria de expiración. Ambos secretos se cifran en la base de datos. La clave anterior solo se acepta hasta su vencimiento; la clave activa sigue funcionando durante el solapamiento.
+
+Rotación recomendada sin interrupción:
+1. Genera un nuevo ID de clave y un secreto aleatorio de alta entropía fuera del repositorio.
+2. En **Integraciones → Dubai Shop → Eventos firmados**, copia el ID y secreto actuales a los campos de clave anterior, establece su expiración (24 horas es un valor inicial práctico) y sustituye la clave activa por el nuevo par.
+3. Guarda y confirma que SocialPublicator acepta la clave nueva antes de cambiar el emisor.
+4. Actualiza en Dubai Shop `SOCIAL_PUBLICATOR_WEBHOOK_KEY_ID` y `SOCIAL_PUBLICATOR_WEBHOOK_SECRET` con el nuevo par; recarga la configuración y reinicia los workers correspondientes.
+5. Verifica que los eventos nuevos se aceptan con la clave activa. Mantén la anterior solo durante el periodo de solapamiento acordado.
+6. Tras su vencimiento, elimina el ID, secreto y fecha de expiración de la clave anterior en SocialPublicator. Una clave anterior vencida se rechaza automáticamente con HTTP 401.
+
+Los ID de clave activa y anterior deben ser únicos entre las integraciones de workspace. No cambies primero el emisor: el receptor debe aceptar la nueva clave antes de que Dubai-Shop empiece a firmar con ella. La compatibilidad heredada HMAC v1 basada en variables de entorno no utiliza estos campos de rotación; las instalaciones emparejadas utilizan HMAC v2 vinculado al UUID de instalación.
 
 ## 12. Compatibilidad heredada
 
