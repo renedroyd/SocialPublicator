@@ -9,7 +9,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
 {
     public function test_it_rejects_localhost_and_private_ip_literals(): void
     {
-        $policy = new DubaiShopApiUrlPolicy();
+        $policy = new DubaiShopApiUrlPolicy;
 
         foreach ([
             'https://localhost',
@@ -65,7 +65,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
 
     public function test_it_rejects_urls_with_credentials_queries_or_fragments(): void
     {
-        $policy = new DubaiShopApiUrlPolicy();
+        $policy = new DubaiShopApiUrlPolicy;
 
         foreach ([
             'https://user:password@example.com',
@@ -92,7 +92,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
 
     public function test_it_rejects_fully_qualified_hostnames_with_trailing_dots_to_keep_dns_pinning_exact(): void
     {
-        $policy = new DubaiShopApiUrlPolicy();
+        $policy = new DubaiShopApiUrlPolicy;
 
         $this->expectException(\RuntimeException::class);
         $policy->resolve('https://catalog.example.com.');
@@ -100,7 +100,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
 
     public function test_public_ip_literals_are_used_directly_without_dns_resolution(): void
     {
-        $policy = new DubaiShopApiUrlPolicy();
+        $policy = new DubaiShopApiUrlPolicy;
 
         $result = $policy->resolve('https://93.184.216.34');
 
