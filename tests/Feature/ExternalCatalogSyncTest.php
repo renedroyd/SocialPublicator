@@ -4,9 +4,14 @@ namespace Tests\Feature;
 
 use App\Models\ExternalCatalogItem;
 use App\Models\ExternalCatalogWarehouse;
+use App\Models\IntegrationEventInbox;
+use App\Models\Workspace;
+use App\Models\WorkspaceDubaiShopIntegration;
 use App\Services\ExternalCatalogSyncService;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ExternalCatalogSyncTest extends TestCase
@@ -155,5 +160,84 @@ class ExternalCatalogSyncTest extends TestCase
         $this->assertFalse($oldItem->fresh()->visible);
         $this->assertFalse($oldWarehouse->fresh()->active);
         $this->assertFalse($oldWarehouse->fresh()->online_fulfillment_enabled);
+    }
+
+    public function test_inventory_event_snapshot_is_used_instead_of_current_api_stock_state(): void
+    {
+        $workspace = Workspace::query()->create([
+            'name' => 'Inventory snapshot workspace',
+            'slug' => 'inventory-snapshot-workspace',
+        ]);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://shop.example.test',
+            'api_token' => 'test-api-token',
+            'webhook_key_id' => 'test-key',
+            'webhook_secret' => 'test-hmac-secret',
+            'enabled' => true,
+        ]);
+
+        $initial = $this->itemPayload([
+            'revision' => 4,
+            'availability' => ['warehouses' => [[
+                'warehouse_external_id' => '2f20b7e0-01a1-4e33-8a10-40abfa9b2a00',
+                'available_quantity' => 4,
+            ]]],
+        ]);
+        $currentApiItem = $this->itemPayload([
+            'revision' => 9,
+            'availability' => ['warehouses' => [[
+                'warehouse_external_id' => '2f20b7e0-01a1-4e33-8a10-40abfa9b2a00',
+                'available_quantity' => 99,
+            ]]],
+        ]);
+
+        $service = app(ExternalCatalogSyncService::class);
+        $service->upsertItem($initial);
+
+        $snapshot = ['warehouses' => [[
+            'warehouse_external_id' => '2f20b7e0-01a1-4e33-8a10-40abfa9b2a00',
+            'available_quantity' => 0,
+        ]]];
+        $eventPayload = [
+            'event_id' => (string) Str::uuid(),
+            'event_type' => 'inventory.changed',
+            'contract_version' => 'v1',
+            'aggregate_external_id' => $initial['external_id'],
+            'revision' => 5,
+            'occurred_at' => now()->toISOString(),
+            'data' => [
+                'item_external_id' => $initial['external_id'],
+                'availability' => $snapshot,
+            ],
+        ];
+
+        $event = IntegrationEventInbox::query()->create([
+            'event_id' => $eventPayload['event_id'],
+            'event_type' => 'inventory.changed',
+            'contract_version' => 'v1',
+            'aggregate_external_id' => $initial['external_id'],
+            'revision' => 5,
+            'payload' => $eventPayload,
+            'status' => 'pending',
+            'received_at' => now(),
+        ]);
+
+        Http::fake([
+            'https://shop.example.test/api/integrations/social-publicator/v1/items/'.$initial['external_id'] => Http::response([
+                'contract_version' => 'v1',
+                'data' => $currentApiItem,
+            ]),
+        ]);
+
+        $service->processEvent($event);
+
+        $synced = ExternalCatalogItem::query()
+            ->where('external_id', $initial['external_id'])
+            ->firstOrFail();
+
+        $this->assertSame(5, $synced->revision);
+        $this->assertSame($snapshot, $synced->availability);
+        $this->assertNotSame($currentApiItem['availability'], $synced->availability);
     }
 }
