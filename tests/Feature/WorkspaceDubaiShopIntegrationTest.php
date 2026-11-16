@@ -375,7 +375,7 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
             'webhook_key_id' => 'rotation-current',
             'webhook_secret' => 'rotation-current-secret',
             'previous_webhook_key_id' => 'rotation-previous',
-            'previous_webhook_secret' => self::SECRET,
+            'previous_webhook_secret' => 'previous-rotation-secret-with-enough-entropy',
             'enabled' => true,
         ]);
     }
