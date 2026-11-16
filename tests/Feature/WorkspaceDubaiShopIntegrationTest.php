@@ -368,7 +368,7 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
         $workspace = Workspace::query()->create(['name' => 'Incomplete rotation', 'slug' => 'incomplete-rotation']);
         app(WorkspaceContext::class)->set((int) $workspace->id);
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         WorkspaceDubaiShopIntegration::query()->create([
             'api_base_url' => 'https://incomplete-rotation.example.test',
             'api_token' => 'rotation-token',
