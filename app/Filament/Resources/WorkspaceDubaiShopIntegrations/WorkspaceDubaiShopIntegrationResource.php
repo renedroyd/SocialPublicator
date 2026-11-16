@@ -203,6 +203,25 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                                 ->send();
                         }
                     }),
+                Action::make('retirePreviousHmacKey')
+                    ->label('Retirar clave HMAC anterior')
+                    ->icon('heroicon-o-key')
+                    ->color('warning')
+                    ->visible(fn (WorkspaceDubaiShopIntegration $record): bool => filled($record->previous_webhook_key_id))
+                    ->requiresConfirmation()
+                    ->modalDescription('La clave anterior dejará de aceptarse inmediatamente. Confirma que Dubai Shop ya firma con la clave activa.')
+                    ->action(function (WorkspaceDubaiShopIntegration $record): void {
+                        $record->update([
+                            'previous_webhook_key_id' => null,
+                            'previous_webhook_secret' => null,
+                            'previous_webhook_secret_expires_at' => null,
+                        ]);
+
+                        Notification::make()
+                            ->title('Clave anterior retirada')
+                            ->success()
+                            ->send();
+                    }),
                 Action::make('verify')
                     ->label('Probar conexión')
                     ->icon('heroicon-o-signal')
