@@ -5,10 +5,13 @@ namespace App\Services;
 use App\Models\ExternalCatalogItem;
 use App\Models\ExternalCatalogWarehouse;
 use App\Models\IntegrationEventInbox;
+use App\Models\WorkspaceDubaiShopIntegration;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 class ExternalCatalogSyncService
 {
@@ -19,38 +22,68 @@ class ExternalCatalogSyncService
 
     public function syncAll(): array
     {
-        $syncRunId = (string) Str::uuid();
-        $warehouses = $this->syncWarehouses($syncRunId);
-        $itemsSynced = 0;
-        $cursor = null;
+        $workspaceId = app(WorkspaceContext::class)->id();
+        $integration = $workspaceId
+            ? WorkspaceDubaiShopIntegration::query()->where('workspace_id', $workspaceId)->first()
+            : null;
 
-        do {
-            $page = $this->client->items($cursor);
+        if ($integration && (! $integration->isReady() || $integration->last_verified_at === null)) {
+            throw new RuntimeException('Verify the Dubai Shop connection before synchronizing its catalog.');
+        }
 
-            foreach ($page['data'] ?? [] as $item) {
-                $this->upsertItem($item, $syncRunId);
-                $itemsSynced++;
+        try {
+            $syncRunId = (string) Str::uuid();
+            $warehouses = $this->syncWarehouses($syncRunId);
+            $itemsSynced = 0;
+            $cursor = null;
+
+            do {
+                $page = $this->client->items($cursor);
+
+                foreach ($page['data'] ?? [] as $item) {
+                    $this->upsertItem($item, $syncRunId);
+                    $itemsSynced++;
+                }
+
+                $hasMore = (bool) ($page['has_more'] ?? false);
+                $nextCursor = $page['next_cursor'] ?? null;
+
+                if ($hasMore && (! is_string($nextCursor) || $nextCursor === '' || $nextCursor === $cursor)) {
+                    throw new RuntimeException('Dubai Shop returned an invalid catalog pagination cursor.');
+                }
+
+                $cursor = $nextCursor;
+            } while ($hasMore);
+
+            ExternalCatalogItem::query()
+                ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
+                ->where(fn ($query) => $query->whereNull('sync_run_id')->orWhere('sync_run_id', '!=', $syncRunId))
+                ->update(['active' => false, 'visible' => false, 'updated_at' => now()]);
+
+            if ($integration) {
+                $integration->update([
+                    'last_catalog_synced_at' => now(),
+                    'last_error_at' => null,
+                    'last_error_message' => null,
+                ]);
             }
 
-            $hasMore = (bool) ($page['has_more'] ?? false);
-            $nextCursor = $page['next_cursor'] ?? null;
-
-            if ($hasMore && (! is_string($nextCursor) || $nextCursor === '' || $nextCursor === $cursor)) {
-                throw new RuntimeException('Dubai Shop returned an invalid catalog pagination cursor.');
+            return [
+                'items_synced' => $itemsSynced,
+                'warehouses_synced' => $warehouses,
+            ];
+        } catch (Throwable $exception) {
+            if ($integration) {
+                $integration->update([
+                    'last_error_at' => now(),
+                    'last_error_message' => 'No fue posible completar la sincronización del catálogo.',
+                    'last_catalog_synced_at' => null,
+                    'campaign_dispatch_enabled' => false,
+                ]);
             }
 
-            $cursor = $nextCursor;
-        } while ($hasMore);
-
-        ExternalCatalogItem::query()
-            ->where('source', ExternalCatalogItem::SOURCE_DUBAI_SHOP)
-            ->where(fn ($query) => $query->whereNull('sync_run_id')->orWhere('sync_run_id', '!=', $syncRunId))
-            ->update(['active' => false, 'visible' => false, 'updated_at' => now()]);
-
-        return [
-            'items_synced' => $itemsSynced,
-            'warehouses_synced' => $warehouses,
-        ];
+            throw $exception;
+        }
     }
 
     public function syncWarehouses(?string $syncRunId = null): int

@@ -10,6 +10,7 @@ use App\Models\Publication;
 use App\Models\SocialAccount;
 use App\Models\WhatsAppGroup;
 use App\Models\Workspace;
+use App\Models\WorkspaceDubaiShopIntegration;
 use App\Services\CampaignPublicationDispatcher;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -87,6 +88,19 @@ class CampaignPublicationDispatcherTest extends TestCase
         config([
             'services.dubai_shop.api_base_url' => 'https://dubai.example.test',
             'services.dubai_shop.api_token' => 'test-token',
+        ]);
+
+        $integration = WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://dubai.example.test',
+            'api_token' => 'test-token',
+            'webhook_key_id' => 'campaign-test-key',
+            'webhook_secret' => 'campaign-test-secret',
+            'enabled' => true,
+        ]);
+        $integration->update([
+            'last_verified_at' => now(),
+            'last_catalog_synced_at' => now(),
+            'campaign_dispatch_enabled' => true,
         ]);
 
         $warehouseId = '2f20b7e0-01a1-4e33-8a10-40abfa9b2a00';

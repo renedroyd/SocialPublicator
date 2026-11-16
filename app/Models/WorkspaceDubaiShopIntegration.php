@@ -22,6 +22,7 @@ class WorkspaceDubaiShopIntegration extends Model
         'timeout',
         'webhook_tolerance_seconds',
         'last_verified_at',
+        'last_catalog_synced_at',
         'last_error_at',
         'last_error_message',
     ];
@@ -41,6 +42,7 @@ class WorkspaceDubaiShopIntegration extends Model
             'timeout' => 'integer',
             'webhook_tolerance_seconds' => 'integer',
             'last_verified_at' => 'datetime',
+            'last_catalog_synced_at' => 'datetime',
             'last_error_at' => 'datetime',
         ];
     }
@@ -50,10 +52,30 @@ class WorkspaceDubaiShopIntegration extends Model
         return $this->belongsTo(Workspace::class);
     }
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $integration): void {
+            $credentialsChanged = $integration->isDirty([
+                'api_base_url',
+                'api_token',
+                'webhook_key_id',
+                'webhook_secret',
+            ]);
+
+            if (! $integration->enabled || $credentialsChanged) {
+                $integration->campaign_dispatch_enabled = false;
+                $integration->last_verified_at = null;
+                $integration->last_catalog_synced_at = null;
+            }
+        });
+    }
+
     public function isReady(): bool
     {
         return $this->enabled
             && filled($this->api_base_url)
-            && filled($this->api_token);
+            && filled($this->api_token)
+            && filled($this->webhook_key_id)
+            && filled($this->webhook_secret);
     }
 }

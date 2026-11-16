@@ -57,6 +57,8 @@ class CampaignPublicationDispatchCommandTest extends TestCase
         WorkspaceDubaiShopIntegration::query()->create([
             'api_base_url' => 'https://first.example.test',
             'api_token' => 'first-token',
+            'webhook_key_id' => 'first-key',
+            'webhook_secret' => 'first-secret',
             'enabled' => true,
             'campaign_dispatch_enabled' => true,
         ]);
@@ -65,7 +67,21 @@ class CampaignPublicationDispatchCommandTest extends TestCase
         WorkspaceDubaiShopIntegration::query()->create([
             'api_base_url' => 'https://second.example.test',
             'api_token' => 'second-token',
+            'webhook_key_id' => 'second-key',
+            'webhook_secret' => 'second-secret',
             'enabled' => true,
+            'campaign_dispatch_enabled' => true,
+        ]);
+        $context->set((int) $first->id);
+        WorkspaceDubaiShopIntegration::query()->where('workspace_id', $first->id)->update([
+            'last_verified_at' => now(),
+            'last_catalog_synced_at' => now(),
+            'campaign_dispatch_enabled' => true,
+        ]);
+        $context->set((int) $second->id);
+        WorkspaceDubaiShopIntegration::query()->where('workspace_id', $second->id)->update([
+            'last_verified_at' => now(),
+            'last_catalog_synced_at' => now(),
             'campaign_dispatch_enabled' => true,
         ]);
         $context->clear();

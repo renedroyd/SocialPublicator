@@ -35,6 +35,11 @@ class DubaiShopWebhookTest extends TestCase
 
     private function sendSigned(array $payload, ?int $timestamp = null, ?string $signatureOverride = null)
     {
+        $workspace = Workspace::query()->first()
+            ?? Workspace::query()->create(['name' => 'Legacy webhook', 'slug' => 'legacy-webhook']);
+        config()->set('services.dubai_shop.workspace_id', $workspace->id);
+        config()->set('services.dubai_shop.api_base_url', 'https://legacy-shop.example.test');
+        config()->set('services.dubai_shop.api_token', 'legacy-api-token');
         config()->set('services.dubai_shop.webhook_keys', ['test-key' => self::SECRET]);
         config()->set('services.dubai_shop.webhook_tolerance_seconds', 300);
 
@@ -174,6 +179,30 @@ class DubaiShopWebhookTest extends TestCase
             'HTTP_X_DUBAISHOP_KEY_ID' => 'disabled-key',
             'HTTP_X_DUBAISHOP_TIMESTAMP' => (string) $timestamp,
             'HTTP_X_DUBAISHOP_SIGNATURE' => $disabledSignature,
+        ], $body)->assertUnauthorized();
+    }
+
+    public function test_enabled_integration_without_api_credentials_rejects_hmac_webhook(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Incomplete webhook', 'slug' => 'incomplete-webhook']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+        WorkspaceDubaiShopIntegration::query()->create([
+            'webhook_key_id' => 'incomplete-key',
+            'webhook_secret' => self::SECRET,
+            'enabled' => true,
+        ]);
+
+        $payload = $this->payload();
+        $timestamp = now()->timestamp;
+        $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $signature = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, self::SECRET);
+
+        $this->call('POST', '/api/integrations/dubai-shop/v1/events', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_DUBAISHOP_KEY_ID' => 'incomplete-key',
+            'HTTP_X_DUBAISHOP_TIMESTAMP' => (string) $timestamp,
+            'HTTP_X_DUBAISHOP_SIGNATURE' => $signature,
         ], $body)->assertUnauthorized();
     }
 }
