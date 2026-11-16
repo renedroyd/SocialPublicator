@@ -45,6 +45,10 @@ Schedule::command('social-publicator:sync-dubai-catalog')
     ->hourly()
     ->withoutOverlapping();
 
+Schedule::command('social-publicator:recover-dubai-inbox --limit=100')
+    ->everyMinute()
+    ->withoutOverlapping();
+
 Schedule::command('meta-pages:dispatch')
     ->everyMinute()
     ->withoutOverlapping();

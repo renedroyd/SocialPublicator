@@ -18,7 +18,7 @@ DUBAI_SHOP_TIMEOUT=15
 php artisan social-publicator:token --name="SocialPublicator" --expires=365
 ```
 
-The webhook key map supports overlapping key IDs during rotation. Configure the same key ID and secret in Dubai Shop when its outbound webhook delivery is enabled. Signature headers are `X-DubaiShop-Key-Id`, `X-DubaiShop-Timestamp` (Unix seconds), and `X-DubaiShop-Signature` (`sha256={hex-hmac}`). The signed message is `{timestamp}.{raw-request-body}`.
+The webhook key map supports overlapping key IDs during rotation. Configure the same key ID and secret in Dubai Shop when its outbound webhook delivery is enabled. Signature headers are `X-DubaiShop-Signature-Version`, `X-DubaiShop-Installation-Id`, `X-DubaiShop-Key-Id`, `X-DubaiShop-Timestamp` (Unix seconds), and `X-DubaiShop-Signature` (`sha256={hex-hmac}`). Paired installations use HMAC v2 over `{timestamp}.{installation_id}.{raw-request-body}`. Legacy HMAC v1 is accepted only for integrations that have not yet been paired to an installation identity.
 
 ## Event receiver
 
@@ -26,7 +26,7 @@ Dubai Shop sends events to:
 
 `POST /api/integrations/dubai-shop/v1/events`
 
-The endpoint validates the signature and timestamp, validates the v1 envelope, stores each event in `integration_event_inbox`, and acknowledges it with HTTP 202. The unique `event_id` prevents duplicate event processing. Accepted events are queued and update the external catalog mirror; acknowledgement does not mean a social publication has been sent.
+The endpoint validates the signature and timestamp, validates the v1 event envelope, stores each event in `integration_event_inbox`, and acknowledges it with HTTP 202. The unique `event_id` prevents duplicate event records. Immediate queue dispatch is attempted after persistence; if dispatch fails, the inbox record remains durable and the recovery scheduler redispatches it. Acknowledgement does not mean a social publication has been sent.
 
 ## Catalog reconciliation
 
@@ -38,7 +38,7 @@ php artisan social-publicator:sync-dubai-catalog
 
 The command synchronizes all eligible warehouses and all cursor-paginated catalog items. Items no longer returned by Dubai Shop are marked inactive in the mirror; local SocialPublicator products are not changed.
 
-The same command is scheduled hourly and does nothing until the Dubai Shop API URL and token are configured. Configure a persistent Laravel queue worker to process webhook events.
+The same command is scheduled hourly and does nothing until the Dubai Shop API URL and token are configured. Configure a persistent Laravel queue worker to process webhook events. `social-publicator:recover-dubai-inbox` runs every minute and redispatches pending events whose dispatch reservation is older than five minutes, plus events whose processing lease has expired. The command uses row locks and a dispatch reservation to avoid repeatedly enqueueing the same event. Workers claim each event atomically with a unique processing token and a 30-minute lease; concurrent deliveries exit without processing while a valid lease exists. The job retries up to five times with backoff. Exhausted events are marked `failed` for operator review and are not automatically retried, avoiding an unbounded retry loop. Use `php artisan social-publicator:recover-dubai-inbox --limit=100` for a manual recovery pass. Monitor pending/processing/failed inbox counts and the queue's failed-job store.
 
 The existing `publications:mark-stale-executions` command remains scheduled every five minutes. It marks interrupted publication attempts as having an unknown external result and deliberately does not retry them automatically; verify Facebook or WhatsApp before any manual retry.
 

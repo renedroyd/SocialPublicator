@@ -8,7 +8,9 @@ use App\Models\IntegrationEventInbox;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class DubaiShopWebhookController extends Controller
 {
@@ -57,7 +59,19 @@ class DubaiShopWebhookController extends Controller
         }
 
         if ($event->wasRecentlyCreated) {
-            ProcessDubaiShopEvent::dispatch($event->id, (int) $event->workspace_id)->afterCommit();
+            $event->update(['dispatch_reserved_at' => now()]);
+
+            try {
+                ProcessDubaiShopEvent::dispatch($event->id, (int) $event->workspace_id)->afterCommit();
+            } catch (Throwable $exception) {
+                $event->update(['dispatch_reserved_at' => null]);
+                Log::warning('Dubai Shop event was persisted but immediate queue dispatch failed; inbox recovery will retry it.', [
+                    'event_id' => $event->event_id,
+                    'inbox_id' => $event->id,
+                    'workspace_id' => $event->workspace_id,
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
         }
 
         return response()->json([

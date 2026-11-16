@@ -23,6 +23,10 @@ class IntegrationEventInbox extends Model
         'last_error',
         'received_at',
         'processed_at',
+        'dispatch_reserved_at',
+        'lease_expires_at',
+        'processing_token',
+        'failed_at',
     ];
 
     protected function casts(): array
@@ -33,6 +37,9 @@ class IntegrationEventInbox extends Model
             'attempts' => 'integer',
             'received_at' => 'datetime',
             'processed_at' => 'datetime',
+            'dispatch_reserved_at' => 'datetime',
+            'lease_expires_at' => 'datetime',
+            'failed_at' => 'datetime',
         ];
     }
 }
