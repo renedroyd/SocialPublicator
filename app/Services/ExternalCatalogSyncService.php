@@ -212,6 +212,20 @@ class ExternalCatalogSyncService
             return;
         }
 
+        // Inventory events carry a point-in-time snapshot. Preserve that snapshot
+        // and its aggregate revision so queued stock transitions are not collapsed
+        // into whatever happens to be current when the worker eventually runs.
+        $availabilitySnapshot = $data['availability']['warehouses'] ?? null;
+
+        if (
+            $event->event_type === 'inventory.changed'
+            && is_array($availabilitySnapshot)
+        ) {
+            $item['availability'] = ['warehouses' => $availabilitySnapshot];
+            $item['revision'] = $event->revision;
+            $item['updated_at'] = $payload['occurred_at'] ?? $item['updated_at'] ?? null;
+        }
+
         $syncedItem = $this->upsertItem($item);
 
         if ($event->revision >= $syncedItem->revision) {
