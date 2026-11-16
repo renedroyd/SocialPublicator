@@ -26,7 +26,7 @@ class DubaiShopApiUrlPolicy
         }
 
         $scheme = strtolower((string) $parts['scheme']);
-        $host = trim(strtolower(rtrim((string) $parts['host'], '.')), '[]');
+        $host = trim(strtolower((string) $parts['host']), '[]');
 
         if (! in_array($scheme, ['https', 'http'], true)
             || ($scheme !== 'https' && ! app()->environment(['local', 'testing']))) {
@@ -34,6 +34,7 @@ class DubaiShopApiUrlPolicy
         }
 
         if ($host === ''
+            || str_ends_with($host, '.')
             || str_contains($host, '%')
             || $host === 'localhost'
             || str_ends_with($host, '.localhost')
@@ -60,10 +61,17 @@ class DubaiShopApiUrlPolicy
 
         if (filter_var($host, FILTER_VALIDATE_IP)) {
             $addresses = [$host];
+            $isIpLiteral = true;
         } elseif (app()->environment('testing') && str_ends_with($host, '.test')) {
             $addresses = [];
+            $isIpLiteral = false;
         } else {
+            if (! preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/D', $host)) {
+                throw new RuntimeException('The Dubai Shop API hostname is invalid.');
+            }
+
             $addresses = $this->lookupAddresses($host);
+            $isIpLiteral = false;
         }
 
         if ($addresses === [] && ! (app()->environment('testing') && str_ends_with($host, '.test'))) {
@@ -78,7 +86,7 @@ class DubaiShopApiUrlPolicy
 
         $resolve = [];
 
-        if ($addresses !== []) {
+        if ($addresses !== [] && ! $isIpLiteral) {
             $address = $addresses[0];
             $formattedHost = str_contains($host, ':') ? '['.$host.']' : $host;
             $formattedAddress = str_contains($address, ':') ? '['.$address.']' : $address;
