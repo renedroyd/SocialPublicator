@@ -6,6 +6,7 @@ use App\Models\ExternalCatalogItem;
 use App\Models\ExternalCatalogWarehouse;
 use App\Models\IntegrationEventInbox;
 use App\Models\Workspace;
+use App\Models\WorkspaceDubaiShopIntegration;
 use App\Services\ExternalCatalogSyncService;
 use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -168,6 +169,13 @@ class ExternalCatalogSyncTest extends TestCase
             'slug' => 'inventory-snapshot-workspace',
         ]);
         app(WorkspaceContext::class)->set((int) $workspace->id);
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://shop.example.test',
+            'api_token' => 'test-api-token',
+            'webhook_key_id' => 'test-key',
+            'webhook_secret' => 'test-hmac-secret',
+            'enabled' => true,
+        ]);
 
         $initial = $this->itemPayload([
             'revision' => 4,
