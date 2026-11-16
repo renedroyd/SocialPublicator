@@ -78,7 +78,6 @@ class DubaiShopInboxRecoveryTest extends TestCase
         $this->assertNotNull($event->dispatch_reserved_at);
     }
 
-
     public function test_recovery_also_handles_legacy_processing_rows_without_a_lease(): void
     {
         Queue::fake();
