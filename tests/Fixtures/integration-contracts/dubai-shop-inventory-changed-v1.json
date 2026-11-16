@@ -1,0 +1,19 @@
+{
+  "event_id": "8f20b7e0-01a1-4e33-8a10-40abfa9b2a00",
+  "event_type": "inventory.changed",
+  "contract_version": "v1",
+  "aggregate_external_id": "9d20b7e0-01a1-4e33-8a10-40abfa9b2a00",
+  "revision": 13,
+  "occurred_at": "2026-11-16T12:01:00.000000Z",
+  "data": {
+    "item_external_id": "9d20b7e0-01a1-4e33-8a10-40abfa9b2a00",
+    "availability": {
+      "warehouses": [
+        {
+          "warehouse_external_id": "2f20b7e0-01a1-4e33-8a10-40abfa9b2a00",
+          "available_quantity": 0
+        }
+      ]
+    }
+  }
+}
