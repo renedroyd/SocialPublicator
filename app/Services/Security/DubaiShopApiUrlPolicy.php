@@ -80,8 +80,9 @@ class DubaiShopApiUrlPolicy
 
         if ($addresses !== []) {
             $address = $addresses[0];
+            $formattedHost = str_contains($host, ':') ? '['.$host.']' : $host;
             $formattedAddress = str_contains($address, ':') ? '['.$address.']' : $address;
-            $resolve[] = $host.':'.$port.':'.$formattedAddress;
+            $resolve[] = $formattedHost.':'.$port.':'.$formattedAddress;
         }
 
         return [
