@@ -9,6 +9,7 @@ use App\Filament\Resources\ExternalCatalogCampaigns\Pages\ListExternalCatalogCam
 use App\Models\ExternalCatalogCampaign;
 use App\Models\ExternalCatalogItem;
 use App\Models\SocialAccount;
+use App\Models\SocialAccountConnection;
 use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\DubaiShopIntegrationManager;
 use App\Services\Workspaces\WorkspaceContext;
