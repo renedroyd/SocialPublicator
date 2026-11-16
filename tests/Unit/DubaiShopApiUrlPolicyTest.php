@@ -59,7 +59,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
     {
         $unresolvable = new DubaiShopApiUrlPolicy(fn (string $host): array => []);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $unresolvable->resolve('https://missing.example.com');
     }
 
@@ -76,7 +76,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
             try {
                 $policy->resolve($url);
                 $this->fail("Expected {$url} to be rejected.");
-            } catch (RuntimeException) {
+            } catch (\RuntimeException) {
                 $this->assertTrue(true);
             }
         }
@@ -94,7 +94,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
     {
         $policy = new DubaiShopApiUrlPolicy();
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $policy->resolve('https://catalog.example.com.');
     }
 
