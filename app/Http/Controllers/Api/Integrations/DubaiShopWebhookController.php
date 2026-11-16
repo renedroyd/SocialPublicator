@@ -59,9 +59,12 @@ class DubaiShopWebhookController extends Controller
         }
 
         if ($event->wasRecentlyCreated) {
+            $event->update(['dispatch_reserved_at' => now()]);
+
             try {
                 ProcessDubaiShopEvent::dispatch($event->id, (int) $event->workspace_id)->afterCommit();
             } catch (Throwable $exception) {
+                $event->update(['dispatch_reserved_at' => null]);
                 Log::warning('Dubai Shop event was persisted but immediate queue dispatch failed; inbox recovery will retry it.', [
                     'event_id' => $event->event_id,
                     'inbox_id' => $event->id,
