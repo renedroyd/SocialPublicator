@@ -188,3 +188,29 @@ The repositories share versioned test fixtures for the two public integration bo
 - SocialPublicator's Bot API emits the v1 publication shape, and WBot normalizes the same fixture to its legacy internal delivery model.
 
 The fixtures are intentionally deterministic and contain no production credentials or live platform tokens. Each repository validates its side of the contract in its own CI workflow.
+
+## 13. Clone and disaster-recovery operations
+
+Dubai Shop now provides explicit commands for separating a database clone from its source installation. The receiver must continue enforcing the one-to-one installation/workspace constraints and HMAC v2 installation binding.
+
+### New independent installation
+
+When a copied Dubai Shop database will become a separate installation:
+
+1. Keep the clone isolated from the source. Do not start its queue workers or scheduled outbox dispatcher before identity rotation.
+2. On the clone, run `php artisan social-publicator:rotate-installation-identity --as-new-installation --confirm`.
+3. Securely capture the one-time output: new installation UUID, read-only API token, webhook key ID, and webhook secret.
+4. Create a new SocialPublicator workspace and configure the clone's API URL/token and the new HMAC key ID/secret in that workspace. Do not reuse the source workspace or its old credentials.
+5. Verify the connection through the authenticated Dubai Shop identity endpoint and ensure the workspace stores the newly generated installation UUID.
+6. Only after successful verification, run `php artisan social-publicator:complete-installation-pairing <NEW_INSTALLATION_UUID> --confirm` on the clone.
+
+Dubai Shop remains in `pending` pairing state until the final command. Its dispatcher and delivery jobs must not send events while pending. The clone rotation also revokes the copied read tokens, rotates the sender HMAC secret, and suppresses undelivered historical outbox records. SocialPublicator must never relax installation UUID matching or allow the new workspace to claim the source installation UUID.
+
+### Disaster-recovery replacement
+
+For a restore that replaces the original installation, preserve the original installation UUID and credentials. The original server must be offline before the restored copy is allowed to send events. Do not run the clone-rotation command in this scenario.
+
+### Normal operation
+
+Normal startup, deployment, migration, worker restart, or cache clearing never rotates an installation identity. Clone detection is not automatic; the operator must explicitly classify the copy as either a new installation or a disaster-recovery replacement.
+
