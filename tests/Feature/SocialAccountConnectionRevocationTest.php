@@ -50,6 +50,7 @@ class SocialAccountConnectionRevocationTest extends TestCase
             ])
             ->assertStatus(423);
 
+        app(WorkspaceContext::class)->set((int) $workspace->id);
         $service->reactivate($account->fresh(), SocialAccountConnection::TYPE_WPP_CONNECT_QR);
 
         $this->withToken('health-token')
@@ -62,6 +63,7 @@ class SocialAccountConnectionRevocationTest extends TestCase
             ])
             ->assertOk();
 
+        app(WorkspaceContext::class)->set((int) $workspace->id);
         $this->assertSame('connected', $connection->fresh()->status);
         $this->assertNull($connection->fresh()->revoked_at);
     }
