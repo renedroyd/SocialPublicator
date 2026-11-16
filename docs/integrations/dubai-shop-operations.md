@@ -96,3 +96,7 @@ Campaign publication is disabled by default. Keep **DUBAI_SHOP_CAMPAIGN_DISPATCH
 To pause social publication immediately, set **DUBAI_SHOP_CAMPAIGN_DISPATCH_ENABLED=false** and stop/disable the relevant bot workers if an execution is already in progress. To stop outbound catalog events, set **SOCIAL_PUBLICATOR_WEBHOOK_ENABLED=false** in Dubai Shop. These switches do not delete pending outbox, inbox, selection, or trigger records.
 
 Never put API tokens, webhook secrets, bot tokens, or customer data in Git. Use deployment secrets, HTTPS, queue monitoring, and log review. A webhook HTTP 202 is an inbox acknowledgement, not a successful social post.
+
+## Outbound API destination security
+
+SocialPublicator validates every configured Dubai Shop API destination before making an outbound request. Production connections require HTTPS on port 443. Localhost, private, loopback, link-local, reserved, and IPv4-mapped private IPv6 addresses are rejected. Hostnames are resolved on each request; every returned A/AAAA address must be public, and the selected validated address is pinned with cURL's DNS resolve option to prevent a DNS-rebinding change between validation and connection. The HTTP client does not follow redirects, so the configured API token cannot be forwarded to a different redirect target. Production deployments therefore require PHP's cURL extension. Reserved `.test` hostnames are accepted only in the test environment for isolated HTTP fakes.

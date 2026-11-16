@@ -315,4 +315,51 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
             'name' => 'Second workspace item',
         ]);
     }
+
+    public function test_api_client_rejects_private_ip_targets_before_sending_requests(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Private endpoint', 'slug' => 'private-endpoint']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://127.0.0.1',
+            'api_token' => 'private-target-token',
+            'webhook_key_id' => 'private-target-key',
+            'webhook_secret' => 'private-target-secret',
+            'enabled' => true,
+        ]);
+
+        Http::fake();
+
+        try {
+            app(DubaiShopApiClient::class)->warehouses();
+            $this->fail('Private API destinations must be rejected before an HTTP request is sent.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('private, local, or reserved', $exception->getMessage());
+        }
+
+        Http::assertNothingSent();
+    }
+
+    public function test_api_client_does_not_follow_redirects_from_the_configured_endpoint(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Redirect endpoint', 'slug' => 'redirect-endpoint']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://redirect-shop.example.test',
+            'api_token' => 'redirect-private-token',
+            'webhook_key_id' => 'redirect-key',
+            'webhook_secret' => 'redirect-secret',
+            'enabled' => true,
+        ]);
+
+        Http::fake([
+            '*' => Http::response([], 302, ['Location' => 'https://127.0.0.1/private']),
+        ]);
+
+        $this->assertSame([], app(DubaiShopApiClient::class)->warehouses());
+
+        Http::assertSentCount(1);
+    }
 }
