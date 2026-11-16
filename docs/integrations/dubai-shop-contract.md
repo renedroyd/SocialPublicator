@@ -1,6 +1,6 @@
 # Dubai Shop integration contract
 
-**Status:** implemented foundation; identity-bound handshake and reliability hardening in progress  
+**Status:** one-to-one installation identity and HMAC v2 implemented; catalog lifecycle events and point-in-time inventory snapshots implemented in the coordinated integration branches  
 **Contract version:** v1  
 **System of record:** Dubai Shop (Clásico Dubai)  
 **Consumer and publishing orchestrator:** SocialPublicator
@@ -9,7 +9,7 @@
 
 Dubai Shop is the sole authority for products, variants, sale prices, warehouses, and inventory. SocialPublicator consumes the catalog and events to select campaign items and prepare social publications. The applications must not connect directly to each other's databases.
 
-The read API, signed webhook receiver, external catalog mirror and workspace-scoped integration foundation exist. The one-to-one installation identity handshake is being introduced in the coordinated Phase 1 changes; lifecycle event completeness, durable inbox recovery and end-to-end coverage remain roadmap work.
+The read API, signed webhook receiver, external catalog mirror and workspace-scoped integration are implemented. A stable installation UUID is paired one-to-one with a workspace and bound into HMAC v2 signatures. Lifecycle events and point-in-time inventory snapshots are emitted and consumed; durable inbox recovery, strict aggregate ordering and cross-repository end-to-end coverage remain roadmap work.
 
 The integration must preserve the existing local-product workflow, Publication scheduling, destinations, bots, and execution tracking.
 
@@ -107,7 +107,7 @@ The event receiver validates the HMAC signature, timestamp, payload size, schema
 ## 6. Event processing and idempotency
 
 - Deduplicate by `event_id`.
-- Track the latest accepted revision per external item and ignore stale out-of-order updates.
+- Track the latest accepted revision per external item and ignore stale out-of-order updates. For `inventory.changed`, consume the event's per-warehouse availability snapshot and event revision instead of replacing it with stock queried at worker execution time.
 - Preserve the same event ID and body on delivery retries.
 - Process events asynchronously with retry/backoff and observable failures.
 - Reconcile the full catalog periodically against Dubai Shop.
