@@ -30,8 +30,10 @@ class RecoverDubaiShopInbox extends Command
                         });
                 })->orWhere(function ($expired) use ($now): void {
                     $expired->where('status', 'processing')
-                        ->whereNotNull('lease_expires_at')
-                        ->where('lease_expires_at', '<=', $now);
+                        ->where(function ($lease) use ($now): void {
+                            $lease->whereNull('lease_expires_at')
+                                ->orWhere('lease_expires_at', '<=', $now);
+                        });
                 });
             })
             ->orderBy('received_at')
@@ -55,8 +57,7 @@ class RecoverDubaiShopInbox extends Command
                     && ($event->dispatch_reserved_at === null
                         || $event->dispatch_reserved_at->lte($reservationCutoff));
                 $leaseExpired = $event->status === 'processing'
-                    && $event->lease_expires_at !== null
-                    && $event->lease_expires_at->lte($now);
+                    && ($event->lease_expires_at === null || $event->lease_expires_at->lte($now));
 
                 if (! $pendingAndAvailable && ! $leaseExpired) {
                     return null;
