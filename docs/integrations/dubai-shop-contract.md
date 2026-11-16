@@ -1,6 +1,6 @@
 # Dubai Shop integration contract
 
-**Status:** one-to-one installation identity and HMAC v2 implemented; catalog lifecycle events and point-in-time inventory snapshots implemented in the coordinated integration branches  
+**Status:** read API, one-to-one installation identity, HMAC v2, dual-key rotation, SSRF protections, durable inbox recovery, catalog lifecycle events, point-in-time inventory snapshots and official Meta Page campaign delivery implemented  
 **Contract version:** v1  
 **System of record:** Dubai Shop (Clásico Dubai)  
 **Consumer and publishing orchestrator:** SocialPublicator
@@ -9,7 +9,7 @@
 
 Dubai Shop is the sole authority for products, variants, sale prices, warehouses, and inventory. SocialPublicator consumes the catalog and events to select campaign items and prepare social publications. The applications must not connect directly to each other's databases.
 
-The read API, signed webhook receiver, external catalog mirror and workspace-scoped integration are implemented. A stable installation UUID is paired one-to-one with a workspace and bound into HMAC v2 signatures. Lifecycle events and point-in-time inventory snapshots are emitted and consumed; durable inbox recovery, strict aggregate ordering and cross-repository end-to-end coverage remain roadmap work.
+The read API, signed webhook receiver, external catalog mirror and workspace-scoped integration are implemented. A stable installation UUID is paired one-to-one with a workspace and bound into HMAC v2 signatures. Lifecycle events and point-in-time inventory snapshots are emitted and consumed. The inbox has durable recovery with leases and bounded retries; aggregate revisions prevent stale snapshots from overwriting newer catalog state. Shared contract fixtures now exercise the Dubai Shop → SocialPublicator event and SocialPublicator → WBot publication contracts. A full deployed pilot and the safe recovery procedure for cloned database identities remain operational work.
 
 The integration must preserve the existing local-product workflow, Publication scheduling, destinations, bots, and execution tracking.
 
@@ -177,3 +177,14 @@ The supported cardinality is **one Dubai-Shop installation ↔ one SocialPublica
 - A workspace without a Dubai-Shop integration remains fully independent. Multiple stores require separate Dubai-Shop installations and separate SocialPublicator workspaces.
 
 The integration must not support fan-out from one Dubai-Shop installation to multiple workspaces, even if the same API URL or token is copied into multiple workspace settings.
+
+
+## 12. Cross-application contract validation
+
+The repositories share versioned test fixtures for the two public integration boundaries:
+
+- Dubai Shop emits the v1 inventory event envelope through its transactional outbox.
+- SocialPublicator authenticates the HMAC v2 webhook, persists the event in its durable inbox, processes it, and applies the event's point-in-time inventory snapshot even when the read API returns a newer stock value.
+- SocialPublicator's Bot API emits the v1 publication shape, and WBot normalizes the same fixture to its legacy internal delivery model.
+
+The fixtures are intentionally deterministic and contain no production credentials or live platform tokens. Each repository validates its side of the contract in its own CI workflow.
