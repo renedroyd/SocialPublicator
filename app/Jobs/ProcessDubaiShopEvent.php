@@ -125,6 +125,11 @@ class ProcessDubaiShopEvent implements ShouldQueue
         IntegrationEventInbox::withoutGlobalScope('workspace')
             ->whereKey($this->eventId)
             ->where('status', '!=', 'processed')
+            ->where(function ($query): void {
+                $query->where('status', '!=', 'processing')
+                    ->orWhereNull('lease_expires_at')
+                    ->orWhere('lease_expires_at', '<=', now());
+            })
             ->update([
                 'status' => 'failed',
                 'last_error' => $exception ? Str::limit($exception->getMessage(), 4000) : 'Queue exhausted retries.',
