@@ -3,11 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\ExternalCatalogItem;
+use App\Models\ExternalCatalogWarehouse;
 use App\Models\IntegrationEventInbox;
 use App\Models\Workspace;
-use App\Services\Workspaces\WorkspaceContext;
-use App\Models\ExternalCatalogWarehouse;
 use App\Services\ExternalCatalogSyncService;
+use App\Services\Workspaces\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
