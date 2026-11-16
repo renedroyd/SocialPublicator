@@ -45,7 +45,7 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
     public static function canCreate(): bool
     {
         return static::currentWorkspaceMembership()?->hasPermission('integrations.manage') === true
-            && !WorkspaceDubaiShopIntegration::query()->exists();
+            && ! WorkspaceDubaiShopIntegration::query()->exists();
     }
 
     public static function canDelete(Model $record): bool
