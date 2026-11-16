@@ -240,5 +240,4 @@ class ExternalCatalogSyncTest extends TestCase
         $this->assertSame($snapshot, $synced->availability);
         $this->assertNotSame($currentApiItem['availability'], $synced->availability);
     }
-
 }
