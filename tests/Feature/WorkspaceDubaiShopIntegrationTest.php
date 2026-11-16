@@ -13,7 +13,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use RuntimeException;
 use Tests\TestCase;
 
 class WorkspaceDubaiShopIntegrationTest extends TestCase
@@ -335,7 +334,7 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
         try {
             app(DubaiShopApiClient::class)->warehouses();
             $this->fail('Private API destinations must be rejected before an HTTP request is sent.');
-        } catch (RuntimeException $exception) {
+        } catch (\\RuntimeException $exception) {
             $this->assertStringContainsString('private, local, or reserved', $exception->getMessage());
         }
 
