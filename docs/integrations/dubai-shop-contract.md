@@ -35,7 +35,8 @@ Dubai Shop will expose the versioned read API:
 
 | Method | Route | Purpose |
 |---|---|---|
-| GET | `/identity` | Authenticated stable UUID of this Dubai-Shop installation. |\n| GET | `/items` | Full or incremental paginated catalog. |
+| GET | `/identity` | Authenticated stable UUID of this Dubai-Shop installation. |
+| GET | `/items` | Full or incremental paginated catalog. |
 | GET | `/items/{external_id}` | Current item state. |
 | GET | `/warehouses` | Eligible warehouses and stable external identifiers. |
 
