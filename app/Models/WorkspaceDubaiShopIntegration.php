@@ -19,6 +19,9 @@ class WorkspaceDubaiShopIntegration extends Model
         'api_token',
         'webhook_key_id',
         'webhook_secret',
+        'previous_webhook_key_id',
+        'previous_webhook_secret',
+        'previous_webhook_secret_expires_at',
         'enabled',
         'campaign_dispatch_enabled',
         'timeout',
@@ -32,6 +35,7 @@ class WorkspaceDubaiShopIntegration extends Model
     protected $hidden = [
         'api_token',
         'webhook_secret',
+        'previous_webhook_secret',
     ];
 
     protected function casts(): array
@@ -39,6 +43,8 @@ class WorkspaceDubaiShopIntegration extends Model
         return [
             'api_token' => 'encrypted',
             'webhook_secret' => 'encrypted',
+            'previous_webhook_secret' => 'encrypted',
+            'previous_webhook_secret_expires_at' => 'datetime',
             'enabled' => 'boolean',
             'campaign_dispatch_enabled' => 'boolean',
             'timeout' => 'integer',
