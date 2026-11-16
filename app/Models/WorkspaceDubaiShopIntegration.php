@@ -13,6 +13,7 @@ class WorkspaceDubaiShopIntegration extends Model
     protected $table = 'workspace_dubai_shop_integrations';
 
     protected $fillable = [
+        'installation_id',
         'api_base_url',
         'api_token',
         'webhook_key_id',
@@ -56,6 +57,7 @@ class WorkspaceDubaiShopIntegration extends Model
     {
         static::saving(function (self $integration): void {
             $credentialsChanged = $integration->isDirty([
+                'installation_id',
                 'api_base_url',
                 'api_token',
                 'webhook_key_id',
