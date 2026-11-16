@@ -640,4 +640,60 @@ class BotPublicationApiTest extends TestCase
             collect($payload['data'][0]['whatsapp_groups'])->pluck('id')->all(),
         );
     }
+
+    public function test_bot_publication_api_matches_the_shared_wbot_v1_contract_fixture(): void
+    {
+        $fixture = json_decode(
+            file_get_contents(base_path('tests/Fixtures/integration-contracts/social-publicator-publication-v1.json')),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+
+        $publication = Publication::query()->create([
+            'date' => $fixture['date'],
+            'time' => $fixture['time'],
+            'image' => $fixture['image'],
+            'text' => $fixture['text'],
+            'destination' => $fixture['destination'],
+            'active' => true,
+            'recurrence_type' => $fixture['recurrence_type'],
+            'recurrence_days' => $fixture['recurrence_days'],
+            'interval_hours' => $fixture['interval_hours'],
+            'interval_minutes' => $fixture['interval_minutes'],
+            'recurrence_start_time' => $fixture['recurrence_start_time'],
+            'recurrence_end_time' => $fixture['recurrence_end_time'],
+            'end_date' => $fixture['end_date'],
+        ]);
+
+        $whatsappGroup = WhatsAppGroup::query()->create([
+            'whatsapp_id' => $fixture['whatsapp_groups'][0]['whatsapp_id'],
+            'name' => $fixture['whatsapp_groups'][0]['name'],
+            'active' => true,
+            'is_admin' => true,
+        ]);
+        $facebookGroup = FacebookGroup::query()->create([
+            'facebook_id' => $fixture['facebook_groups'][0]['facebook_id'],
+            'name' => $fixture['facebook_groups'][0]['name'],
+            'url' => $fixture['facebook_groups'][0]['url'],
+            'active' => true,
+        ]);
+
+        $publication->whatsappGroups()->attach($whatsappGroup->id);
+        $publication->facebookGroups()->attach($facebookGroup->id);
+
+        $fixture['id'] = $publication->id;
+        $fixture['occurrence_id'] = $publication->id.'_2026-10-07_12-00';
+        $fixture['whatsapp_groups'][0]['id'] = $whatsappGroup->id;
+        $fixture['facebook_groups'][0]['id'] = $facebookGroup->id;
+
+        $response = $this->withToken('test-token')->getJson('/api/bot/publications');
+
+        $response->assertOk()->assertJsonCount(1, 'data');
+
+        $this->assertSame(
+            $fixture,
+            collect($response->json('data.0'))->only(array_keys($fixture))->all(),
+        );
+    }
+
 }
