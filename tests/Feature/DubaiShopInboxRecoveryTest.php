@@ -78,6 +78,23 @@ class DubaiShopInboxRecoveryTest extends TestCase
         $this->assertNotNull($event->dispatch_reserved_at);
     }
 
+
+    public function test_recovery_also_handles_legacy_processing_rows_without_a_lease(): void
+    {
+        Queue::fake();
+        $event = $this->createEvent([
+            'status' => 'processing',
+            'attempts' => 1,
+            'processing_token' => null,
+            'lease_expires_at' => null,
+        ]);
+
+        Artisan::call('social-publicator:recover-dubai-inbox');
+
+        Queue::assertPushed(ProcessDubaiShopEvent::class, 1);
+        $this->assertSame('pending', $event->fresh()->status);
+    }
+
     public function test_recovery_does_not_dispatch_an_event_with_an_active_processing_lease(): void
     {
         Queue::fake();
