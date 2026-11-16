@@ -13,6 +13,7 @@ use App\Services\Workspaces\WorkspaceContext;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -113,7 +114,7 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                         ->columnSpanFull(),
                 ]),
             Section::make('Eventos firmados')
-                ->description('Obligatorio para habilitar la integración. Los cambios de catálogo, inventario y precios se reciben mediante webhooks HMAC.')
+                ->description('Obligatorio para habilitar la integración. Admite una clave HMAC anterior durante una rotación controlada.')
                 ->columns(2)
                 ->schema([
                     TextInput::make('webhook_key_id')
@@ -122,12 +123,26 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                         ->required(fn (Get $get): bool => $get('enabled'))
                         ->helperText('Debe coincidir con el identificador configurado en el emisor de Dubai Shop.'),
                     TextInput::make('webhook_secret')
-                        ->label('Secreto HMAC')
+                        ->label('Secreto HMAC activo')
                         ->password()
                         ->revealable()
                         ->dehydrated(fn (?string $state): bool => filled($state))
                         ->required(fn (Get $get, ?WorkspaceDubaiShopIntegration $record): bool => $get('enabled') && blank($record?->webhook_secret))
                         ->helperText('Se cifra al guardar. Déjalo vacío para conservar el secreto existente.'),
+                    TextInput::make('previous_webhook_key_id')
+                        ->label('Identificador HMAC anterior')
+                        ->maxLength(120)
+                        ->helperText('Solo durante la rotación. Debe coincidir con el identificador anterior del emisor.'),
+                    TextInput::make('previous_webhook_secret')
+                        ->label('Secreto HMAC anterior')
+                        ->password()
+                        ->revealable()
+                        ->dehydrated(fn (?string $state): bool => filled($state))
+                        ->helperText('Se cifra al guardar. Déjalo vacío para conservarlo; bórralo al finalizar la ventana de rotación.'),
+                    DateTimePicker::make('previous_webhook_secret_expires_at')
+                        ->label('Vencimiento de la clave anterior')
+                        ->seconds(false)
+                        ->helperText('La clave anterior se rechaza automáticamente a partir de esta fecha y hora.'),
                     TextInput::make('timeout')
                         ->label('Tiempo máximo de espera (segundos)')
                         ->numeric()
