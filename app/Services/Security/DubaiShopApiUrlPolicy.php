@@ -87,10 +87,12 @@ class DubaiShopApiUrlPolicy
         $resolve = [];
 
         if ($addresses !== [] && ! $isIpLiteral) {
-            $address = $addresses[0];
             $formattedHost = str_contains($host, ':') ? '['.$host.']' : $host;
-            $formattedAddress = str_contains($address, ':') ? '['.$address.']' : $address;
-            $resolve[] = $formattedHost.':'.$port.':'.$formattedAddress;
+            $formattedAddresses = array_map(
+                fn (string $address): string => str_contains($address, ':') ? '['.$address.']' : $address,
+                $addresses,
+            );
+            $resolve[] = $formattedHost.':'.$port.':'.implode(',', $formattedAddresses);
         }
 
         return [
