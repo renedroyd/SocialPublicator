@@ -362,4 +362,21 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
 
         Http::assertSentCount(1);
     }
+
+    public function test_previous_hmac_key_requires_complete_expiring_configuration(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Incomplete rotation', 'slug' => 'incomplete-rotation']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
+        $this->expectException(\RuntimeException::class);
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://incomplete-rotation.example.test',
+            'api_token' => 'rotation-token',
+            'webhook_key_id' => 'rotation-current',
+            'webhook_secret' => 'rotation-current-secret',
+            'previous_webhook_key_id' => 'rotation-previous',
+            'previous_webhook_secret' => 'previous-rotation-secret-with-enough-entropy',
+            'enabled' => true,
+        ]);
+    }
 }

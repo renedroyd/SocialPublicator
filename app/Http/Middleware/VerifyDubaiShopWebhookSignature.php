@@ -30,7 +30,10 @@ class VerifyDubaiShopWebhookSignature
         }
 
         $integration = WorkspaceDubaiShopIntegration::withoutGlobalScope('workspace')
-            ->where('webhook_key_id', $keyId)
+            ->where(function ($query) use ($keyId): void {
+                $query->where('webhook_key_id', $keyId)
+                    ->orWhere('previous_webhook_key_id', $keyId);
+            })
             ->first();
 
         if ($integration) {
@@ -46,7 +49,20 @@ class VerifyDubaiShopWebhookSignature
                 return response()->json(['message' => 'Unsupported webhook signature version.'], 401);
             }
 
-            $secret = $integration->webhook_secret;
+            if (hash_equals((string) $integration->webhook_key_id, $keyId)) {
+                $secret = $integration->webhook_secret;
+            } else {
+                $previousKeyIsValid = filled($integration->previous_webhook_secret)
+                    && $integration->previous_webhook_secret_expires_at !== null
+                    && $integration->previous_webhook_secret_expires_at->isFuture();
+
+                if (! $previousKeyIsValid) {
+                    return response()->json(['message' => 'Invalid webhook signature.'], 401);
+                }
+
+                $secret = $integration->previous_webhook_secret;
+            }
+
             $workspaceId = (int) $integration->workspace_id;
             $tolerance = max(1, (int) $integration->webhook_tolerance_seconds);
         } else {

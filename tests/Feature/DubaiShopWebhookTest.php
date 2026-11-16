@@ -205,4 +205,98 @@ class DubaiShopWebhookTest extends TestCase
             'HTTP_X_DUBAISHOP_SIGNATURE' => $signature,
         ], $body)->assertUnauthorized();
     }
+
+    public function test_previous_hmac_key_is_accepted_only_until_its_expiration(): void
+    {
+        Queue::fake();
+        $workspace = Workspace::query()->create(['name' => 'Rotating key', 'slug' => 'rotating-key']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://rotating-shop.example.test',
+            'api_token' => 'rotating-api-token',
+            'webhook_key_id' => 'current-key',
+            'webhook_secret' => 'current-secret-with-enough-entropy',
+            'previous_webhook_key_id' => 'previous-key',
+            'previous_webhook_secret' => self::SECRET,
+            'previous_webhook_secret_expires_at' => now()->addHours(24),
+            'enabled' => true,
+        ]);
+
+        $payload = $this->payload();
+        $timestamp = now()->timestamp;
+        $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $signature = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, self::SECRET);
+
+        $this->call('POST', '/api/integrations/dubai-shop/v1/events', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_DUBAISHOP_KEY_ID' => 'previous-key',
+            'HTTP_X_DUBAISHOP_TIMESTAMP' => (string) $timestamp,
+            'HTTP_X_DUBAISHOP_SIGNATURE' => $signature,
+        ], $body)->assertAccepted();
+
+        $this->assertDatabaseHas('integration_event_inbox', ['event_id' => $payload['event_id']]);
+    }
+
+    public function test_previous_hmac_key_is_rejected_after_expiration(): void
+    {
+        $workspace = Workspace::query()->create(['name' => 'Expired rotating key', 'slug' => 'expired-rotating-key']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://expired-shop.example.test',
+            'api_token' => 'expired-api-token',
+            'webhook_key_id' => 'active-key',
+            'webhook_secret' => 'active-secret-with-enough-entropy',
+            'previous_webhook_key_id' => 'expired-key',
+            'previous_webhook_secret' => self::SECRET,
+            'previous_webhook_secret_expires_at' => now()->subSecond(),
+            'enabled' => true,
+        ]);
+
+        $payload = $this->payload();
+        $timestamp = now()->timestamp;
+        $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $signature = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, self::SECRET);
+
+        $this->call('POST', '/api/integrations/dubai-shop/v1/events', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_DUBAISHOP_KEY_ID' => 'expired-key',
+            'HTTP_X_DUBAISHOP_TIMESTAMP' => (string) $timestamp,
+            'HTTP_X_DUBAISHOP_SIGNATURE' => $signature,
+        ], $body)->assertUnauthorized();
+
+        $this->assertDatabaseCount('integration_event_inbox', 0);
+    }
+
+    public function test_active_hmac_key_remains_valid_during_rotation(): void
+    {
+        Queue::fake();
+        $workspace = Workspace::query()->create(['name' => 'Active rotating key', 'slug' => 'active-rotating-key']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+        WorkspaceDubaiShopIntegration::query()->create([
+            'api_base_url' => 'https://active-shop.example.test',
+            'api_token' => 'active-api-token',
+            'webhook_key_id' => 'active-key',
+            'webhook_secret' => 'active-secret-with-enough-entropy',
+            'previous_webhook_key_id' => 'previous-key',
+            'previous_webhook_secret' => self::SECRET,
+            'previous_webhook_secret_expires_at' => now()->addHours(24),
+            'enabled' => true,
+        ]);
+
+        $payload = $this->payload();
+        $timestamp = now()->timestamp;
+        $body = json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+        $secret = 'active-secret-with-enough-entropy';
+        $signature = 'sha256='.hash_hmac('sha256', $timestamp.'.'.$body, $secret);
+
+        $this->call('POST', '/api/integrations/dubai-shop/v1/events', [], [], [], [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_DUBAISHOP_KEY_ID' => 'active-key',
+            'HTTP_X_DUBAISHOP_TIMESTAMP' => (string) $timestamp,
+            'HTTP_X_DUBAISHOP_SIGNATURE' => $signature,
+        ], $body)->assertAccepted();
+    }
 }

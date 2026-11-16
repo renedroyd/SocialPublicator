@@ -19,6 +19,9 @@ class WorkspaceDubaiShopIntegration extends Model
         'api_token',
         'webhook_key_id',
         'webhook_secret',
+        'previous_webhook_key_id',
+        'previous_webhook_secret',
+        'previous_webhook_secret_expires_at',
         'enabled',
         'campaign_dispatch_enabled',
         'timeout',
@@ -32,6 +35,7 @@ class WorkspaceDubaiShopIntegration extends Model
     protected $hidden = [
         'api_token',
         'webhook_secret',
+        'previous_webhook_secret',
     ];
 
     protected function casts(): array
@@ -39,6 +43,8 @@ class WorkspaceDubaiShopIntegration extends Model
         return [
             'api_token' => 'encrypted',
             'webhook_secret' => 'encrypted',
+            'previous_webhook_secret' => 'encrypted',
+            'previous_webhook_secret_expires_at' => 'datetime',
             'enabled' => 'boolean',
             'campaign_dispatch_enabled' => 'boolean',
             'timeout' => 'integer',
@@ -59,6 +65,47 @@ class WorkspaceDubaiShopIntegration extends Model
         static::saving(function (self $integration): void {
             if (filled($integration->getOriginal('installation_id')) && $integration->isDirty('installation_id')) {
                 throw new RuntimeException('A Dubai Shop installation cannot be reassigned to another workspace.');
+            }
+
+            $previousKeyConfigured = filled($integration->previous_webhook_key_id)
+                || filled($integration->previous_webhook_secret)
+                || $integration->previous_webhook_secret_expires_at !== null;
+
+            if ($previousKeyConfigured && (
+                blank($integration->previous_webhook_key_id)
+                || blank($integration->previous_webhook_secret)
+                || $integration->previous_webhook_secret_expires_at === null
+            )) {
+                throw new RuntimeException('A previous HMAC key requires an ID, secret, and expiration timestamp.');
+            }
+
+            if (filled($integration->webhook_key_id)) {
+                $activeKeyConflict = self::withoutGlobalScope('workspace')
+                    ->where('previous_webhook_key_id', $integration->webhook_key_id)
+                    ->when($integration->exists, fn ($query) => $query->where('id', '!=', $integration->getKey()))
+                    ->exists();
+
+                if ($activeKeyConflict) {
+                    throw new RuntimeException('The active HMAC key ID is already assigned as a previous key to another workspace.');
+                }
+            }
+
+            if (filled($integration->previous_webhook_key_id)) {
+                if (hash_equals((string) $integration->webhook_key_id, (string) $integration->previous_webhook_key_id)) {
+                    throw new RuntimeException('The active and previous HMAC key IDs must be different.');
+                }
+
+                $keyConflict = self::withoutGlobalScope('workspace')
+                    ->where(function ($query) use ($integration): void {
+                        $query->where('webhook_key_id', $integration->previous_webhook_key_id)
+                            ->orWhere('previous_webhook_key_id', $integration->previous_webhook_key_id);
+                    })
+                    ->when($integration->exists, fn ($query) => $query->where('id', '!=', $integration->getKey()))
+                    ->exists();
+
+                if ($keyConflict) {
+                    throw new RuntimeException('The previous HMAC key ID is already assigned to another workspace.');
+                }
             }
 
             $credentialsChanged = $integration->isDirty([
