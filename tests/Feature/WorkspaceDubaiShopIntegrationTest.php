@@ -362,7 +362,7 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
 
         Http::assertSentCount(1);
     }
- 
+
     public function test_previous_hmac_key_requires_complete_expiring_configuration(): void
     {
         $workspace = Workspace::query()->create(['name' => 'Incomplete rotation', 'slug' => 'incomplete-rotation']);
@@ -379,5 +379,4 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
             'enabled' => true,
         ]);
     }
-
 }
