@@ -211,6 +211,9 @@ class CampaignPublicationDispatcherTest extends TestCase
 
     public function test_campaign_dispatch_attaches_only_connected_meta_pages_for_official_api_delivery(): void
     {
+        $workspace = Workspace::query()->create(['name' => 'Campaign Meta Pages', 'slug' => 'campaign-meta-pages']);
+        app(WorkspaceContext::class)->set((int) $workspace->id);
+
         config([
             'services.dubai_shop.api_base_url' => 'https://dubai.example.test',
             'services.dubai_shop.api_token' => 'test-token',
