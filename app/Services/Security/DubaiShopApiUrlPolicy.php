@@ -1,6 +1,6 @@
 <?php
 
-namespace App\\Services\\Security;
+namespace App\Services\Security;
 
 use Closure;
 use RuntimeException;
@@ -10,8 +10,6 @@ class DubaiShopApiUrlPolicy
     public function __construct(private readonly ?Closure $resolver = null) {}
 
     /**
-     * Validate a configured endpoint and return the DNS addresses that must be pinned.
-     *
      * @return array{host: string, port: int, curl_resolve: array<int, string>}
      */
     public function resolve(string $url): array
@@ -28,7 +26,7 @@ class DubaiShopApiUrlPolicy
         }
 
         $scheme = strtolower((string) $parts['scheme']);
-        $host = strtolower(rtrim((string) $parts['host'], '.'));
+        $host = trim(strtolower(rtrim((string) $parts['host'], '.')), '[]');
 
         if (! in_array($scheme, ['https', 'http'], true)
             || ($scheme !== 'https' && ! app()->environment(['local', 'testing']))) {
@@ -63,7 +61,6 @@ class DubaiShopApiUrlPolicy
         if (filter_var($host, FILTER_VALIDATE_IP)) {
             $addresses = [$host];
         } elseif (app()->environment('testing') && str_ends_with($host, '.test')) {
-            // Reserved test domains are used by Http::fake() and must never be resolved externally.
             $addresses = [];
         } else {
             $addresses = $this->lookupAddresses($host);
@@ -82,7 +79,6 @@ class DubaiShopApiUrlPolicy
         $resolve = [];
 
         if ($addresses !== []) {
-            // Pin one validated address so a later DNS answer cannot rebind the connection.
             $address = $addresses[0];
             $formattedAddress = str_contains($address, ':') ? '['.$address.']' : $address;
             $resolve[] = $host.':'.$port.':'.$formattedAddress;
@@ -131,8 +127,7 @@ class DubaiShopApiUrlPolicy
             return false;
         }
 
-        // Normalize IPv4-mapped IPv6 addresses before applying IPv4 range checks.
-        if (strlen($packed) === 16 && substr($packed, 0, 12) === str_repeat("\\0", 10)."\\xff\\xff") {
+        if (strlen($packed) === 16 && substr($packed, 0, 12) === str_repeat("\0", 10)."\xff\xff") {
             $address = inet_ntop(substr($packed, 12));
 
             if ($address === false) {
