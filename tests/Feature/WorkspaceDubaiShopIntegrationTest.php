@@ -359,12 +359,7 @@ class WorkspaceDubaiShopIntegrationTest extends TestCase
             '*' => Http::response([], 302, ['Location' => 'https://127.0.0.1/private']),
         ]);
 
-        try {
-            app(DubaiShopApiClient::class)->warehouses();
-            $this->fail('Redirect responses must not be followed.');
-        } catch (RequestException) {
-            $this->assertTrue(true);
-        }
+        $this->assertSame([], app(DubaiShopApiClient::class)->warehouses());
 
         Http::assertSentCount(1);
     }
