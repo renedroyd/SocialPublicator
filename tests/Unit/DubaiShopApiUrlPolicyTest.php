@@ -53,7 +53,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
 
         $this->assertSame('catalog.example.com', $result['host']);
         $this->assertSame(443, $result['port']);
-        $this->assertSame(['catalog.example.com:443:93.184.216.34'], $result['curl_resolve']);
+        $this->assertSame(['catalog.example.com:443:93.184.216.34,[2606:2800:220:1:248:1893:25c8:1946]'], $result['curl_resolve']);
     }
 
     public function test_it_rejects_unresolvable_hostnames(): void
@@ -90,4 +90,23 @@ class DubaiShopApiUrlPolicyTest extends TestCase
         $this->assertSame('first-shop.example.test', $result['host']);
         $this->assertSame([], $result['curl_resolve']);
     }
+
+    public function test_it_rejects_fully_qualified_hostnames_with_trailing_dots_to_keep_dns_pinning_exact(): void
+    {
+        $policy = new DubaiShopApiUrlPolicy();
+
+        $this->expectException(RuntimeException::class);
+        $policy->resolve('https://catalog.example.com.');
+    }
+
+    public function test_public_ip_literals_are_used_directly_without_dns_resolution(): void
+    {
+        $policy = new DubaiShopApiUrlPolicy();
+
+        $result = $policy->resolve('https://93.184.216.34');
+
+        $this->assertSame('93.184.216.34', $result['host']);
+        $this->assertSame([], $result['curl_resolve']);
+    }
+
 }
