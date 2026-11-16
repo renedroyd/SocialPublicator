@@ -7,6 +7,7 @@ use App\Models\ExternalCatalogCampaignSelection;
 use App\Models\ExternalCatalogCampaignTrigger;
 use App\Models\ExternalCatalogItem;
 use App\Models\Publication;
+use App\Models\PublicationDestination;
 use App\Models\SocialAccount;
 use App\Models\WorkspaceMembership;
 use App\Models\WorkspaceMembershipDestinationPermission;
@@ -312,6 +313,7 @@ class CampaignPublicationDispatcher
     private function hasDestinations(ExternalCatalogCampaign $campaign): bool
     {
         [$whatsappGroups, $facebookGroups] = $this->authorizedGroups($campaign);
+        $facebookPages = $this->authorizedMetaPageDestinations($campaign);
 
         $hasWhatsApp = ! in_array($campaign->destination, ['whatsapp', 'both'], true)
             || $whatsappGroups->isNotEmpty();
