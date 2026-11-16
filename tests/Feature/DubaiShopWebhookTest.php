@@ -299,5 +299,4 @@ class DubaiShopWebhookTest extends TestCase
             'HTTP_X_DUBAISHOP_SIGNATURE' => $signature,
         ], $body)->assertAccepted();
     }
-
 }
