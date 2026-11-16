@@ -76,9 +76,9 @@ Triggers are stored in `external_catalog_campaign_triggers` with the source even
 
 The **social-publicator:dispatch-campaign-publications** command consumes pending campaign selections and event triggers. It refreshes each external item from Dubai Shop immediately before creating a publication, verifies that the item remains active and visible, and calculates stock only across the campaign's selected warehouses that are still active and enabled for online fulfillment.
 
-A successful dispatch creates a record in the existing **publications** table and attaches the configured active WhatsApp/Facebook groups. Existing bots continue to fetch and execute these records through the current bot API; execution IDs, per-target tracking, and unknown-result protections remain in effect. Unique campaign origin keys prevent a retry from creating duplicate publications.
+A successful dispatch creates a record in the existing **publications** table and attaches the configured active WhatsApp groups and Facebook groups for WBot delivery, plus eligible official Facebook Page destinations for Meta Graph API delivery. Official Page destinations are revalidated for active account state, unrevoked/unexpired OAuth connection, and creator permissions. The existing meta-pages:dispatch scheduler creates one execution per publication occurrence and Page; WBot continues to process only its WhatsApp and Facebook Group destinations. Execution IDs, per-target tracking, and unknown-result protections remain in effect. Unique campaign origin keys prevent a retry from creating duplicate publications.
 
-The command runs every minute only after the explicit campaign-dispatch flag and the API credentials are configured. A pending trigger or selection is not proof that a post was sent; inspect the corresponding campaign record, publication, and bot execution state.
+The command runs every minute only after the explicit campaign-dispatch flag and the API credentials are configured. A pending trigger or selection is not proof that a post was sent; inspect the corresponding campaign record, publication, WBot execution state, and Meta Page execution state.
 
 ## Gradual activation and production checklist (phase 8)
 

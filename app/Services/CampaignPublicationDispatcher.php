@@ -7,6 +7,7 @@ use App\Models\ExternalCatalogCampaignSelection;
 use App\Models\ExternalCatalogCampaignTrigger;
 use App\Models\ExternalCatalogItem;
 use App\Models\Publication;
+use App\Models\PublicationDestination;
 use App\Models\SocialAccount;
 use App\Models\WorkspaceMembership;
 use App\Models\WorkspaceMembershipDestinationPermission;
@@ -281,7 +282,7 @@ class CampaignPublicationDispatcher
                     'created_by_user_id' => $campaign->created_by_user_id,
                     'date' => $scheduledAt->toDateString(),
                     'time' => $scheduledAt->format('H:i'),
-                    'image' => $this->safeImageUrl($imageUrl),
+                    'image' => $this->safeImageUrl($imageUrl) ?? '',
                     'text' => $text,
                     'destination' => $campaign->destination,
                     'active' => true,
@@ -300,6 +301,11 @@ class CampaignPublicationDispatcher
             $publication->whatsappGroups()->sync($whatsappGroupIds);
             $publication->facebookGroups()->sync($facebookGroupIds);
 
+            $pageDestinationIds = in_array($campaign->destination, ['facebook', 'both'], true)
+                ? $this->authorizedMetaPageDestinations($campaign)->modelKeys()
+                : [];
+            $publication->destinations()->sync($pageDestinationIds);
+
             return $publication;
         });
     }
@@ -307,11 +313,13 @@ class CampaignPublicationDispatcher
     private function hasDestinations(ExternalCatalogCampaign $campaign): bool
     {
         [$whatsappGroups, $facebookGroups] = $this->authorizedGroups($campaign);
+        $facebookPages = $this->authorizedMetaPageDestinations($campaign);
 
         $hasWhatsApp = ! in_array($campaign->destination, ['whatsapp', 'both'], true)
             || $whatsappGroups->isNotEmpty();
         $hasFacebook = ! in_array($campaign->destination, ['facebook', 'both'], true)
-            || $facebookGroups->isNotEmpty();
+            || $facebookGroups->isNotEmpty()
+            || $facebookPages->isNotEmpty();
 
         return $hasWhatsApp && $hasFacebook;
     }
@@ -392,6 +400,84 @@ class CampaignPublicationDispatcher
         }
 
         return [$whatsappGroups, $facebookGroups];
+    }
+
+    /**
+     * @return Collection<int, PublicationDestination>
+     */
+    private function authorizedMetaPageDestinations(ExternalCatalogCampaign $campaign): Collection
+    {
+        $destinations = PublicationDestination::query()
+            ->where('workspace_id', $campaign->workspace_id)
+            ->where('platform', 'facebook')
+            ->where('active', true)
+            ->whereHas('socialAccount', function ($query): void {
+                $query->where('platform', SocialAccount::PLATFORM_FACEBOOK)
+                    ->where('account_type', SocialAccount::TYPE_FACEBOOK_PAGE)
+                    ->where('status', SocialAccount::STATUS_CONNECTED);
+            })
+            ->with(['socialAccount.connections'])
+            ->get()
+            ->filter(fn (PublicationDestination $destination): bool => $this->isEligibleMetaPageDestination($destination))
+            ->values();
+
+        if ($campaign->created_by_user_id === null) {
+            return $destinations;
+        }
+
+        $membership = WorkspaceMembership::query()
+            ->where('workspace_id', $campaign->workspace_id)
+            ->where('user_id', $campaign->created_by_user_id)
+            ->where('status', 'active')
+            ->first();
+
+        if ($membership === null) {
+            return collect();
+        }
+
+        $context = app(WorkspaceContext::class);
+        $previousWorkspaceId = $context->id();
+        $context->set((int) $campaign->workspace_id);
+
+        try {
+            return $destinations
+                ->filter(fn (PublicationDestination $destination): bool => $membership->canPublishToDestination(
+                    WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION,
+                    (int) $destination->id,
+                ))
+                ->values();
+        } finally {
+            if ($previousWorkspaceId !== null) {
+                $context->set($previousWorkspaceId);
+            } else {
+                $context->clear();
+            }
+        }
+    }
+
+    private function isEligibleMetaPageDestination(PublicationDestination $destination): bool
+    {
+        $account = $destination->socialAccount;
+
+        if (
+            ! $destination->active
+            || $destination->platform !== 'facebook'
+            || $account === null
+            || $account->account_type !== SocialAccount::TYPE_FACEBOOK_PAGE
+            || $account->status !== SocialAccount::STATUS_CONNECTED
+        ) {
+            return false;
+        }
+
+        return $account->connections->contains(
+            fn ($connection): bool => $connection->connection_type === 'meta_oauth'
+                && $connection->provider === 'meta'
+                && $connection->status === 'connected'
+                && $connection->revoked_at === null
+                && (! $connection->expires_at || $connection->expires_at->isFuture())
+                && ($connection->credentials['token_type'] ?? null) === 'page'
+                && filled($connection->credentials['access_token'] ?? null),
+        );
     }
 
     private function availableInCampaignWarehouses(ExternalCatalogCampaign $campaign, ExternalCatalogItem $item): ?int

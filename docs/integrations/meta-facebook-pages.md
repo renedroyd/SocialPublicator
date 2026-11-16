@@ -69,3 +69,16 @@ En **Actividad reciente**, las ejecuciones de páginas oficiales tienen acciones
 - **Reintentar tras verificar:** para una ejecución `unknown`, exige escribir exactamente `CONFIRMO QUE NO EXISTE` y una confirmación adicional. Solo debe utilizarse después de revisar la página y verificar que Meta no creó la publicación.
 
 Estas acciones requieren el permiso `executions.manage`. Los roles propietario y administrador lo tienen; los permisos personalizados pueden concederlo expresamente. Los estados `unknown` nunca se reintentan automáticamente. Los reintentos usan la misma ocurrencia/destino y el job conserva el bloqueo por ejecución para evitar envíos concurrentes.
+
+
+## Dubai Shop campaign destinations
+
+SocialPublicator campaigns can now target official Facebook Pages in addition to Facebook Groups. In **Integraciones → Campañas sociales**, choose Facebook as a channel and select one or more destinations from **Páginas de Facebook (API oficial)**. You may combine Pages and Groups in the same campaign.
+
+- Facebook Groups continue through WBot's persistent browser session.
+- Official Facebook Pages are attached as publication destinations and delivered by Laravel's `meta-pages:dispatch` scheduler and `PublishMetaPagePublication` job.
+- WhatsApp Groups continue through WBot/WPPConnect.
+- The campaign dispatcher excludes Page destinations whose account is disconnected, whose Meta OAuth connection is revoked/expired, or whose creator lacks destination/account publish permission. The Meta Page job repeats the authorization checks immediately before sending.
+- Page access tokens remain encrypted in SocialPublicator and are never sent to WBot.
+
+The campaign publication record is shared, but each delivery path has its own execution record and retry/unknown-result protections.

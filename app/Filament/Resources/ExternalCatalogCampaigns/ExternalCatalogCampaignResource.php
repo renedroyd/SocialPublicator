@@ -9,6 +9,7 @@ use App\Filament\Resources\ExternalCatalogCampaigns\Pages\ListExternalCatalogCam
 use App\Models\ExternalCatalogCampaign;
 use App\Models\ExternalCatalogItem;
 use App\Models\SocialAccount;
+use App\Models\SocialAccountConnection;
 use App\Models\WorkspaceMembershipDestinationPermission;
 use App\Services\DubaiShopIntegrationManager;
 use App\Services\Workspaces\WorkspaceContext;
@@ -160,6 +161,67 @@ class ExternalCatalogCampaignResource extends Resource
         return $query;
     }
 
+    private static function authorizedMetaPageDestinations(Builder $query): Builder
+    {
+        $workspaceId = app(WorkspaceContext::class)->id();
+
+        $query->where('platform', 'facebook')
+            ->where('active', true)
+            ->whereHas('socialAccount', function (Builder $account) use ($workspaceId): void {
+                $account->where('workspace_id', $workspaceId)
+                    ->where('platform', SocialAccount::PLATFORM_FACEBOOK)
+                    ->where('account_type', SocialAccount::TYPE_FACEBOOK_PAGE)
+                    ->where('status', SocialAccount::STATUS_CONNECTED)
+                    ->whereHas('connections', function (Builder $connection): void {
+                        $connection->where('connection_type', SocialAccountConnection::TYPE_META_OAUTH)
+                            ->where('provider', 'meta')
+                            ->where('status', 'connected')
+                            ->whereNull('revoked_at')
+                            ->where(function (Builder $expiry): void {
+                                $expiry->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                            });
+                    });
+            });
+
+        $membership = auth()->user()?->activeWorkspaceMemberships()
+            ->where('workspace_id', $workspaceId)
+            ->first();
+
+        if ($membership === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if ($membership->isOwner()) {
+            return $query;
+        }
+
+        if (
+            ! $membership->hasPermission('destinations.view')
+            || ! $membership->hasPermission('publications.publish')
+        ) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        if (! $membership->hasPermission('destinations.manage')) {
+            $destinationIds = $membership->destinationPermissions()
+                ->where('destination_type', WorkspaceMembershipDestinationPermission::DESTINATION_PUBLICATION)
+                ->whereJsonContains('permissions', 'publish')
+                ->select('destination_id');
+
+            $query->whereIn('id', $destinationIds);
+        }
+
+        if (! $membership->hasPermission('accounts.manage')) {
+            $accountIds = $membership->socialAccountPermissions()
+                ->whereJsonContains('permissions', 'publish')
+                ->select('social_account_id');
+
+            $query->whereIn('social_account_id', $accountIds);
+        }
+
+        return $query;
+    }
+
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
@@ -247,7 +309,7 @@ class ExternalCatalogCampaignResource extends Resource
                     'ignore' => __('No publicar actualización'),
                 ])->default('immediate')->required()->native(false),
             ]),
-            Section::make(__('Destinos sociales'))->description(__('Las publicaciones automáticas utilizarán estos grupos activos y los bots ya configurados.'))->schema([
+            Section::make(__('Destinos sociales'))->description(__('Las publicaciones automáticas usarán grupos activos mediante WBot y páginas oficiales mediante Meta Graph API.'))->schema([
                 Select::make('destination')->label(__('Canales'))->options([
                     'whatsapp' => 'WhatsApp',
                     'facebook' => 'Facebook',
@@ -283,8 +345,22 @@ class ExternalCatalogCampaignResource extends Resource
                     ->searchable()
                     ->preload()
                     ->native(false)
-                    ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
+                    ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true) && blank($get('facebookPageDestinations')))
                     ->visible(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true)),
+                Select::make('facebookPageDestinations')
+                    ->label(__('Páginas de Facebook (API oficial)'))
+                    ->relationship(
+                        name: 'facebookPageDestinations',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn (Builder $query): Builder => static::authorizedMetaPageDestinations($query)->orderBy('name'),
+                    )
+                    ->multiple()
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->required(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true) && blank($get('facebookGroups')))
+                    ->visible(fn (Get $get): bool => in_array($get('destination'), ['facebook', 'both'], true))
+                    ->helperText(__('Estas páginas se publican directamente mediante Meta Graph API; no utilizan la sesión de WBot.')),
             ]),
         ]);
     }
