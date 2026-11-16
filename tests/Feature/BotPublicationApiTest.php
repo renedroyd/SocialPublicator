@@ -695,5 +695,4 @@ class BotPublicationApiTest extends TestCase
             collect($response->json('data.0'))->only(array_keys($fixture))->all(),
         );
     }
-
 }
