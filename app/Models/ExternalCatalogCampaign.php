@@ -106,6 +106,16 @@ class ExternalCatalogCampaign extends Model
         )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
     }
 
+    public function facebookPageDestinations(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            PublicationDestination::class,
+            'external_catalog_campaign_publication_destination',
+            'campaign_id',
+            'publication_destination_id',
+        )->withPivotValue('workspace_id', app(WorkspaceContext::class)->id())->withTimestamps();
+    }
+
     public function selections(): HasMany
     {
         return $this->hasMany(ExternalCatalogCampaignSelection::class, 'campaign_id');
