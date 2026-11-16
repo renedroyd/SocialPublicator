@@ -395,5 +395,4 @@ class CampaignPublicationDispatcherTest extends TestCase
             'publication_destination_id' => $revokedDestination->id,
         ]);
     }
-
 }
