@@ -26,7 +26,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
             try {
                 $policy->resolve($url);
                 $this->fail("Expected {$url} to be rejected.");
-            } catch (\\RuntimeException) {
+            } catch (\RuntimeException) {
                 $this->assertTrue(true);
             }
         }
@@ -38,7 +38,7 @@ class DubaiShopApiUrlPolicyTest extends TestCase
             fn (string $host): array => ['93.184.216.34', '10.1.2.3'],
         );
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $policy->resolve('https://mixed-dns.example.com');
     }
 
