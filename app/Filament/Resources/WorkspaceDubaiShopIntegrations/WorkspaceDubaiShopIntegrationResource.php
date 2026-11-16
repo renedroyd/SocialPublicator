@@ -25,6 +25,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+use RuntimeException;
 use Throwable;
 
 class WorkspaceDubaiShopIntegrationResource extends Resource
@@ -195,8 +197,8 @@ class WorkspaceDubaiShopIntegrationResource extends Resource
                             $identity = app(DubaiShopApiClient::class)->identity();
                             $installationId = (string) ($identity['installation_id'] ?? '');
 
-                            if (! \Illuminate\Support\Str::isUuid($installationId)) {
-                                throw new \RuntimeException('Dubai Shop returned an invalid installation identity.');
+                            if (! Str::isUuid($installationId)) {
+                                throw new RuntimeException('Dubai Shop returned an invalid installation identity.');
                             }
 
                             $warehouses = app(DubaiShopApiClient::class)->warehouses();
