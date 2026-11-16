@@ -282,7 +282,7 @@ class CampaignPublicationDispatcher
                     'created_by_user_id' => $campaign->created_by_user_id,
                     'date' => $scheduledAt->toDateString(),
                     'time' => $scheduledAt->format('H:i'),
-                    'image' => $this->safeImageUrl($imageUrl),
+                    'image' => $this->safeImageUrl($imageUrl) ?? '',
                     'text' => $text,
                     'destination' => $campaign->destination,
                     'active' => true,
